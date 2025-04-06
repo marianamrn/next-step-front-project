@@ -1,3 +1,4 @@
+<!-- src\components\login-components\AuthModals.vue -->
 <template>
   <div>
     <!-- Модальні вікна авторизації -->
@@ -27,7 +28,7 @@ export default {
   },
   data() {
     return {
-      activeModal: null
+      activeModal: 'login' // За замовчуванням показуємо форму логіну
     };
   },
   methods: {
