@@ -11,6 +11,7 @@
         <!-- Основний контент - залежить від активного маршруту -->
         <div class="content-area">
           <student-management v-if="activeRoute === 'students'" />
+          <course-management v-else-if="activeRoute === 'courses'" />
           <div v-else class="coming-soon">
             <h2>Розділ в розробці</h2>
             <p>Функціональність "{{ pageTitle }}" буде доступна незабаром.</p>
@@ -24,17 +25,19 @@
   import AdminSidePanel from './AdminSidePanel.vue';
   import AdminHeader from './AdminHeader.vue';
   import StudentManagement from './StudentManagement.vue';
+  import CourseManagement from './CourseManagement.vue';
   
   export default {
     name: 'AdminPanel',
     components: {
       AdminSidePanel,
       AdminHeader,
-      StudentManagement
+      StudentManagement,
+      CourseManagement
     },
     data() {
       return {
-        activeRoute: 'students'
+        activeRoute: 'courses' // За замовчуванням показуємо управління курсами
       }
     },
     computed: {

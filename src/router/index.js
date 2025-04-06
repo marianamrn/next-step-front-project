@@ -25,7 +25,7 @@ const routes = [
     component: AdminPanel,
     meta: { requiresAuth: true },
     children: [
-      { path: '', redirect: '/admin/students' },
+      { path: '', redirect: '/admin/courses' }, // Змінено на курси за замовчуванням
       { path: 'students', name: 'AdminStudents', component: AdminPanel, props: { activeRoute: 'students' } },
       { path: 'teachers', name: 'AdminTeachers', component: AdminPanel, props: { activeRoute: 'teachers' } },
       { path: 'administrators', name: 'AdminAdministrators', component: AdminPanel, props: { activeRoute: 'administrators' } },
