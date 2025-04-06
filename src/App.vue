@@ -1,43 +1,14 @@
 <!-- src/App.vue -->
 <template>
   <div id="app">
-    <!-- Тимчасово показуємо адмін-панель для перегляду дизайну -->
-    <admin-panel v-if="showAdminPanel" />
-    <!-- Використовуємо маршрутизатор для реальної навігації -->
-    <router-view v-else />
+    <!-- Використовуємо тільки router-view, тепер AdminPanel вже містить все необхідне -->
+    <router-view />
   </div>
 </template>
 
 <script>
-import AdminPanel from '@/components/admin/AdminPanel.vue';
-
 export default {
-  name: 'App',
-  components: {
-    AdminPanel
-  },
-  data() {
-    return {
-      showAdminPanel: true // Тимчасово true для перегляду дизайну
-    }
-  },
-  mounted() {
-    // При інтеграції з маршрутизатором змінити на false
-    // та налаштувати маршрути до всіх компонентів адмін-панелі
-    
-    /* Тимчасовий код для переходу між логіном і адмін-панеллю
-    if (this.$route.path === '/') {
-      this.$router.push('/admin/students');
-    }
-    */
-    
-    /* Логіка для майбутньої інтеграції з API та Vue Router
-    const token = localStorage.getItem('token');
-    if (!token && this.$route.path !== '/login' && this.$route.path !== '/register') {
-      this.$router.push('/login');
-    }
-    */
-  }
+  name: 'App'
 }
 </script>
 
