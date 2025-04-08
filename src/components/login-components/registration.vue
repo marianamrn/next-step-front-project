@@ -44,14 +44,19 @@
           <label class="input-label">Пароль</label>
           <div class="password-container">
             <input :type="showPassword ? 'text' : 'password'" v-model="password" class="registration-input" placeholder="Створіть ваш пароль" />
-            <button type="button" class="password-toggle" @click="togglePasswordVisibility">
-              <img src="@/assets/icons/eye-hide.svg" alt="Show password" v-if="!showPassword">
-              <img src="@/assets/icons/eye-show.svg" alt="Hide password" v-else>
-            </button>
+            <v-btn icon x-small class="password-toggle" @click="togglePasswordVisibility">
+              <v-icon>{{ showPassword ? 'mdi-eye-off' : 'mdi-eye' }}</v-icon>
+            </v-btn>
           </div>
         </div>
 
-        <button type="submit" class="registration-button">Зареєструватися</button>
+        <v-btn 
+          type="submit" 
+          color="black" 
+          block 
+          height="42" 
+          class="registration-button"
+        >Зареєструватися</v-btn>
 
         <div class="login-link">
           <a href="#" @click.prevent="goToLogin">Вже маєте акаунт? Увійти</a>
@@ -197,40 +202,30 @@ export default {
 }
 
 .password-toggle {
-  position: absolute;
-  right: 10px;
+  position: absolute !important;
+  right: 15px;
   top: 50%;
   transform: translateY(-50%);
-  cursor: pointer;
-  background: none;
-  border: none;
-  padding: 0;
-  width: 24px;
-  height: 24px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
 }
 
-.password-toggle img {
-  width: 24px;
-  height: 24px;
-}
+.password-toggle {
+    background-color: transparent !important;
+    box-shadow: none !important;
+    min-width: unset !important;
+    padding: 0 !important;
+    height: auto !important;
+    width: auto !important;
+  }
 
 .registration-button {
   width: 100%;
-  background-color: #000;
-  color: #fff;
-  padding: 0.5rem;
-  border-radius: 5px;
-  text-align: center;
-  font-weight: bold;
-  cursor: pointer;
-  transition: background-color 0.3s;
+  font-weight: bold !important;
+  text-transform: none !important;
+  letter-spacing: 0 !important;
 }
 
 .registration-button:hover {
-  background-color: #443BC9;
+  background-color: #443BC9 !important;
 }
 
 .login-link {
