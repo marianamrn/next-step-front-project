@@ -67,6 +67,7 @@
 </template>
 
 <script>
+import { authAPI } from '@/services/api'
 import { useRouter } from 'vue-router';
 
 export default {
@@ -87,16 +88,25 @@ export default {
     return { router };
   },
   methods: {
-    submit() {
-      console.log('Registering:', {
-        firstName: this.firstName,
-        lastName: this.lastName,
-        phone: this.phoneCode + this.phoneNumber,
+    async submit() {
+      const registrationData = {
+        first_name: this.firstName,
+        last_name: this.lastName,
         email: this.email,
-        password: this.password
-      });
-      // Після успішної реєстрації можна додати перехід до головної сторінки
-      // this.router.push('/');
+        phone: this.phoneCode + this.phoneNumber,
+        password: this.password,
+        password_confirmation: this.password
+      };
+
+      try {
+        const response = await authAPI.registerStudent(registrationData);
+        console.log('Реєстрація успішна:', response.data);
+        alert('Реєстрація пройшла успішно!');
+        this.router.push('/Login');
+      } catch (error) {
+        console.error('Помилка при реєстрації:', error.message || error);
+        alert('Помилка: ' + (error.response?.data?.message || 'Будь ласка, перевірте дані.'));
+      }
     },
     togglePasswordVisibility() {
       this.showPassword = !this.showPassword;
