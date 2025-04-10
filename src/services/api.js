@@ -3,7 +3,7 @@ import axios from 'axios';
 
 // Створюємо екземпляр axios з базовою URL
 const api = axios.create({
-  baseURL: process.env.VUE_APP_API_URL || 'http://localhost:8000/api',
+  baseURL: 'http://26.154.95.249/api',
   headers: {
     'Content-Type': 'application/json',
     'Accept': 'application/json'
@@ -22,138 +22,141 @@ api.interceptors.request.use(
   error => Promise.reject(error)
 );
 
-// Експортуємо функції для роботи з API
+// Додаємо перехоплювач для обробки відповідей
+api.interceptors.response.use(
+  response => response,
+  error => {
+    // Якщо помилка 401 (неавторизований), перенаправляємо на сторінку логіну
+    if (error.response && error.response.status === 401) {
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
+      if (window.location.pathname !== '/login') {
+        window.location.href = '/login';
+      }
+    }
+    return Promise.reject(error);
+  }
+);
+
+// Список адміністраторських email
+const adminEmails = ['admin@example.com', 'super_admin@example.com'];
 
 // Аутентифікація
 export const authAPI = {
+  // Базова функція для відправки запиту на логін
   login(credentials) {
-    return api.post('/auth/login', credentials);
+    return api.post('/login', credentials);
   },
+  
+  // Розширена функція авторизації з логікою перенаправлення
+  async authenticate(credentials, router) {
+    try {
+      // Використовуємо базову функцію логіну
+      const response = await this.login(credentials);
+      
+      console.log('Повна відповідь API:', response.data);
+      
+      // Перевіряємо наявність токена
+      if (response.data && response.data.token) {
+        // Зберігаємо токен
+        localStorage.setItem('token', response.data.token);
+        
+        // Зберігаємо інформацію про користувача
+        if (response.data.user) {
+          localStorage.setItem('user', JSON.stringify(response.data.user));
+        } else {
+          // Якщо дані користувача відсутні, створюємо базову структуру
+          localStorage.setItem('user', JSON.stringify({ email: credentials.email }));
+        }
+        
+        // Перевіряємо чи email належить адміністратору
+        const emailLower = credentials.email.toLowerCase();
+        
+        if (adminEmails.includes(emailLower) || emailLower.includes('admin')) {
+          console.log('Це адміністратор, перенаправляємо на адмін-панель');
+          if (router) {
+            router.push('/admin');
+          }
+          return { success: true, isAdmin: true };
+        } else {
+          console.log('Це звичайний користувач, перенаправляємо на домашню сторінку');
+          if (router) {
+            router.push('/home');
+          }
+          return { success: true, isAdmin: false };
+        }
+      } else {
+        throw new Error('Не вдалося увійти: відсутній токен у відповіді');
+      }
+    } catch (error) {
+      console.error('Помилка логіну:', error);
+      
+      let errorMessage = 'Помилка при вході. Спробуйте ще раз.';
+      
+      if (error.response) {
+        // Сервер відповів з помилкою
+        if (error.response.data && error.response.data.message) {
+          errorMessage = error.response.data.message;
+        } else if (error.response.status === 401) {
+          errorMessage = 'Невірний email або пароль';
+        } else if (error.response.status === 500) {
+          errorMessage = 'Помилка на сервері. Спробуйте пізніше.';
+        } else {
+          errorMessage = `Помилка: ${error.response.status}`;
+        }
+      } else if (error.request) {
+        // Запит був відправлений, але відповідь не отримана
+        errorMessage = 'Немає відповіді від сервера. Перевірте підключення до мережі.';
+      }
+      
+      return { success: false, errorMessage };
+    }
+  },
+  
   register(userData) {
-    return api.post('/auth/register', userData);
+    return api.post('/register', userData);
   },
+  
   logout() {
-    return api.post('/auth/logout');
+    return api.post('/logout');
   },
+  
   getProfile() {
-    return api.get('/auth/profile');
+    return api.get('/me');
   }
 };
 
 // Управління студентами
 export const studentsAPI = {
   getAll(params) {
-    return api.get('/students', { params });
+    return api.get('/users', { params });
   },
   getById(id) {
-    return api.get(`/students/${id}`);
+    return api.get(`/users/${id}`);
   },
   create(data) {
-    return api.post('/students', data);
+    return api.post('/users', data);
   },
   update(id, data) {
-    return api.put(`/students/${id}`, data);
+    return api.put(`/users/${id}`, data);
   },
   delete(id) {
-    return api.delete(`/students/${id}`);
+    return api.delete(`/users/${id}`);
   }
 };
 
-// Управління запитами до курсів
-export const requestsAPI = {
+// Управління адміністраторами
+export const adminsAPI = {
   getAll(params) {
-    return api.get('/requests', { params });
-  },
-  getById(id) {
-    return api.get(`/requests/${id}`);
-  },
-  approve(id) {
-    return api.post(`/requests/${id}/approve`);
-  },
-  reject(id) {
-    return api.post(`/requests/${id}/reject`);
-  }
-};
-
-// Управління викладачами
-export const teachersAPI = {
-  getAll(params) {
-    return api.get('/teachers', { params });
-  },
-  getById(id) {
-    return api.get(`/teachers/${id}`);
+    return api.get('/users/admins/list', { params });
   },
   create(data) {
-    return api.post('/teachers', data);
-  },
-  update(id, data) {
-    return api.put(`/teachers/${id}`, data);
-  },
-  delete(id) {
-    return api.delete(`/teachers/${id}`);
-  }
-};
-
-// Управління курсами
-export const coursesAPI = {
-  getAll(params) {
-    return api.get('/courses', { params });
-  },
-  getById(id) {
-    return api.get(`/courses/${id}`);
-  },
-  create(data) {
-    return api.post('/courses', data);
-  },
-  update(id, data) {
-    return api.put(`/courses/${id}`, data);
-  },
-  delete(id) {
-    return api.delete(`/courses/${id}`);
-  }
-};
-
-// Управління коментарями та відгуками
-export const commentsAPI = {
-  getAll(params) {
-    return api.get('/comments', { params });
-  },
-  getById(id) {
-    return api.get(`/comments/${id}`);
-  },
-  approve(id) {
-    return api.post(`/comments/${id}/approve`);
-  },
-  reject(id) {
-    return api.post(`/comments/${id}/reject`);
-  },
-  delete(id) {
-    return api.delete(`/comments/${id}`);
-  }
-};
-
-// Отримання статистики
-export const statisticsAPI = {
-  getOverview() {
-    return api.get('/statistics/overview');
-  },
-  getStudentStats() {
-    return api.get('/statistics/students');
-  },
-  getCourseStats() {
-    return api.get('/statistics/courses');
-  },
-  getFinancialStats() {
-    return api.get('/statistics/financial');
+    return api.post('/users/admins', data);
   }
 };
 
 export default {
   auth: authAPI,
   students: studentsAPI,
-  requests: requestsAPI,
-  teachers: teachersAPI,
-  courses: coursesAPI,
-  comments: commentsAPI,
-  statistics: statisticsAPI
+  admins: adminsAPI
 };

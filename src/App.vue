@@ -13,6 +13,9 @@ export default {
 </script>
 
 <style>
+/* Імпорт шрифтів повинен бути першим */
+@import url('https://fonts.googleapis.com/css2?family=VinnytsiaSansBold&display=swap');
+
 /* Глобальні стилі */
 * {
   box-sizing: border-box;
@@ -39,6 +42,4 @@ body {
   --text-color: #333;
   --text-light: #666;
 }
-
-@import url('https://fonts.googleapis.com/css2?family=VinnytsiaSansBold&display=swap');
 </style>
