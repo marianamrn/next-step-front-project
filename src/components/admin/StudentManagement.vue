@@ -1,412 +1,611 @@
-<!-- src/components/admin/StudentManagement.vue -->
 <template>
-    <div class="student-management">
-      <!-- Вкладки навігації -->
-      <div class="tab-navigation">
-        <div 
-          class="tab" 
-          :class="{ active: activeTab === 'students' }" 
-          @click="setActiveTab('students')"
-        >
-          Студенти
-        </div>
-        <div 
-          class="tab" 
-          :class="{ active: activeTab === 'requests' }" 
-          @click="setActiveTab('requests')"
-        >
-          Запити 
-          <span v-if="requests.length > 0" class="request-badge">{{ requests.length }}</span>
+  <div class="student-management">
+    <!-- Вкладки навігації -->
+    <div class="tab-navigation">
+      <div
+        class="tab"
+        :class="{ active: activeTab === 'students' }"
+        @click="setActiveTab('students')"
+      >
+        Студенти
+      </div>
+      <div
+        class="tab"
+        :class="{ active: activeTab === 'requests' }"
+        @click="setActiveTab('requests')"
+      >
+        Запити
+        <span v-if="requests.length > 0" class="request-badge">{{ requests.length }}</span>
+      </div>
+    </div>
+
+    <!-- Панель пошуку -->
+    <div class="search-panel">
+      <div v-if="activeTab === 'requests'" class="filter-panel">
+        <span class="filter-label">Запити:</span>
+        <div class="dropdown">
+          <button class="dropdown-toggle">
+            {{ selectedFilter }}
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              class="dropdown-arrow"
+            >
+              <polyline points="6 9 12 15 18 9"></polyline>
+            </svg>
+          </button>
+          <div class="dropdown-menu">
+            <div class="dropdown-item" @click="setFilter('Всі')">Всі</div>
+            <div class="dropdown-item" @click="setFilter('Перевірка оплати')">Перевірка оплати</div>
+            <div class="dropdown-item" @click="setFilter('Доступно')">Доступно</div>
+          </div>
         </div>
       </div>
-  
-      <!-- Панель пошуку -->
-      <div class="search-panel">
-        <div v-if="activeTab === 'requests'" class="filter-panel">
-          <span class="filter-label">Запити:</span>
-          <div class="dropdown">
-            <button class="dropdown-toggle">
-              {{ selectedFilter }}
-              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="dropdown-arrow">
-                <polyline points="6 9 12 15 18 9"></polyline>
+      <div class="search-container">
+        <input
+          type="text"
+          v-model="searchQuery"
+          :placeholder="activeTab === 'students' ? 'Пошук (номер)' : 'Пошук'"
+          class="search-input"
+          @input="handleSearch"
+        />
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          width="18"
+          height="18"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          class="search-icon"
+        >
+          <circle cx="11" cy="11" r="8"></circle>
+          <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+        </svg>
+      </div>
+    </div>
+
+    <!-- Індикатор завантаження -->
+    <div v-if="loading" class="loading-indicator">
+      <div class="spinner"></div>
+      <p>Завантаження даних...</p>
+    </div>
+
+    <!-- Таблиця студентів -->
+    <div v-else-if="activeTab === 'students'" class="data-table">
+      <div class="table-header">
+        <div class="header-cell col-id">ID</div>
+        <div class="header-cell col-name">Ім'я</div>
+        <div class="header-cell col-surname">Прізвище</div>
+        <div class="header-cell col-email">Email</div>
+        <div class="header-cell col-country">Код країни</div>
+        <div class="header-cell col-phone">Номер телефону</div>
+        <div class="header-cell col-actions">Дії</div>
+      </div>
+      <div class="table-body" v-if="filteredStudents.length > 0">
+        <div v-for="student in filteredStudents" :key="student.id" class="table-row">
+          <div class="cell col-id">{{ student.id }}</div>
+          <div class="cell col-name">{{ student.first_name }}</div>
+          <div class="cell col-surname">{{ student.last_name }}</div>
+          <div class="cell col-email">{{ student.email }}</div>
+          <div class="cell col-country">{{ student.phone ? student.phone.slice(0, 4) : '' }}</div>
+          <div class="cell col-phone">{{ student.phone ? student.phone.slice(4) : '' }}</div>
+          <div class="cell col-actions">
+            <button class="action-button view" @click="viewStudent(student)">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="18"
+                height="18"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                <circle cx="12" cy="12" r="3"></circle>
               </svg>
             </button>
-            <div class="dropdown-menu">
-              <div class="dropdown-item" @click="setFilter('Всі')">Всі</div>
-              <div class="dropdown-item" @click="setFilter('Перевірка оплати')">Перевірка оплати</div>
-              <div class="dropdown-item" @click="setFilter('Доступно')">Доступно</div>
-            </div>
-          </div>
-        </div>
-        <div class="search-container">
-          <input 
-            type="text" 
-            v-model="searchQuery" 
-            :placeholder="activeTab === 'students' ? 'Пошук (номер)' : 'Пошук'" 
-            class="search-input"
-          >
-          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="search-icon">
-            <circle cx="11" cy="11" r="8"></circle>
-            <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
-          </svg>
-        </div>
-      </div>
-  
-      <!-- Таблиця студентів -->
-      <div v-if="activeTab === 'students'" class="data-table">
-        <div class="table-header">
-          <div class="header-cell col-id">ID</div>
-          <div class="header-cell col-name">Ім'я</div>
-          <div class="header-cell col-surname">Прізвище</div>
-          <div class="header-cell col-email">Email</div>
-          <div class="header-cell col-country">Код країни</div>
-          <div class="header-cell col-phone">Номер телефону</div>
-          <div class="header-cell col-actions">Дії</div>
-        </div>
-        <div class="table-body">
-          <div v-for="student in filteredStudents" :key="student.id" class="table-row">
-            <div class="cell col-id">{{ student.id }}</div>
-            <div class="cell col-name">{{ student.firstName }}</div>
-            <div class="cell col-surname">{{ student.lastName }}</div>
-            <div class="cell col-email">{{ student.email }}</div>
-            <div class="cell col-country">{{ student.countryCode }}</div>
-            <div class="cell col-phone">{{ student.phone }}</div>
-            <div class="cell col-actions">
-              <button class="action-button view" @click="viewStudent(student)">
-                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                  <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
-                  <circle cx="12" cy="12" r="3"></circle>
-                </svg>
-              </button>
-              <button class="action-button edit" @click="editStudent(student)">
-                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                  <path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"></path>
-                </svg>
-              </button>
-            </div>
+            <button class="action-button edit" @click="editStudent(student)">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="18"
+                height="18"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"></path>
+              </svg>
+            </button>
           </div>
         </div>
       </div>
-  
-      <!-- Таблиця запитів -->
-      <div v-if="activeTab === 'requests'" class="data-table">
-        <div class="table-header">
-          <div class="header-cell col-id">ID</div>
-          <div class="header-cell col-name">Ім'я</div>
-          <div class="header-cell col-surname">Прізвище</div>
-          <div class="header-cell col-email">Email</div>
-          <div class="header-cell col-phone">Номер телефону</div>
-          <div class="header-cell col-type">Тип</div>
-          <div class="header-cell col-actions">Дії</div>
-        </div>
-        <div class="table-body">
-          <div v-for="request in filteredRequests" :key="request.id" class="table-row">
-            <div class="cell col-id">{{ request.id }}</div>
-            <div class="cell col-name">{{ request.firstName }}</div>
-            <div class="cell col-surname">{{ request.lastName }}</div>
-            <div class="cell col-email">{{ request.email }}</div>
-            <div class="cell col-phone">{{ request.phone }}</div>
-            <div class="cell col-type">{{ request.type }}</div>
-            <div class="cell col-actions">
-              <button class="action-button view" @click="viewRequest(request)">
-                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                  <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
-                  <circle cx="12" cy="12" r="3"></circle>
-                </svg>
-              </button>
-              <button class="action-button approve" @click="approveRequest(request)">
-                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                  <polyline points="20 6 9 17 4 12"></polyline>
-                </svg>
-              </button>
-              <button class="action-button reject" @click="rejectRequest(request)">
-                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                  <line x1="18" y1="6" x2="6" y2="18"></line>
-                  <line x1="6" y1="6" x2="18" y2="18"></line>
-                </svg>
-              </button>
-            </div>
-          </div>
-        </div>
+      <div v-else class="no-data">
+        <p>Студентів не знайдено</p>
       </div>
-  
-      <!-- Модальне вікно перегляду студента -->
-      <div v-if="isViewModalOpen" class="modal-overlay">
-        <div class="modal-container">
-          <div class="modal-header">
-            <h2>Перегляд студента</h2>
-            <button class="close-button" @click="closeModal">×</button>
-          </div>
-          <div class="modal-body">
-            <div class="form-group">
-              <label>Ім'я</label>
-              <input type="text" v-model="currentStudent.firstName" disabled>
-            </div>
-            <div class="form-group">
-              <label>Прізвище</label>
-              <input type="text" v-model="currentStudent.lastName" disabled>
-            </div>
-            <div class="form-group">
-              <label>Email</label>
-              <input type="email" v-model="currentStudent.email" disabled>
-            </div>
-            <div class="form-group">
-              <label>Номер телефону</label>
-              <input type="text" v-model="currentStudent.phone" disabled>
-            </div>
-          </div>
-          <div class="modal-footer">
-            <button class="button close-btn" @click="closeModal">Закрити</button>
-          </div>
-        </div>
+    </div>
+
+    <!-- Таблиця запитів -->
+    <div v-else-if="activeTab === 'requests'" class="data-table">
+      <div class="table-header">
+        <div class="header-cell col-id">ID</div>
+        <div class="header-cell col-name">Ім'я</div>
+        <div class="header-cell col-surname">Прізвище</div>
+        <div class="header-cell col-email">Email</div>
+        <div class="header-cell col-phone">Номер телефону</div>
+        <div class="header-cell col-type">Тип</div>
+        <div class="header-cell col-actions">Дії</div>
       </div>
-  
-      <!-- Модальне вікно редагування студента -->
-      <div v-if="isEditModalOpen" class="modal-overlay">
-        <div class="modal-container">
-          <div class="modal-header">
-            <h2>Редагування студента</h2>
-            <button class="close-button" @click="closeModal">×</button>
-          </div>
-          <div class="modal-body">
-            <div class="form-group">
-              <label>Ім'я</label>
-              <input type="text" v-model="currentStudent.firstName">
-            </div>
-            <div class="form-group">
-              <label>Прізвище</label>
-              <input type="text" v-model="currentStudent.lastName">
-            </div>
-            <div class="form-group">
-              <label>Email</label>
-              <input type="email" v-model="currentStudent.email">
-            </div>
-            <div class="form-group">
-              <label>Номер телефону</label>
-              <input type="text" v-model="currentStudent.phone">
-            </div>
-          </div>
-          <div class="modal-footer">
-            <button class="button cancel-btn" @click="closeModal">Скасувати</button>
-            <button class="button save-btn" @click="saveStudent">Змінити</button>
+      <div class="table-body">
+        <div v-for="request in filteredRequests" :key="request.id" class="table-row">
+          <div class="cell col-id">{{ request.id }}</div>
+          <div class="cell col-name">{{ request.firstName }}</div>
+          <div class="cell col-surname">{{ request.lastName }}</div>
+          <div class="cell col-email">{{ request.email }}</div>
+          <div class="cell col-phone">{{ request.phone }}</div>
+          <div class="cell col-type">{{ request.type }}</div>
+          <div class="cell col-actions">
+            <button class="action-button view" @click="viewRequest(request)">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="18"
+                height="18"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                <circle cx="12" cy="12" r="3"></circle>
+              </svg>
+            </button>
+            <button class="action-button approve" @click="approveRequest(request)">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="18"
+                height="18"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <polyline points="20 6 9 17 4 12"></polyline>
+              </svg>
+            </button>
+            <button class="action-button reject" @click="rejectRequest(request)">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="18"
+                height="18"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <line x1="18" y1="6" x2="6" y2="18"></line>
+                <line x1="6" y1="6" x2="18" y2="18"></line>
+              </svg>
+            </button>
           </div>
         </div>
       </div>
     </div>
-  </template>
-  
-  <script>
-  export default {
-    name: 'StudentManagement',
-    data() {
-      return {
-        activeTab: 'students',
-        searchQuery: '',
-        selectedFilter: 'Всі',
-        isViewModalOpen: false,
-        isEditModalOpen: false,
-        currentStudent: {
-          id: '',
-          firstName: '',
-          lastName: '',
-          email: '',
-          phone: ''
+
+    <!-- Пагінація -->
+    <div class="pagination" v-if="activeTab === 'students' && !loading && totalPages > 1">
+      <button
+        :disabled="currentPage === 1"
+        @click="changePage(currentPage - 1)"
+        class="pagination-btn"
+      >
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          width="18"
+          height="18"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        >
+          <polyline points="15 18 9 12 15 6"></polyline>
+        </svg>
+      </button>
+
+      <div class="page-info">Сторінка {{ currentPage }} з {{ totalPages }}</div>
+
+      <button
+        :disabled="currentPage === totalPages"
+        @click="changePage(currentPage + 1)"
+        class="pagination-btn"
+      >
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          width="18"
+          height="18"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        >
+          <polyline points="9 18 15 12 9 6"></polyline>
+        </svg>
+      </button>
+    </div>
+
+    <!-- Модальне вікно перегляду студента -->
+    <div v-if="isViewModalOpen" class="modal-overlay">
+      <div class="modal-container">
+        <div class="modal-header">
+          <h2>Перегляд студента</h2>
+          <button class="close-button" @click="closeModal">×</button>
+        </div>
+        <div class="modal-body">
+          <div v-if="!modalLoading">
+            <div class="form-group">
+              <label>Ім'я</label>
+              <input type="text" v-model="currentStudent.first_name" disabled />
+            </div>
+            <div class="form-group">
+              <label>Прізвище</label>
+              <input type="text" v-model="currentStudent.last_name" disabled />
+            </div>
+            <div class="form-group">
+              <label>Email</label>
+              <input type="email" v-model="currentStudent.email" disabled />
+            </div>
+            <div class="form-group">
+              <label>Номер телефону</label>
+              <input type="text" v-model="currentStudent.phone" disabled />
+            </div>
+          </div>
+          <div v-else class="modal-loading">
+            <div class="spinner"></div>
+            <p>Завантаження даних...</p>
+          </div>
+          <div v-if="errorMessage" class="error-message">
+            {{ errorMessage }}
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button class="button close-btn" @click="closeModal">Закрити</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Модальне вікно редагування студента -->
+    <div v-if="isEditModalOpen" class="modal-overlay">
+      <div class="modal-container">
+        <div class="modal-header">
+          <h2>Редагування студента</h2>
+          <button class="close-button" @click="closeModal">×</button>
+        </div>
+        <div class="modal-body">
+          <div v-if="!modalLoading">
+            <div class="form-group">
+              <label>Ім'я</label>
+              <input type="text" v-model="currentStudent.first_name" />
+            </div>
+            <div class="form-group">
+              <label>Прізвище</label>
+              <input type="text" v-model="currentStudent.last_name" />
+            </div>
+            <div class="form-group">
+              <label>Email</label>
+              <input type="email" v-model="currentStudent.email" />
+            </div>
+            <div class="form-group">
+              <label>Номер телефону</label>
+              <input type="text" v-model="currentStudent.phone" />
+            </div>
+          </div>
+          <div v-else class="modal-loading">
+            <div class="spinner"></div>
+            <p>Завантаження даних...</p>
+          </div>
+          <div v-if="errorMessage" class="error-message">
+            {{ errorMessage }}
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button class="button cancel-btn" @click="closeModal">Скасувати</button>
+          <button class="button save-btn" @click="saveStudent" :disabled="modalLoading">
+            Змінити
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</template>
+
+<script>
+import { studentsAPI } from '@/services/api'
+
+export default {
+  name: 'StudentManagement',
+  data() {
+    return {
+      activeTab: 'students',
+      searchQuery: '',
+      selectedFilter: 'Всі',
+      isViewModalOpen: false,
+      isEditModalOpen: false,
+      currentStudent: {
+        id: '',
+        first_name: '',
+        last_name: '',
+        email: '',
+        phone: '',
+      },
+      students: [],
+      requests: [
+        // Тимчасові дані для запитів - в майбутньому також будуть з API
+        {
+          id: '001',
+          firstName: 'Онопко',
+          lastName: 'Онопко',
+          email: 'onop24622@gmail.com',
+          phone: '+380 665035153',
+          type: 'Перевірка оплати',
         },
-        
-        // Тимчасові дані для відображення
-        students: [
-          { id: '001', firstName: 'Галина', lastName: 'Онопко', email: 'onopko@gmail.com', countryCode: '+380', phone: '0665035153' },
-          { id: '002', firstName: 'Ярослав', lastName: 'Онопко', email: 'onopko@gmail.com', countryCode: '+380', phone: '0665035153' },
-          { id: '003', firstName: 'Олександр', lastName: 'Стрельник', email: 'zigaChel234@gmail.com', countryCode: '+380', phone: '0665035153' }
-        ],
-        requests: [
-          { id: '001', firstName: 'Онопко', lastName: 'Онопко', email: 'onop24622@gmail.com', phone: '+380 665035153', type: 'Перевірка оплати' },
-          { id: '002', firstName: 'Онопко', lastName: 'Онопко', email: 'onop24622@gmail.com', phone: '+380 665035153', type: 'Доступно' },
-          { id: '003', firstName: 'Онопко', lastName: 'Онопко', email: 'onop24622@gmail.com', phone: '+380 665035153', type: 'Перевірка оплати' },
-          { id: '004', firstName: 'Онопко', lastName: 'Онопко', email: 'onop24622@gmail.com', phone: '+380 665035153', type: 'Перевірка оплати' },
-          { id: '005', firstName: 'Онопко', lastName: 'Онопко', email: 'onop24622@gmail.com', phone: '+380 665035153', type: 'Перевірка оплати' }
-        ]
+        {
+          id: '002',
+          firstName: 'Онопко',
+          lastName: 'Онопко',
+          email: 'onop24622@gmail.com',
+          phone: '+380 665035153',
+          type: 'Доступно',
+        },
+        {
+          id: '003',
+          firstName: 'Онопко',
+          lastName: 'Онопко',
+          email: 'onop24622@gmail.com',
+          phone: '+380 665035153',
+          type: 'Перевірка оплати',
+        },
+      ],
+      loading: false,
+      modalLoading: false,
+      errorMessage: '',
+      totalPages: 1,
+      currentPage: 1,
+      perPage: 10,
+      searchTimeout: null,
     }
   },
   computed: {
     filteredStudents() {
-      if (!this.searchQuery) return this.students;
-      
-      const query = this.searchQuery.toLowerCase();
-      return this.students.filter(student => 
-        student.id.toLowerCase().includes(query) ||
-        student.firstName.toLowerCase().includes(query) ||
-        student.lastName.toLowerCase().includes(query) ||
-        student.email.toLowerCase().includes(query) ||
-        student.phone.toLowerCase().includes(query)
-      );
+      return this.students
     },
     filteredRequests() {
-      let filtered = this.requests;
-      
+      let filtered = this.requests
+
       // Фільтр за типом
       if (this.selectedFilter !== 'Всі') {
-        filtered = filtered.filter(req => req.type === this.selectedFilter);
+        filtered = filtered.filter((req) => req.type === this.selectedFilter)
       }
-      
+
       // Фільтр за пошуковим запитом
       if (this.searchQuery) {
-        const query = this.searchQuery.toLowerCase();
-        filtered = filtered.filter(req => 
-          req.id.toLowerCase().includes(query) ||
-          req.firstName.toLowerCase().includes(query) ||
-          req.lastName.toLowerCase().includes(query) ||
-          req.email.toLowerCase().includes(query) ||
-          req.phone.toLowerCase().includes(query)
-        );
+        const query = this.searchQuery.toLowerCase()
+        filtered = filtered.filter(
+          (req) =>
+            req.id.toLowerCase().includes(query) ||
+            req.firstName.toLowerCase().includes(query) ||
+            req.lastName.toLowerCase().includes(query) ||
+            req.email.toLowerCase().includes(query) ||
+            req.phone.toLowerCase().includes(query),
+        )
       }
-      
-      return filtered;
-    }
+
+      return filtered
+    },
   },
   mounted() {
-    // Тимчасово - дані вже завантажені в data()
-    
-    /* Логіка для майбутньої інтеграції з API
-    this.fetchStudents();
-    this.fetchRequests();
-    */
+    this.fetchStudents()
   },
   methods: {
-    setActiveTab(tab) {
-      this.activeTab = tab;
-      this.searchQuery = '';
-    },
-    setFilter(filter) {
-      this.selectedFilter = filter;
-    },
-    viewStudent(student) {
-      this.currentStudent = { ...student };
-      this.isViewModalOpen = true;
-    },
-    editStudent(student) {
-      this.currentStudent = { ...student };
-      this.isEditModalOpen = true;
-    },
-    closeModal() {
-      this.isViewModalOpen = false;
-      this.isEditModalOpen = false;
-    },
-    saveStudent() {
-      // Тимчасово - зберігаємо зміни локально
-      const index = this.students.findIndex(s => s.id === this.currentStudent.id);
-      if (index !== -1) {
-        this.students[index] = { ...this.currentStudent };
-      }
-      this.closeModal();
-      
-      /* Логіка для майбутньої інтеграції з API
+    async fetchStudents() {
+      this.loading = true
+
       try {
-        // Запит до API для оновлення даних студента
-        // const response = await axios.put(`/api/students/${this.currentStudent.id}`, this.currentStudent);
-        // if (response.status === 200) {
-        //   const index = this.students.findIndex(s => s.id === this.currentStudent.id);
-        //   if (index !== -1) {
-        //     this.students[index] = { ...response.data };
-        //   }
-        //   this.closeModal();
-        // }
+        const params = {
+          page: this.currentPage,
+          per_page: this.perPage,
+        }
+
+        if (this.searchQuery) {
+          params.search = this.searchQuery
+        }
+
+        const response = await studentsAPI.getAll(params)
+
+        // Перевіряємо, чи відповідь містить ключ "users"
+        if (response.data && response.data.users) {
+          this.students = response.data.users
+          this.totalPages = Math.ceil(this.students.length / this.perPage)
+        } else if (response.data && response.data.data) {
+          // Альтернативна структура відповіді
+          this.students = response.data.data
+          this.totalPages =
+            response.data.last_page || Math.ceil(this.students.length / this.perPage)
+        } else {
+          // Якщо API повертає просто масив
+          this.students = response.data || []
+          this.totalPages = Math.ceil(this.students.length / this.perPage)
+        }
+
+        console.log('Отримані студенти:', this.students)
       } catch (error) {
-        console.error('Помилка при оновленні даних студента:', error);
-        // Тут можна додати повідомлення про помилку для користувача
+        console.error('Помилка при отриманні списку студентів:', error)
+        this.errorMessage = 'Не вдалося завантажити список студентів'
+      } finally {
+        this.loading = false
       }
-      */
     },
+
+    handleSearch() {
+      // Робимо затримку для уникнення занадто частих запитів
+      clearTimeout(this.searchTimeout)
+      this.searchTimeout = setTimeout(() => {
+        this.currentPage = 1 // Повертаємося на першу сторінку при пошуку
+        this.fetchStudents()
+      }, 300)
+    },
+
+    changePage(page) {
+      this.currentPage = page
+      this.fetchStudents()
+    },
+
+    setActiveTab(tab) {
+      this.activeTab = tab
+      this.searchQuery = ''
+
+      if (tab === 'students') {
+        this.fetchStudents()
+      }
+    },
+
+    setFilter(filter) {
+      this.selectedFilter = filter
+    },
+
+    async viewStudent(student) {
+      this.modalLoading = true
+      this.errorMessage = ''
+      this.isViewModalOpen = true
+
+      try {
+        // Отримуємо детальну інформацію про користувача
+        const response = await studentsAPI.getById(student.id)
+
+        // Перевіряємо, чи відповідь містить ключ "user"
+        if (response.data && response.data.user) {
+          this.currentStudent = response.data.user
+        } else {
+          this.currentStudent = response.data // Для зворотної сумісності
+        }
+
+        console.log('Деталі студента:', this.currentStudent)
+      } catch (error) {
+        console.error('Помилка при отриманні деталей студента:', error)
+        this.errorMessage = 'Не вдалося завантажити дані студента'
+      } finally {
+        this.modalLoading = false
+      }
+    },
+
+    async editStudent(student) {
+      this.modalLoading = true
+      this.errorMessage = ''
+      this.isEditModalOpen = true
+
+      try {
+        // Отримуємо детальну інформацію про користувача
+        const response = await studentsAPI.getById(student.id)
+
+        // Перевіряємо, чи відповідь містить ключ "user"
+        if (response.data && response.data.user) {
+          this.currentStudent = response.data.user
+        } else {
+          this.currentStudent = response.data // Для зворотної сумісності
+        }
+
+        console.log('Деталі студента для редагування:', this.currentStudent)
+      } catch (error) {
+        console.error('Помилка при отриманні деталей студента:', error)
+        this.errorMessage = 'Не вдалося завантажити дані студента'
+      } finally {
+        this.modalLoading = false
+      }
+    },
+
+    closeModal() {
+      this.isViewModalOpen = false
+      this.isEditModalOpen = false
+      this.errorMessage = ''
+    },
+
+    async saveStudent() {
+      this.modalLoading = true
+      this.errorMessage = ''
+
+      try {
+        // Відправляємо оновлені дані на сервер
+        await studentsAPI.update(this.currentStudent.id, this.currentStudent)
+
+        // Оновлюємо список студентів
+        this.fetchStudents()
+
+        // Закриваємо модальне вікно
+        this.closeModal()
+      } catch (error) {
+        console.error('Помилка при оновленні даних студента:', error)
+
+        if (error.response && error.response.data && error.response.data.message) {
+          this.errorMessage = error.response.data.message
+        } else {
+          this.errorMessage = 'Не вдалося оновити дані студента'
+        }
+      } finally {
+        this.modalLoading = false
+      }
+    },
+    // Тимчасово - показуємо дані запиту
+
     viewRequest(request) {
       // Тимчасово - показуємо дані запиту
-      this.currentStudent = { 
-        firstName: request.firstName,
-        lastName: request.lastName,
+      this.currentStudent = {
+        first_name: request.firstName,
+        last_name: request.lastName,
         email: request.email,
-        phone: request.phone
-      };
-      this.isViewModalOpen = true;
-      
-      /* Логіка для майбутньої інтеграції з API
-      try {
-        // Запит до API для отримання деталей запиту
-        // const response = await axios.get(`/api/requests/${request.id}`);
-        // this.currentStudent = response.data;
-        // this.isViewModalOpen = true;
-      } catch (error) {
-        console.error('Помилка при завантаженні деталей запиту:', error);
-        // Тут можна додати повідомлення про помилку для користувача
+        phone: request.phone,
       }
-      */
+      this.isViewModalOpen = true
     },
+
     approveRequest(request) {
       // Тимчасово - видаляємо запит зі списку
-      const index = this.requests.findIndex(r => r.id === request.id);
+      const index = this.requests.findIndex((r) => r.id === request.id)
       if (index !== -1) {
-        this.requests.splice(index, 1);
+        this.requests.splice(index, 1)
       }
-      
-      /* Логіка для майбутньої інтеграції з API
-      try {
-        // Запит до API для схвалення запиту
-        // await axios.post(`/api/requests/${request.id}/approve`);
-        // Видаляємо запит зі списку після успішного схвалення
-        // const index = this.requests.findIndex(r => r.id === request.id);
-        // if (index !== -1) {
-        //   this.requests.splice(index, 1);
-        // }
-      } catch (error) {
-        console.error('Помилка при схваленні запиту:', error);
-        // Тут можна додати повідомлення про помилку для користувача
-      }
-      */
     },
+
     rejectRequest(request) {
       // Тимчасово - видаляємо запит зі списку
-      const index = this.requests.findIndex(r => r.id === request.id);
+      const index = this.requests.findIndex((r) => r.id === request.id)
       if (index !== -1) {
-        this.requests.splice(index, 1);
-      }
-      
-      /* Логіка для майбутньої інтеграції з API
-      try {
-        // Запит до API для відхилення запиту
-        // await axios.post(`/api/requests/${request.id}/reject`);
-        // Видаляємо запит зі списку після успішного відхилення
-        // const index = this.requests.findIndex(r => r.id === request.id);
-        // if (index !== -1) {
-        //   this.requests.splice(index, 1);
-        // }
-      } catch (error) {
-        console.error('Помилка при відхиленні запиту:', error);
-        // Тут можна додати повідомлення про помилку для користувача
-      }
-      */
-    },
-    /* Логіка для майбутньої інтеграції з API
-    async fetchStudents() {
-      try {
-        // Запит до API для отримання списку студентів
-        // const response = await axios.get('/api/students');
-        // this.students = response.data;
-      } catch (error) {
-        console.error('Помилка при завантаженні списку студентів:', error);
-        // Тут можна додати повідомлення про помилку для користувача
+        this.requests.splice(index, 1)
       }
     },
-    async fetchRequests() {
-      try {
-        // Запит до API для отримання списку запитів
-        // const response = await axios.get('/api/requests');
-        // this.requests = response.data;
-      } catch (error) {
-        console.error('Помилка при завантаженні списку запитів:', error);
-        // Тут можна додати повідомлення про помилку для користувача
-      }
-    }
-    */
-  }
-};
+  },
+}
 </script>
 
 <style scoped>
@@ -432,8 +631,8 @@
 }
 
 .tab.active {
-  color: #443BC9;
-  border-bottom: 2px solid #443BC9;
+  color: #443bc9;
+  border-bottom: 2px solid #443bc9;
 }
 
 .request-badge {
@@ -442,7 +641,7 @@
   justify-content: center;
   width: 20px;
   height: 20px;
-  background-color: #443BC9;
+  background-color: #443bc9;
   color: white;
   border-radius: 50%;
   font-size: 12px;
@@ -574,7 +773,8 @@
   flex-shrink: 0;
 }
 
-.col-name, .col-surname {
+.col-name,
+.col-surname {
   width: 150px;
   flex-shrink: 0;
 }
@@ -619,7 +819,7 @@
 }
 
 .view {
-  background-color: #443BC9;
+  background-color: #443bc9;
   color: white;
 }
 
@@ -733,5 +933,81 @@
 .save-btn {
   background-color: #4caf50;
   color: white;
+}
+
+/* Індикатор завантаження */
+.loading-indicator,
+.modal-loading {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  padding: 30px;
+}
+
+.spinner {
+  width: 40px;
+  height: 40px;
+  border: 4px solid #f3f3f3;
+  border-top: 4px solid #443bc9;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin-bottom: 10px;
+}
+
+@keyframes spin {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+.no-data {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 30px;
+  color: #666;
+}
+
+/* Пагінація */
+.pagination {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin-top: 20px;
+}
+
+.pagination-btn {
+  width: 36px;
+  height: 36px;
+  border-radius: 5px;
+  border: 1px solid #e1e1e1;
+  background-color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.pagination-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.page-info {
+  margin: 0 15px;
+  font-size: 14px;
+}
+
+.error-message {
+  background-color: #ffebee;
+  color: #d32f2f;
+  padding: 12px;
+  border-radius: 5px;
+  margin-top: 10px;
+  font-size: 14px;
 }
 </style>
