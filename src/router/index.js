@@ -4,7 +4,7 @@ import LoginPage from '@/components/login-components/login.vue'
 import RegisterPage from '@/components/login-components/registration.vue'
 import AdminPanel from '@/components/admin/AdminPanel.vue'
 import StudentManagement from '@/components/admin/StudentManagement.vue'
-import CourseManagement from '@/components/admin/CourseManagement.vue'
+import CoursesManagement from '@/components/admin/courses-management'
 import HomePage from '@/components/pages/HomePage.vue'
 
 // Перевірка авторизації
@@ -54,7 +54,7 @@ const routes = [
       {
         path: 'courses',
         name: 'AdminCourses',
-        component: CourseManagement,
+        component: CoursesManagement, // Оновлено на новий компонент
       },
       // Інші розділи, які будуть реалізовані пізніше
       {

@@ -202,6 +202,202 @@ export const adminsApi = {
   },
 }
 
+// API для категорій курсів
+export const categoriesApi = {
+  // Отримати всі категорії
+  getAllCategories() {
+    return api.get('/categories')
+  },
+
+  // Отримати категорію за ID
+  getCategoryById(id) {
+    return api.get(`/categories/${id}`)
+  },
+
+  // Отримати категорію за слагом
+  getCategoryBySlug(slug) {
+    return api.get(`/categories/slug/${slug}`)
+  },
+
+  // Отримати ієрархію категорій
+  getCategoriesHierarchy() {
+    return api.get('/categories_hierarchy')
+  },
+
+  // Отримати всі активні категорії
+  getAllActiveCategories() {
+    return api.get('/all_active_categories')
+  },
+
+  // Створити нову категорію
+  createCategory(categoryData) {
+    return api.post('/create_new_category', categoryData)
+  },
+
+  // Змінити позицію категорії
+  changePosition(id, position) {
+    return api.post('/change_position_category', { id, position })
+  },
+
+  // Оновити категорію
+  updateCategory(id, categoryData) {
+    return api.put(`/update_category_by_id/${id}`, categoryData)
+  },
+
+  // Деактивувати категорію
+  deactivateCategory(id) {
+    return api.put(`/deactivate_category/${id}`)
+  },
+
+  // Активувати категорію
+  activateCategory(id) {
+    return api.put(`/activate_category/${id}`)
+  },
+
+  // Видалити категорію
+  deleteCategory(id) {
+    return api.delete(`/delete_category/${id}`)
+  },
+}
+
+// API для курсів
+export const coursesApi = {
+  // Отримати всі курси з пагінацією
+  getAllCourses(page = 1, perPage = 15) {
+    return api.get('/courses', {
+      params: {
+        page,
+        per_page: perPage,
+      },
+    })
+  },
+
+  // Отримати курс за ID
+  getCourseById(id) {
+    return api.get(`/courses/${id}`)
+  },
+
+  // Отримати курси за категорією
+  getCoursesByCategory(categoryId, page = 1, perPage = 15) {
+    return api.get(`/courses/category/${categoryId}`, {
+      params: {
+        page,
+        per_page: perPage,
+      },
+    })
+  },
+
+  // Отримати курси за рівнем
+  getCoursesByLevel(levelId, page = 1, perPage = 15) {
+    return api.get(`/course_by_level_id/${levelId}`, {
+      params: {
+        page,
+        per_page: perPage,
+      },
+    })
+  },
+
+  // Отримати курси за інструктором
+  getCoursesByInstructor(instructorId, page = 1, perPage = 15) {
+    return api.get(`/course_by_instructor_id/${instructorId}`, {
+      params: {
+        page,
+        per_page: perPage,
+      },
+    })
+  },
+
+  // Зняти курс з публікації
+  unpublishCourse(id) {
+    return api.put(`/course_unpublish/${id}`)
+  },
+
+  // Опублікувати курс
+  publishCourse(id) {
+    return api.put(`/courses_publish/${id}`)
+  },
+
+  // Оновити дані курсу
+  updateCourse(id, courseData) {
+    return api.put(`/update_course/${id}`, courseData)
+  },
+
+  // Видалити курс
+  deleteCourse(id) {
+    return api.delete(`/delete_cours/${id}`)
+  },
+
+  // Створити новий курс
+  createCourse(courseData) {
+    return api.post('/create_new_course', courseData)
+  },
+
+  // Отримати типи уроків
+  getLessonTypes() {
+    return api.get('/type_lessons')
+  },
+
+  // Отримати тип уроку за ID
+  getLessonTypeById(id) {
+    return api.get(`/type_lesson_by_id/${id}`)
+  },
+
+  // Отримати всі провайдери відео
+  getVideoProviders() {
+    return api.get('/video_poviders')
+  },
+
+  // Завантажити обкладинку курсу
+  uploadCourseCover(courseId, file) {
+    const formData = new FormData()
+    formData.append('cover', file)
+
+    return api.post(`/courses/${courseId}/upload-cover`, formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    })
+  },
+}
+
+// API для уроків
+export const lessonsApi = {
+  // Отримати всі уроки курсу
+  getCourseLessons(courseId) {
+    return api.get(`/courses/${courseId}/lessons`)
+  },
+
+  // Отримати урок за ID
+  getLessonById(courseId, lessonId) {
+    return api.get(`/courses/${courseId}/lessons/${lessonId}`)
+  },
+
+  // Створити новий урок
+  createLesson(courseId, lessonData) {
+    return api.post(`/courses/${courseId}/lessons`, lessonData)
+  },
+
+  // Оновити урок
+  updateLesson(courseId, lessonId, lessonData) {
+    return api.put(`/courses/${courseId}/lessons/${lessonId}`, lessonData)
+  },
+
+  // Опублікувати урок
+  publishLesson(courseId, lessonId) {
+    return api.put(`/courses/${courseId}/lessons/${lessonId}/publish`)
+  },
+
+  // Зняти урок з публікації
+  unpublishLesson(courseId, lessonId) {
+    return api.put(`/courses/${courseId}/lessons/${lessonId}/unpublish`)
+  },
+
+  // Видалити урок
+  deleteLesson(courseId, lessonId) {
+    return api.delete(`/courses/${courseId}/lessons/${lessonId}`)
+  },
+}
+
 // Функція для обробки завантаження зображень
 export const getImageUrl = (imagePath) => {
   if (!imagePath) return 'https://via.placeholder.com/150'
@@ -219,5 +415,8 @@ export default {
   students: studentsApi,
   requests: requestsApi,
   admins: adminsApi,
+  categories: categoriesApi,
+  courses: coursesApi,
+  lessons: lessonsApi,
   getImageUrl,
 }
