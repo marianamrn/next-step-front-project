@@ -10,19 +10,31 @@
     <div class="sidebar-section">
       <h3 class="section-title">Управління</h3>
       <ul class="nav-list">
-        <li class="nav-item" @click="navigateTo('administrators')" :class="{ active: activeRoute === 'administrators' }">
+        <li
+          class="nav-item"
+          @click="navigateTo('administrators')"
+          :class="{ active: activeRoute === 'administrators' }"
+        >
           <span class="icon">
             <v-icon>mdi-account</v-icon>
           </span>
           <span class="nav-text">Адміністратори</span>
         </li>
-        <li class="nav-item" @click="navigateTo('teachers')" :class="{ active: activeRoute === 'teachers' }">
+        <li
+          class="nav-item"
+          @click="navigateTo('teachers')"
+          :class="{ active: activeRoute === 'teachers' }"
+        >
           <span class="icon">
             <v-icon>mdi-human-male-board</v-icon>
           </span>
           <span class="nav-text">Викладачі</span>
         </li>
-        <li class="nav-item" @click="navigateTo('students')" :class="{ active: activeRoute === 'students' }">
+        <li
+          class="nav-item"
+          @click="navigateTo('students')"
+          :class="{ active: activeRoute === 'students' }"
+        >
           <span class="icon">
             <v-icon>mdi-account-school-outline</v-icon>
           </span>
@@ -35,13 +47,21 @@
     <div class="sidebar-section">
       <h3 class="section-title">Контент</h3>
       <ul class="nav-list">
-        <li class="nav-item" @click="navigateTo('comments')" :class="{ active: activeRoute === 'comments' }">
+        <li
+          class="nav-item"
+          @click="navigateTo('comments')"
+          :class="{ active: activeRoute === 'comments' }"
+        >
           <span class="icon">
             <v-icon>mdi-comment-text</v-icon>
           </span>
           <span class="nav-text">Коментарі та відгуки</span>
         </li>
-        <li class="nav-item" @click="navigateTo('courses')" :class="{ active: activeRoute === 'courses' }">
+        <li
+          class="nav-item"
+          @click="navigateTo('courses')"
+          :class="{ active: activeRoute === 'courses' }"
+        >
           <span class="icon">
             <v-icon>mdi-book-open-variant</v-icon>
           </span>
@@ -54,19 +74,31 @@
     <div class="sidebar-section">
       <h3 class="section-title">Дані та параметри</h3>
       <ul class="nav-list">
-        <li class="nav-item" @click="navigateTo('statistics')" :class="{ active: activeRoute === 'statistics' }">
+        <li
+          class="nav-item"
+          @click="navigateTo('statistics')"
+          :class="{ active: activeRoute === 'statistics' }"
+        >
           <span class="icon">
             <v-icon>mdi-chart-bar</v-icon>
           </span>
           <span class="nav-text">Статистика</span>
         </li>
-        <li class="nav-item" @click="navigateTo('financial')" :class="{ active: activeRoute === 'financial' }">
+        <li
+          class="nav-item"
+          @click="navigateTo('financial')"
+          :class="{ active: activeRoute === 'financial' }"
+        >
           <span class="icon">
             <v-icon>mdi-currency-usd</v-icon>
           </span>
           <span class="nav-text">Фінансовий модуль</span>
         </li>
-        <li class="nav-item" @click="navigateTo('settings')" :class="{ active: activeRoute === 'settings' }">
+        <li
+          class="nav-item"
+          @click="navigateTo('settings')"
+          :class="{ active: activeRoute === 'settings' }"
+        >
           <span class="icon">
             <v-icon>mdi-cog</v-icon>
           </span>
@@ -93,31 +125,35 @@ export default {
   props: {
     activeRoute: {
       type: String,
-      default: 'students'
-    }
+      default: 'students',
+    },
   },
   methods: {
     navigateTo(route) {
       // Використовуємо Vue Router для навігації
-      this.$router.push(`/admin/${route}`);
+      this.$router.push(`/admin/${route}`)
     },
     logout() {
-      this.$emit('logout');
-    }
-  }
-};
+      this.$emit('logout')
+    },
+  },
+}
 </script>
 
 <style scoped>
 .admin-sidebar {
   width: 220px;
-  height: 100vh;
-  background-color: #0B091B;
+  min-height: 100vh; /* Забезпечує мінімальну висоту */
+  background-color: #0b091b;
   color: #fff;
   padding: 20px 0;
   display: flex;
   flex-direction: column;
   overflow-y: auto;
+  position: sticky; /* Змінено з fixed на sticky для кращої інтеграції з іншим контентом */
+  top: 0; /* Починаючи з верхньої частини */
+  left: 0;
+  flex-shrink: 0; /* Щоб ширина не змінювалась при стиску вікна */
 }
 
 .logo-container {
@@ -164,11 +200,11 @@ export default {
 }
 
 .nav-item:hover {
-  background-color: #211F35;
+  background-color: #211f35;
 }
 
 .nav-item.active {
-  background-color: #443BC9;
+  background-color: #443bc9;
 }
 
 .icon {
@@ -181,12 +217,20 @@ export default {
 }
 
 .logout-container {
-  margin-top: auto;
+  margin-top: auto; /* Підсуває логаут до низу */
   border-top: 1px solid rgba(255, 255, 255, 0.1);
   padding-top: 10px;
+  padding-bottom: 10px; /* Забезпечує трохи більше простору внизу кнопки, щоб вона не була впритул до краю */
 }
 
 .logout {
   color: #ff5a5a;
+}
+
+/* Враховуємо контейнер, якщо бокова панель є частиною flex-структури */
+@media screen and (min-width: 768px) {
+  .admin-sidebar {
+    height: 100vh; /* Фіксована висота для десктопів */
+  }
 }
 </style>

@@ -40,27 +40,6 @@
         <p>Студентів не знайдено</p>
       </div>
     </div>
-
-    <!-- Пагінація -->
-    <div class="pagination" v-if="!loading && totalPages > 1">
-      <button
-        :disabled="currentPage === 1"
-        @click="changePage(currentPage - 1)"
-        class="pagination-btn"
-      >
-        <v-icon>mdi-chevron-left</v-icon>
-      </button>
-
-      <div class="page-info">Сторінка {{ currentPage }} з {{ totalPages }}</div>
-
-      <button
-        :disabled="currentPage === totalPages"
-        @click="changePage(currentPage + 1)"
-        class="pagination-btn"
-      >
-        <v-icon>mdi-chevron-right</v-icon>
-      </button>
-    </div>
   </div>
 </template>
 
@@ -76,14 +55,6 @@ export default {
       type: Boolean,
       default: false,
     },
-    totalPages: {
-      type: Number,
-      default: 1,
-    },
-    currentPage: {
-      type: Number,
-      default: 1,
-    },
   },
   methods: {
     viewStudent(student) {
@@ -91,9 +62,6 @@ export default {
     },
     editStudent(student) {
       this.$emit('edit-student', student)
-    },
-    changePage(page) {
-      this.$emit('change-page', page)
     },
     getPhoneCode(student) {
       // Перевіряємо структуру даних студента для отримання коду країни
@@ -196,7 +164,7 @@ export default {
 }
 
 .col-email {
-  width: 800px;
+  width: 300px;
   flex-shrink: 0;
 }
 
@@ -278,35 +246,5 @@ export default {
   align-items: center;
   padding: 30px;
   color: #666;
-}
-
-/* Пагінація */
-.pagination {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  margin-top: 20px;
-}
-
-.pagination-btn {
-  width: 36px;
-  height: 36px;
-  border-radius: 5px;
-  border: 1px solid #e1e1e1;
-  background-color: white;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-}
-
-.pagination-btn:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-.page-info {
-  margin: 0 15px;
-  font-size: 14px;
 }
 </style>

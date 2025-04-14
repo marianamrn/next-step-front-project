@@ -34,11 +34,8 @@
         <student-list
           :students="filteredStudents"
           :loading="loading"
-          :totalPages="totalPages"
-          :currentPage="currentPage"
           @view-student="viewStudent"
           @edit-student="editStudent"
-          @change-page="changePage"
         />
       </template>
 
@@ -160,9 +157,6 @@ export default {
       loading: false,
       modalLoading: false,
       errorMessage: '',
-      totalPages: 1,
-      currentPage: 1,
-      perPage: 10,
     }
   },
   computed: {
@@ -212,7 +206,7 @@ export default {
       this.errorMessage = ''
 
       try {
-        const response = await studentsApi.getStudentById(studentId) // Оновлена назва методу
+        const response = await studentsApi.getStudentById(studentId)
 
         if (response.data && response.data.user) {
           this.currentStudent = response.data.user
@@ -233,23 +227,19 @@ export default {
       this.loading = true
 
       try {
-        const response = await studentsApi.getStudents(this.currentPage, this.perPage)
+        const response = await studentsApi.getStudents()
 
         // Перевіряємо, чи відповідь містить ключ "users"
         // або "data" (для зворотної сумісності)
         // або просто масив студентів
         if (response.data && response.data.users) {
           this.students = response.data.users
-          this.totalPages = Math.ceil(this.students.length / this.perPage)
         } else if (response.data && response.data.data) {
           // Альтернативна структура відповіді
           this.students = response.data.data
-          this.totalPages =
-            response.data.last_page || Math.ceil(this.students.length / this.perPage)
         } else {
           // Якщо API повертає просто масив
           this.students = response.data || []
-          this.totalPages = Math.ceil(this.students.length / this.perPage)
         }
 
         console.log('Отримані студенти:', this.students)
@@ -263,7 +253,6 @@ export default {
 
     async handleSearch(query) {
       this.searchQuery = query
-      this.currentPage = 1
 
       if (this.activeTab === 'students') {
         this.loading = true
@@ -273,21 +262,17 @@ export default {
             const response = await studentsApi.getStudentById(query)
             if (response.data) {
               this.students = [response.data]
-              this.totalPages = 1
             } else {
               this.students = []
-              this.totalPages = 0
             }
           }
           // Якщо пошуковий запит інший текст
           else if (query) {
-            const response = await studentsApi.searchStudents(query, this.currentPage, this.perPage)
+            const response = await studentsApi.searchStudents(query)
             if (response.data && response.data.data) {
               this.students = response.data.data
-              this.totalPages = response.data.last_page || 1
             } else {
               this.students = response.data || []
-              this.totalPages = 1
             }
           }
           // Якщо пошуковий запит порожній, повертаємо всіх студентів
@@ -297,16 +282,10 @@ export default {
         } catch (error) {
           console.error('Помилка при пошуку студентів:', error)
           this.students = []
-          this.totalPages = 0
         } finally {
           this.loading = false
         }
       }
-    },
-
-    changePage(page) {
-      this.currentPage = page
-      this.fetchStudents()
     },
 
     setActiveTab(tab) {
