@@ -1,9 +1,11 @@
-// src/services/api.js
+// src/api/api.js
 import axios from 'axios'
+
+const API_URL = 'http://26.154.95.249'
 
 // Створюємо екземпляр axios з базовою URL
 const api = axios.create({
-  baseURL: 'http://26.154.95.249/api',
+  baseURL: `${API_URL}/api`,
   headers: {
     'Content-Type': 'application/json',
     Accept: 'application/json',
@@ -122,26 +124,76 @@ export const authAPI = {
 }
 
 // API для студентів
-export const studentsAPI = {
-  getAll(params) {
-    return api.get('/users', { params })
+export const studentsApi = {
+  // Отримання списку студентів з пагінацією
+  getStudents(page = 1, perPage = 10) {
+    return api.get(`/users`, { params: { page, per_page: perPage } })
   },
-  getById(id) {
+
+  // Пошук студента за id
+  getStudentById(id) {
     return api.get(`/users/${id}`)
   },
-  create(data) {
-    return api.post('/users', data)
+
+  // Пошук студентів за номером/іменем/прізвищем/email
+  searchStudents(query, page = 1, perPage = 10) {
+    return api.get(`/users/search`, {
+      params: {
+        query,
+        page,
+        per_page: perPage,
+      },
+    })
   },
-  update(id, data) {
-    return api.put(`/users/${id}`, data)
+
+  // Оновлення даних студента
+  updateStudent(id, studentData) {
+    return api.put(`/users/${id}`, studentData)
   },
-  delete(id) {
-    return api.delete(`/users/${id}`)
+
+  // Деактивація студента
+  deactivateStudent(id) {
+    return api.post(`/users/${id}/deactivate`)
+  },
+}
+
+// API для запитів студентів
+export const requestsApi = {
+  // Отримання списку запитів
+  getRequests(filter = 'all', page = 1, perPage = 10) {
+    return api.get(`/requests`, {
+      params: {
+        filter,
+        page,
+        per_page: perPage,
+      },
+    })
+  },
+
+  // Пошук запитів
+  searchRequests(query, page = 1, perPage = 10) {
+    return api.get(`/requests/search`, {
+      params: {
+        query,
+        page,
+        per_page: perPage,
+      },
+    })
+  },
+
+  // Схвалення запиту
+  approveRequest(id) {
+    return api.post(`/requests/${id}/approve`)
+  },
+
+  // Відхилення запиту
+  rejectRequest(id) {
+    return api.post(`/requests/${id}/reject`)
   },
 }
 
 // API для адміністраторів
-export const adminsAPI = {
+export const adminsApi = {
   getAll(params) {
     return api.get('/users/admins/list', { params })
   },
@@ -150,9 +202,22 @@ export const adminsAPI = {
   },
 }
 
+// Функція для обробки завантаження зображень
+export const getImageUrl = (imagePath) => {
+  if (!imagePath) return 'https://via.placeholder.com/150'
+
+  if (imagePath.startsWith('http')) {
+    return imagePath
+  } else {
+    return `${API_URL}/storage/${imagePath}`
+  }
+}
+
 // Експорт всього API
 export default {
   auth: authAPI,
-  students: studentsAPI,
-  admins: adminsAPI,
+  students: studentsApi,
+  requests: requestsApi,
+  admins: adminsApi,
+  getImageUrl,
 }

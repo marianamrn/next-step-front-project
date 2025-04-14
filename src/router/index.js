@@ -1,104 +1,111 @@
 // src/router/index.js
 import { createRouter, createWebHistory } from 'vue-router'
-import LoginPage from "@/components/login-components/login.vue"
-import RegisterPage from "@/components/login-components/registration.vue"
-import AdminPanel from "@/components/admin/AdminPanel.vue"
-import StudentManagement from "@/components/admin/StudentManagement.vue"
-import CourseManagement from "@/components/admin/CourseManagement.vue"
-import HomePage from "@/components/pages/HomePage.vue" 
+import LoginPage from '@/components/login-components/login.vue'
+import RegisterPage from '@/components/login-components/registration.vue'
+import AdminPanel from '@/components/admin/AdminPanel.vue'
+import StudentManagement from '@/components/admin/StudentManagement.vue'
+import CourseManagement from '@/components/admin/CourseManagement.vue'
+import HomePage from '@/components/pages/HomePage.vue'
 
-// Функція для перевірки авторизації
+// Перевірка авторизації
 const checkAuth = (to, from, next) => {
-  const token = localStorage.getItem('token');
-  
+  const token = localStorage.getItem('token')
+
   if (!token && to.meta.requiresAuth) {
     // Якщо немає токена і маршрут вимагає авторизації, перенаправляємо на сторінку логіну
-    next('/login');
+    next('/login')
   } else {
-    next();
+    next()
   }
 }
 
 const routes = [
-  { path: '/', redirect: '/login' }, // Змінено на перенаправлення на сторінку логіну
-  { path: '/login', name: "Login", component: LoginPage },
-  { path: '/register', name: "Register", component: RegisterPage },
-  
+  { path: '/', redirect: '/login' }, // Перенаправлення на сторінку логіну
+  { path: '/login', name: 'Login', component: LoginPage },
+  { path: '/register', name: 'Register', component: RegisterPage },
+
   // Домашня сторінка для звичайних користувачів
-  { 
-    path: '/home', 
-    name: 'Home', 
+  {
+    path: '/home',
+    name: 'Home',
     component: HomePage,
-    meta: { requiresAuth: true } // Також вимагає авторизації
+    meta: { requiresAuth: true }, // Вмикаємо перевірку авторизації
   },
-  
-  // Адміністративна панель з вкладеними маршрутами
-  { 
+
+  // Адміністративна панель
+  {
     path: '/admin',
     component: AdminPanel,
     meta: { requiresAuth: true }, // Вмикаємо перевірку авторизації
     children: [
       { path: '', redirect: '/admin/students' }, // За замовчуванням показуємо управління студентами
-      { 
-        path: 'students', 
-        name: 'AdminStudents', 
-        component: StudentManagement
+      {
+        path: 'students',
+        name: 'AdminStudents',
+        component: StudentManagement,
       },
-      { 
-        path: 'courses', 
-        name: 'AdminCourses', 
-        component: CourseManagement
+      // Сторінка детальної інформації про студента
+      {
+        path: 'students/:id',
+        name: 'AdminStudentDetail',
+        component: StudentManagement,
+        props: true,
+      },
+      {
+        path: 'courses',
+        name: 'AdminCourses',
+        component: CourseManagement,
       },
       // Інші розділи, які будуть реалізовані пізніше
-      { 
-        path: 'teachers', 
-        name: 'AdminTeachers', 
+      {
+        path: 'teachers',
+        name: 'AdminTeachers',
         component: () => import('@/components/admin/ComingSoon.vue'),
-        props: { feature: 'Викладачі' }
+        props: { feature: 'Викладачі' },
       },
-      { 
-        path: 'administrators', 
-        name: 'AdminAdministrators', 
+      {
+        path: 'administrators',
+        name: 'AdminAdministrators',
         component: () => import('@/components/admin/ComingSoon.vue'),
-        props: { feature: 'Адміністратори' }
+        props: { feature: 'Адміністратори' },
       },
-      { 
-        path: 'comments', 
-        name: 'AdminComments', 
+      {
+        path: 'comments',
+        name: 'AdminComments',
         component: () => import('@/components/admin/ComingSoon.vue'),
-        props: { feature: 'Коментарі та відгуки' }
+        props: { feature: 'Коментарі та відгуки' },
       },
-      { 
-        path: 'statistics', 
-        name: 'AdminStatistics', 
+      {
+        path: 'statistics',
+        name: 'AdminStatistics',
         component: () => import('@/components/admin/ComingSoon.vue'),
-        props: { feature: 'Статистика' }
+        props: { feature: 'Статистика' },
       },
-      { 
-        path: 'financial', 
-        name: 'AdminFinancial', 
+      {
+        path: 'financial',
+        name: 'AdminFinancial',
         component: () => import('@/components/admin/ComingSoon.vue'),
-        props: { feature: 'Фінансовий модуль' }
+        props: { feature: 'Фінансовий модуль' },
       },
-      { 
-        path: 'settings', 
-        name: 'AdminSettings', 
+      {
+        path: 'settings',
+        name: 'AdminSettings',
         component: () => import('@/components/admin/ComingSoon.vue'),
-        props: { feature: 'Налаштування системи' }
+        props: { feature: 'Налаштування системи' },
       },
-    ]
+    ],
   },
-  
+
   // Маршрут для неіснуючих сторінок
-  { path: '/:pathMatch(.*)*', redirect: '/login' }
-];
+  { path: '/:pathMatch(.*)*', redirect: '/login' },
+]
 
 const router = createRouter({
   history: createWebHistory(),
   routes,
-});
+})
 
 // Додаємо перевірку авторизації для захищених маршрутів
-router.beforeEach(checkAuth);
+router.beforeEach(checkAuth)
 
-export default router;
+export default router
