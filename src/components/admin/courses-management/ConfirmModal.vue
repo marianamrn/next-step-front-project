@@ -1,3 +1,4 @@
+<!-- src\components\admin\courses-management\ConfirmModal.vue -->
 <template>
   <div class="modal-overlay">
     <div class="modal-container">

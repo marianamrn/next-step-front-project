@@ -1,3 +1,4 @@
+// src\components\admin\courses-management\index.js
 import CoursesManagement from './CoursesManagement.vue'
 import CourseCard from './CourseCard.vue'
 import CourseDetail from './CourseDetail.vue'

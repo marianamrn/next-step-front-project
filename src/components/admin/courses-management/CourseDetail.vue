@@ -1,3 +1,4 @@
+<!-- src\components\admin\courses-management\CourseDetail.vue -->
 <template>
   <div class="course-detail">
     <!-- Заголовок і основна інформація -->

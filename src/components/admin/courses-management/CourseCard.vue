@@ -1,3 +1,4 @@
+<!-- src\components\admin\courses-management\CourseCard.vue -->
 <template>
   <div class="course-card" @click="$emit('click', course)">
     <div class="course-cover">
@@ -33,6 +34,7 @@
 
 <script>
 import { getImageUrl } from '@/services/api.js'
+import placeholderImage from '@/assets/img/course-placeholder.jpg'
 
 export default {
   name: 'CourseCard',
@@ -47,14 +49,14 @@ export default {
       if (this.course.cover_image) {
         return getImageUrl(this.course.cover_image)
       }
-      return 'https://via.placeholder.com/300x200?text=Обкладинка+курсу'
+      return placeholderImage
     },
     categoryName() {
       return this.course.category ? this.course.category.name : 'Категорія не вказана'
     },
     formattedPrice() {
       if (this.course.is_on_discount && this.course.discount_price) {
-        return `${this.course.discount_price} грн <span class="original-price">${this.course.price} грн</span>`
+        return `${this.course.discount_price} грн (Знижка з ${this.course.price} грн)`
       }
       return `${this.course.price} грн`
     },
