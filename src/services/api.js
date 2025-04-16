@@ -279,7 +279,7 @@ export const coursesApi = {
 
   // Отримати курси за категорією
   getCoursesByCategory(categoryId, page = 1, perPage = 15) {
-    return api.get(`/courses/category/${categoryId}`, {
+    return api.get(`/course_by_category_id/${categoryId}`, {
       params: {
         page,
         per_page: perPage,
@@ -329,7 +329,7 @@ export const coursesApi = {
 
   // Створити новий курс
   createCourse(courseData) {
-    return api.post('/create_new_course', courseData)
+    return api.post('/courses', courseData)
   },
 
   // Отримати типи уроків

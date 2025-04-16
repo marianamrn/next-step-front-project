@@ -1,4 +1,4 @@
-<!-- src\components\admin\courses-management\CourseManagement.vue -->
+<!-- src\components\admin\courses-management\CoursesManagement.vue -->
 <template>
   <div class="courses-management">
     <!-- Навігаційне меню для управління курсами -->
@@ -60,6 +60,8 @@
           @click="selectCourse(course)"
           @edit="openCourseModal(course)"
           @publish="publishCourse(course)"
+          @unpublish="unpublishCourse(course)"
+          @delete="confirmDeleteCourse(course)"
         />
       </div>
     </div>
@@ -68,9 +70,11 @@
     <course-detail
       v-if="selectedCourse"
       :course="selectedCourse"
-      @back="selectedCourse = null"
+      @back="backToCoursesList"
       @edit-course="openCourseModal"
       @publish-course="publishCourse"
+      @unpublish-course="unpublishCourse"
+      @delete-course="confirmDeleteCourse"
       @add-lesson="openLessonModal()"
       @edit-lesson="openLessonModal"
       @publish-lesson="publishLesson"
@@ -119,6 +123,7 @@ import CategoryModal from './CategoryModal.vue'
 import CourseModal from './CourseModal.vue'
 import LessonModal from './LessonModal.vue'
 import ConfirmModal from './ConfirmModal.vue'
+import { useRouter, useRoute } from 'vue-router'
 
 export default {
   name: 'CoursesManagement',
@@ -129,6 +134,11 @@ export default {
     CourseModal,
     LessonModal,
     ConfirmModal,
+  },
+  setup() {
+    const router = useRouter()
+    const route = useRoute()
+    return { router, route }
   },
   data() {
     return {
@@ -183,6 +193,11 @@ export default {
   created() {
     this.fetchCategories()
     this.fetchCourses()
+
+    // Check if route has course ID
+    if (this.route.params.id) {
+      this.loadCourseById(this.route.params.id)
+    }
   },
   methods: {
     async fetchCategories() {
@@ -225,11 +240,27 @@ export default {
 
     async selectCourse(course) {
       try {
-        const response = await api.courses.getCourseById(course.id)
+        await this.loadCourseById(course.id)
+
+        // Update the URL
+        this.router.push(`/admin/courses/${course.id}`)
+      } catch (error) {
+        console.error('Помилка при завантаженні деталей курсу:', error)
+      }
+    },
+
+    async loadCourseById(courseId) {
+      try {
+        const response = await api.courses.getCourseById(courseId)
         this.selectedCourse = response.data.data
       } catch (error) {
         console.error('Помилка при завантаженні деталей курсу:', error)
       }
+    },
+
+    backToCoursesList() {
+      this.selectedCourse = null
+      this.router.push('/admin/courses')
     },
 
     // МОДАЛЬНІ ВІКНА
@@ -379,6 +410,22 @@ export default {
       }
     },
 
+    async unpublishCourse(course) {
+      try {
+        await api.courses.unpublishCourse(course.id)
+
+        // Оновлюємо дані
+        if (this.selectedCourse && this.selectedCourse.id === course.id) {
+          const response = await api.courses.getCourseById(course.id)
+          this.selectedCourse = response.data.data
+        }
+
+        this.fetchCourses()
+      } catch (error) {
+        console.error('Помилка при знятті курсу з публікації:', error)
+      }
+    },
+
     async publishLesson(lesson) {
       try {
         if (this.selectedCourse) {
@@ -394,6 +441,28 @@ export default {
     },
 
     // ВИДАЛЕННЯ
+    confirmDeleteCourse(course) {
+      this.confirmTitle = 'Видалити курс'
+      this.confirmMessage = `Ви впевнені, що хочете видалити курс "${course.title}"? Ця дія є незворотною.`
+      this.confirmAction = () => this.deleteCourse(course)
+      this.showConfirmModal = true
+    },
+
+    async deleteCourse(course) {
+      try {
+        await api.courses.deleteCourse(course.id)
+
+        if (this.selectedCourse && this.selectedCourse.id === course.id) {
+          this.backToCoursesList()
+        }
+
+        this.fetchCourses()
+        this.closeConfirmModal()
+      } catch (error) {
+        console.error('Помилка при видаленні курсу:', error)
+      }
+    },
+
     confirmDeleteLesson(lesson) {
       this.confirmTitle = 'Видалити урок'
       this.confirmMessage = `Ви впевнені, що хочете видалити урок "${lesson.title}"? Ця дія є незворотною.`

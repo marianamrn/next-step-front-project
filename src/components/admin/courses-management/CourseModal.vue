@@ -214,6 +214,8 @@ export default {
         what_you_learn: '',
         meta_title: '',
         meta_description: '',
+        is_published: false,
+        instructor_id: 1,
       },
       levels: [
         { id: 1, name: 'Початковий' },
@@ -259,6 +261,8 @@ export default {
           what_you_learn: this.course.what_you_learn || '',
           meta_title: this.course.meta_title || '',
           meta_description: this.course.meta_description || '',
+          is_published: this.course.is_published || false,
+          instructor_id: this.course.instructor_id || 1, // Додаємо ID інструктора (використовуємо 1 як значення за замовчуванням)
         }
 
         // Встановлюємо попередній перегляд обкладинки, якщо вона є
@@ -280,6 +284,8 @@ export default {
           what_you_learn: '',
           meta_title: '',
           meta_description: '',
+          is_published: false,
+          instructor_id: 1, // Додаємо ID інструктора
         }
         this.coverPreview = null
       }
@@ -309,8 +315,33 @@ export default {
       let isValid = true
       this.errors.title = ''
 
-      if (!this.form.title.trim()) {
+      // Перевірка назви курсу
+      if (!this.form.title || !this.form.title.trim()) {
         this.errors.title = "Назва курсу є обов'язковою"
+        isValid = false
+      }
+
+      // Перевірка категорії
+      if (!this.form.category_id) {
+        alert("Категорія курсу є обов'язковою")
+        isValid = false
+      }
+
+      // Перевірка ціни
+      if (!this.form.price || isNaN(parseFloat(this.form.price))) {
+        alert('Ціна курсу повинна бути числовим значенням')
+        isValid = false
+      }
+
+      // Перевірка рівня складності
+      if (!this.form.level_id) {
+        alert("Рівень складності є обов'язковим")
+        isValid = false
+      }
+
+      // Перевірка ціни зі знижкою (якщо вказана)
+      if (this.form.discount_price && isNaN(parseFloat(this.form.discount_price))) {
+        alert('Ціна зі знижкою повинна бути числовим значенням')
         isValid = false
       }
 
@@ -333,19 +364,61 @@ export default {
       this.loading = true
 
       try {
-        let response
+        // Клонуємо об'єкт форми для безпечного маніпулювання
+        const formData = { ...this.form }
 
-        if (this.isEdit) {
-          await api.courses.updateCourse(this.course.id, this.form)
+        // Логуємо дані для діагностики
+        console.log('Форма перед відправкою:', JSON.stringify(formData, null, 2))
+
+        // Переконуємося, що числові поля дійсно є числами
+        if (formData.price) {
+          formData.price = Number(formData.price)
+        }
+
+        if (formData.discount_price) {
+          formData.discount_price = Number(formData.discount_price)
+        }
+
+        if (formData.category_id) {
+          formData.category_id = Number(formData.category_id)
+        }
+
+        if (formData.level_id) {
+          formData.level_id = Number(formData.level_id)
+        }
+
+        // Перевіряємо наявність обов'язкових полів згідно документації
+        const requiredFields = ['title', 'category_id', 'price', 'level_id']
+        let missingFields = []
+
+        for (const field of requiredFields) {
+          if (formData[field] === undefined || formData[field] === null || formData[field] === '') {
+            missingFields.push(field)
+          }
+        }
+
+        if (missingFields.length > 0) {
+          alert(`Відсутні обов'язкові поля: ${missingFields.join(', ')}`)
+          this.loading = false
+          return
+        }
+
+        // Логуємо дані для відправки
+        console.log('Оброблені дані для відправки:', JSON.stringify(formData, null, 2))
+
+        // Виконуємо запит до API
+        let response
+        if (this.isEdit && formData.id) {
+          await api.courses.updateCourse(formData.id, formData)
 
           // Завантажуємо нову обкладинку, якщо вона змінилася
           if (this.coverFile) {
-            await this.uploadCover(this.course.id)
+            await this.uploadCover(formData.id)
           }
 
-          response = { data: { ...this.form, id: this.course.id } }
+          response = { data: { ...formData } }
         } else {
-          response = await api.courses.createCourse(this.form)
+          response = await api.courses.createCourse(formData)
 
           // Завантажуємо обкладинку для нового курсу
           if (this.coverFile && response.data && response.data.id) {
@@ -356,11 +429,35 @@ export default {
         this.$emit('save', response.data)
       } catch (error) {
         console.error('Помилка при збереженні курсу:', error)
-        if (error.response && error.response.data) {
-          const { errors } = error.response.data
-          if (errors && errors.title) {
-            this.errors.title = errors.title[0]
+
+        // Детальне логування помилки
+        if (error.response) {
+          console.error('Статус відповіді:', error.response.status)
+          console.error('Заголовки відповіді:', error.response.headers)
+          console.error('Дані відповіді:', error.response.data)
+
+          if (error.response.data && error.response.data.errors) {
+            const validationErrors = error.response.data.errors
+            console.error('Помилки валідації:', validationErrors)
+
+            let errorMessage = 'Помилки валідації:\n'
+            for (const field in validationErrors) {
+              if (field === 'title') {
+                this.errors.title = validationErrors[field][0]
+              }
+              errorMessage += `${field}: ${validationErrors[field].join(', ')}\n`
+            }
+
+            alert(errorMessage)
+          } else if (error.response.data && error.response.data.message) {
+            alert(`Помилка: ${error.response.data.message}`)
           }
+        } else if (error.request) {
+          console.error('Запит був зроблений, але відповідь не отримана:', error.request)
+          alert('Сервер не відповідає. Перевірте підключення до мережі.')
+        } else {
+          console.error('Помилка при налаштуванні запиту:', error.message)
+          alert(`Помилка: ${error.message}`)
         }
       } finally {
         this.loading = false

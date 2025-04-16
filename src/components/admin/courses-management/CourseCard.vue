@@ -28,6 +28,18 @@
         <v-icon left size="18">mdi-bookmark</v-icon>
         Опублікувати
       </button>
+      <button
+        v-if="course.is_published"
+        class="unpublish-button"
+        @click.stop="$emit('unpublish', course)"
+      >
+        <v-icon left size="18">mdi-bookmark-off</v-icon>
+        Скасувати публікацію
+      </button>
+      <button class="delete-button" @click.stop="$emit('delete', course)">
+        <v-icon left size="18">mdi-delete</v-icon>
+        Видалити
+      </button>
     </div>
   </div>
 </template>
@@ -166,23 +178,44 @@ export default {
 
 .course-actions {
   display: flex;
+  flex-wrap: wrap;
   justify-content: space-between;
   padding: 0 15px 15px;
+  gap: 8px;
 }
 
 .edit-button,
-.publish-button {
+.publish-button,
+.unpublish-button,
+.delete-button {
   display: flex;
   align-items: center;
   background: none;
   border: none;
-  color: #443bc9;
   cursor: pointer;
   font-size: 14px;
 }
 
+.edit-button {
+  color: #443bc9;
+}
+
+.publish-button {
+  color: #4caf50;
+}
+
+.unpublish-button {
+  color: #ff9800;
+}
+
+.delete-button {
+  color: #f44336;
+}
+
 .edit-button:hover,
-.publish-button:hover {
+.publish-button:hover,
+.unpublish-button:hover,
+.delete-button:hover {
   text-decoration: underline;
 }
 </style>

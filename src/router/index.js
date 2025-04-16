@@ -56,6 +56,12 @@ const routes = [
         name: 'AdminCourses',
         component: CoursesManagement, // Оновлено на новий компонент
       },
+      {
+        path: 'courses/:id',
+        name: 'AdminCourseDetail',
+        component: CoursesManagement,
+        props: true,
+      },
       // Інші розділи, які будуть реалізовані пізніше
       {
         path: 'teachers',

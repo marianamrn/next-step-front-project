@@ -29,6 +29,18 @@
           <v-icon left size="18">mdi-bookmark</v-icon>
           Опублікувати курс
         </button>
+        <button
+          v-if="course.is_published"
+          class="unpublish-button"
+          @click="$emit('unpublish-course', course)"
+        >
+          <v-icon left size="18">mdi-bookmark-off</v-icon>
+          Скасувати публікацію
+        </button>
+        <button class="delete-button" @click="$emit('delete-course', course)">
+          <v-icon left size="18">mdi-delete</v-icon>
+          Видалити курс
+        </button>
       </div>
     </div>
 
@@ -279,7 +291,9 @@ export default {
 }
 
 .edit-button,
-.publish-button {
+.publish-button,
+.unpublish-button,
+.delete-button {
   display: flex;
   align-items: center;
   padding: 8px 16px;
@@ -296,6 +310,16 @@ export default {
 
 .publish-button {
   background-color: #4caf50;
+  color: white;
+}
+
+.unpublish-button {
+  background-color: #ff9800;
+  color: white;
+}
+
+.delete-button {
+  background-color: #f44336;
   color: white;
 }
 
