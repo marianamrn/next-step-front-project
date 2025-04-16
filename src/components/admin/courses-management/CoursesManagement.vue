@@ -441,6 +441,7 @@ export default {
     },
 
     // ВИДАЛЕННЯ
+    // Метод для підтвердження видалення курсу
     confirmDeleteCourse(course) {
       this.confirmTitle = 'Видалити курс'
       this.confirmMessage = `Ви впевнені, що хочете видалити курс "${course.title}"? Ця дія є незворотною.`
@@ -448,18 +449,58 @@ export default {
       this.showConfirmModal = true
     },
 
+    // Метод для видалення курсу
     async deleteCourse(course) {
       try {
-        await api.courses.deleteCourse(course.id)
+        console.log(`Видалення курсу з ID: ${course.id}`)
 
+        // Показуємо індикатор завантаження
+        this.loading = true
+
+        // Виконуємо запит до API для видалення курсу
+        const response = await api.courses.deleteCourse(course.id)
+
+        console.log('Відповідь сервера:', response.data)
+
+        // Якщо курс був відкритий у детальному перегляді, повертаємось до списку
         if (this.selectedCourse && this.selectedCourse.id === course.id) {
           this.backToCoursesList()
         }
 
-        this.fetchCourses()
+        // Оновлюємо список курсів
+        await this.fetchCourses()
+
+        // Закриваємо модальне вікно підтвердження
         this.closeConfirmModal()
+
+        // Показуємо повідомлення про успішне видалення
+        alert('Курс успішно видалено')
       } catch (error) {
         console.error('Помилка при видаленні курсу:', error)
+
+        // Детальне логування помилки
+        if (error.response) {
+          console.error('Статус відповіді:', error.response.status)
+          console.error('Дані відповіді:', error.response.data)
+
+          if (error.response.data && error.response.data.message) {
+            alert(`Помилка: ${error.response.data.message}`)
+          } else {
+            alert(`Помилка при видаленні курсу: ${error.response.status}`)
+          }
+        } else if (error.request) {
+          console.error('Запит був зроблений, але відповідь не отримана:', error.request)
+          alert('Сервер не відповідає. Перевірте підключення до мережі.')
+        } else {
+          console.error('Помилка при налаштуванні запиту:', error.message)
+          alert(`Помилка: ${error.message}`)
+        }
+      } finally {
+        // Прибираємо індикатор завантаження
+        this.loading = false
+
+        // Закриваємо модальне вікно підтвердження незалежно від результату
+        this.closeConfirmModal()
       }
     },
 

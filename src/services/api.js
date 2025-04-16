@@ -322,9 +322,8 @@ export const coursesApi = {
     return api.put(`/update_course/${id}`, courseData)
   },
 
-  // Видалити курс
   deleteCourse(id) {
-    return api.delete(`/delete_cours/${id}`)
+    return api.delete(`/courses/${id}`)
   },
 
   // Створити новий курс
