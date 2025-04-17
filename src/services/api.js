@@ -319,9 +319,10 @@ export const coursesApi = {
 
   // Оновити дані курсу
   updateCourse(id, courseData) {
-    return api.put(`/update_course/${id}`, courseData)
+    return api.put(`/courses/${id}`, courseData)
   },
 
+  //Видалити курс
   deleteCourse(id) {
     return api.delete(`/courses/${id}`)
   },
@@ -349,9 +350,9 @@ export const coursesApi = {
   // Завантажити обкладинку курсу
   uploadCourseCover(courseId, file) {
     const formData = new FormData()
-    formData.append('cover', file)
+    formData.append('cover_image', file) // змінено назву поля з 'cover' на 'cover_image'
 
-    return api.post(`/courses/${courseId}/upload-cover`, formData, {
+    return api.post(`/courses/${courseId}/cover-image`, formData, {
       headers: {
         'Content-Type': 'multipart/form-data',
       },

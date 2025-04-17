@@ -348,22 +348,99 @@ export default {
 
     async saveCourse(courseData) {
       try {
-        if (courseData.id) {
-          await api.courses.updateCourse(courseData.id, courseData)
+        console.log('Дані курсу для збереження:', JSON.stringify(courseData, null, 2))
+
+        // Переконуємося, що числові поля дійсно є числами
+        const numericFields = [
+          'price',
+          'discount_price',
+          'category_id',
+          'level_id',
+          'instructor_id',
+        ]
+        const formData = { ...courseData }
+
+        numericFields.forEach((field) => {
+          if (formData[field] !== null && formData[field] !== undefined) {
+            formData[field] = Number(formData[field])
+          }
+        })
+
+        if (formData.id) {
+          // Редагування існуючого курсу
+          console.log(`Оновлення курсу з ID: ${formData.id}`)
+
+          // Виконуємо запит до API
+          const response = await api.courses.updateCourse(formData.id, formData)
+          console.log('Відповідь сервера при оновленні:', response.data)
 
           // Якщо курс вибраний і відкритий для перегляду, оновлюємо його дані
-          if (this.selectedCourse && this.selectedCourse.id === courseData.id) {
-            const response = await api.courses.getCourseById(courseData.id)
-            this.selectedCourse = response.data.data
+          if (this.selectedCourse && this.selectedCourse.id === formData.id) {
+            const detailResponse = await api.courses.getCourseById(formData.id)
+            this.selectedCourse = detailResponse.data.data
           }
+
+          // Показуємо повідомлення про успішне оновлення
+          alert('Курс успішно оновлено')
         } else {
-          const response = await api.courses.createCourse(courseData)
-          // Додаємо новий курс до списку
-          this.fetchCourses()
+          // Створення нового курсу
+          console.log('Створення нового курсу')
+
+          // Перевіряємо наявність обов'язкових полів
+          const requiredFields = ['title', 'category_id', 'price', 'level_id']
+          let missingFields = []
+
+          for (const field of requiredFields) {
+            if (!formData[field]) {
+              missingFields.push(field)
+            }
+          }
+
+          if (missingFields.length > 0) {
+            alert(`Відсутні обов'язкові поля: ${missingFields.join(', ')}`)
+            return
+          }
+
+          // Виконуємо запит до API
+          const response = await api.courses.createCourse(formData)
+          console.log('Відповідь сервера при створенні:', response.data)
+
+          // Показуємо повідомлення про успішне створення
+          alert('Новий курс успішно створено')
         }
+
+        // Оновлюємо список курсів
+        await this.fetchCourses()
+
+        // Закриваємо модальне вікно
         this.closeCourseModal()
       } catch (error) {
         console.error('Помилка при збереженні курсу:', error)
+
+        // Детальне логування помилки
+        if (error.response) {
+          console.error('Статус відповіді:', error.response.status)
+          console.error('Дані відповіді:', error.response.data)
+
+          if (error.response.data && error.response.data.errors) {
+            const validationErrors = error.response.data.errors
+            const errorMessages = Object.keys(validationErrors)
+              .map((field) => `${field}: ${validationErrors[field].join(', ')}`)
+              .join('\n')
+
+            alert(`Помилка валідації даних:\n${errorMessages}`)
+          } else if (error.response.data && error.response.data.message) {
+            alert(`Помилка: ${error.response.data.message}`)
+          } else {
+            alert(`Помилка при збереженні курсу: ${error.response.status}`)
+          }
+        } else if (error.request) {
+          console.error('Запит був зроблений, але відповідь не отримана:', error.request)
+          alert('Сервер не відповідає. Перевірте підключення до мережі.')
+        } else {
+          console.error('Помилка при налаштуванні запиту:', error.message)
+          alert(`Помилка: ${error.message}`)
+        }
       }
     },
 

@@ -217,6 +217,7 @@ export default {
         is_published: false,
         instructor_id: 1,
       },
+      originalForm: {}, // Для зберігання початкових даних форми
       levels: [
         { id: 1, name: 'Початковий' },
         { id: 2, name: 'Середній' },
@@ -262,8 +263,11 @@ export default {
           meta_title: this.course.meta_title || '',
           meta_description: this.course.meta_description || '',
           is_published: this.course.is_published || false,
-          instructor_id: this.course.instructor_id || 1, // Додаємо ID інструктора (використовуємо 1 як значення за замовчуванням)
+          instructor_id: this.course.instructor_id || 1,
         }
+
+        // Зберігаємо початковий стан форми для порівняння змін
+        this.originalForm = { ...this.form }
 
         // Встановлюємо попередній перегляд обкладинки, якщо вона є
         if (this.course.cover_image) {
@@ -285,8 +289,12 @@ export default {
           meta_title: '',
           meta_description: '',
           is_published: false,
-          instructor_id: 1, // Додаємо ID інструктора
+          instructor_id: 1,
         }
+
+        // Зберігаємо початковий стан форми для нового курсу
+        this.originalForm = { ...this.form }
+
         this.coverPreview = null
       }
     },
@@ -294,6 +302,12 @@ export default {
     handleCoverUpload(event) {
       const file = event.target.files[0]
       if (!file) return
+
+      // Перевірка, чи файл є зображенням
+      if (!file.type.startsWith('image/')) {
+        alert('Файл обкладинки повинен бути зображенням (JPEG, PNG, GIF, тощо)')
+        return
+      }
 
       this.coverFile = file
 
@@ -321,22 +335,22 @@ export default {
         isValid = false
       }
 
-      // Перевірка категорії
-      if (!this.form.category_id) {
-        alert("Категорія курсу є обов'язковою")
-        isValid = false
-      }
+      // Для нових курсів перевіряємо обов'язкові поля
+      if (!this.isEdit) {
+        if (!this.form.category_id) {
+          alert("Категорія курсу є обов'язковою")
+          isValid = false
+        }
 
-      // Перевірка ціни
-      if (!this.form.price || isNaN(parseFloat(this.form.price))) {
-        alert('Ціна курсу повинна бути числовим значенням')
-        isValid = false
-      }
+        if (!this.form.price || isNaN(parseFloat(this.form.price))) {
+          alert('Ціна курсу повинна бути числовим значенням')
+          isValid = false
+        }
 
-      // Перевірка рівня складності
-      if (!this.form.level_id) {
-        alert("Рівень складності є обов'язковим")
-        isValid = false
+        if (!this.form.level_id) {
+          alert("Рівень складності є обов'язковим")
+          isValid = false
+        }
       }
 
       // Перевірка ціни зі знижкою (якщо вказана)
@@ -352,115 +366,185 @@ export default {
       if (!this.coverFile) return
 
       try {
+        const formData = new FormData()
+        formData.append('cover_image', this.coverFile)
+
+        console.log(`Завантаження обкладинки для курсу з ID: ${courseId}`)
+
         await api.courses.uploadCourseCover(courseId, this.coverFile)
+        console.log('Обкладинка успішно завантажена')
       } catch (error) {
         console.error('Помилка при завантаженні обкладинки:', error)
+        if (error.response && error.response.data) {
+          console.error('Деталі помилки:', error.response.data)
+        }
+        // Не перекидаємо помилку далі, щоб не блокувати збереження курсу
       }
     },
 
+    // Метод для обробки збереження курсу (спільний вхідний метод)
     async saveCourse() {
       if (!this.validateForm()) return
 
       this.loading = true
 
       try {
-        // Клонуємо об'єкт форми для безпечного маніпулювання
-        const formData = { ...this.form }
-
-        // Логуємо дані для діагностики
-        console.log('Форма перед відправкою:', JSON.stringify(formData, null, 2))
-
-        // Переконуємося, що числові поля дійсно є числами
-        if (formData.price) {
-          formData.price = Number(formData.price)
-        }
-
-        if (formData.discount_price) {
-          formData.discount_price = Number(formData.discount_price)
-        }
-
-        if (formData.category_id) {
-          formData.category_id = Number(formData.category_id)
-        }
-
-        if (formData.level_id) {
-          formData.level_id = Number(formData.level_id)
-        }
-
-        // Перевіряємо наявність обов'язкових полів згідно документації
-        const requiredFields = ['title', 'category_id', 'price', 'level_id']
-        let missingFields = []
-
-        for (const field of requiredFields) {
-          if (formData[field] === undefined || formData[field] === null || formData[field] === '') {
-            missingFields.push(field)
-          }
-        }
-
-        if (missingFields.length > 0) {
-          alert(`Відсутні обов'язкові поля: ${missingFields.join(', ')}`)
-          this.loading = false
-          return
-        }
-
-        // Логуємо дані для відправки
-        console.log('Оброблені дані для відправки:', JSON.stringify(formData, null, 2))
-
-        // Виконуємо запит до API
-        let response
-        if (this.isEdit && formData.id) {
-          await api.courses.updateCourse(formData.id, formData)
-
-          // Завантажуємо нову обкладинку, якщо вона змінилася
-          if (this.coverFile) {
-            await this.uploadCover(formData.id)
-          }
-
-          response = { data: { ...formData } }
+        if (this.isEdit) {
+          // Якщо це редагування, викликаємо метод оновлення
+          await this.updateExistingCourse()
         } else {
-          response = await api.courses.createCourse(formData)
-
-          // Завантажуємо обкладинку для нового курсу
-          if (this.coverFile && response.data && response.data.id) {
-            await this.uploadCover(response.data.id)
-          }
+          // Якщо це нове створення, викликаємо метод створення
+          await this.createNewCourse()
         }
-
-        this.$emit('save', response.data)
       } catch (error) {
         console.error('Помилка при збереженні курсу:', error)
-
-        // Детальне логування помилки
-        if (error.response) {
-          console.error('Статус відповіді:', error.response.status)
-          console.error('Заголовки відповіді:', error.response.headers)
-          console.error('Дані відповіді:', error.response.data)
-
-          if (error.response.data && error.response.data.errors) {
-            const validationErrors = error.response.data.errors
-            console.error('Помилки валідації:', validationErrors)
-
-            let errorMessage = 'Помилки валідації:\n'
-            for (const field in validationErrors) {
-              if (field === 'title') {
-                this.errors.title = validationErrors[field][0]
-              }
-              errorMessage += `${field}: ${validationErrors[field].join(', ')}\n`
-            }
-
-            alert(errorMessage)
-          } else if (error.response.data && error.response.data.message) {
-            alert(`Помилка: ${error.response.data.message}`)
-          }
-        } else if (error.request) {
-          console.error('Запит був зроблений, але відповідь не отримана:', error.request)
-          alert('Сервер не відповідає. Перевірте підключення до мережі.')
-        } else {
-          console.error('Помилка при налаштуванні запиту:', error.message)
-          alert(`Помилка: ${error.message}`)
-        }
+        this.handleError(error)
       } finally {
         this.loading = false
+      }
+    },
+
+    // Метод для створення нового курсу
+    async createNewCourse() {
+      // Клонуємо об'єкт форми
+      const formData = { ...this.form }
+
+      // Переконуємося, що числові поля є числами
+      this.convertNumericFields(formData)
+
+      // Перевіряємо обов'язкові поля
+      const requiredFields = ['title', 'category_id', 'price', 'level_id']
+      const missingFields = this.checkRequiredFields(formData, requiredFields)
+
+      if (missingFields.length > 0) {
+        alert(`Відсутні обов'язкові поля: ${missingFields.join(', ')}`)
+        return
+      }
+
+      console.log('Створення нового курсу з даними:', JSON.stringify(formData, null, 2))
+
+      // Відправляємо запит на створення курсу
+      const response = await api.courses.createCourse(formData)
+      console.log('Відповідь на створення курсу:', response.data)
+
+      // Якщо є обкладинка і курс успішно створено
+      if (this.coverFile && response.data && response.data.id) {
+        try {
+          await this.uploadCover(response.data.id)
+        } catch (coverError) {
+          console.error('Помилка при завантаженні обкладинки:', coverError)
+          // Продовжуємо, навіть якщо обкладинка не завантажилась
+        }
+      }
+
+      alert('Курс успішно створено!')
+      this.$emit('save', response.data)
+    },
+
+    // Метод для оновлення існуючого курсу
+    async updateExistingCourse() {
+      const courseId = this.course.id
+
+      // Визначаємо, які поля були змінені
+      const changedFields = {}
+
+      // Порівнюємо значення полів з початковими
+      for (const [key, value] of Object.entries(this.form)) {
+        if (JSON.stringify(this.originalForm[key]) !== JSON.stringify(value)) {
+          changedFields[key] = value
+        }
+      }
+
+      console.log('Оновлення полів курсу:', JSON.stringify(changedFields, null, 2))
+
+      // Якщо немає змінених полів (крім обкладинки)
+      if (Object.keys(changedFields).length === 0 && !this.coverFile) {
+        alert('Немає змін для збереження')
+        return
+      }
+
+      // Переконуємося, що числові поля є числами
+      this.convertNumericFields(changedFields)
+
+      // Додаємо ID курсу до даних
+      changedFields.id = courseId
+
+      // Відправляємо запит на оновлення курсу тільки зі зміненими полями
+      try {
+        await api.courses.updateCourse(courseId, changedFields)
+
+        // Обробляємо обкладинку окремо, тільки якщо вона змінилась
+        if (this.coverFile) {
+          try {
+            await this.uploadCover(courseId)
+          } catch (coverError) {
+            console.error('Помилка при завантаженні обкладинки:', coverError)
+            // Продовжуємо виконання, навіть якщо обкладинка не завантажилась
+          }
+        }
+
+        // Отримуємо оновлені дані курсу
+        const updatedCourseResponse = await api.courses.getCourseById(courseId)
+
+        alert('Курс успішно оновлено!')
+        this.$emit('save', updatedCourseResponse.data.data)
+      } catch (error) {
+        throw error // Перекидаємо помилку для обробки у вищому методі
+      }
+    },
+
+    // Метод для конвертації числових полів
+    convertNumericFields(data) {
+      const numericFields = ['price', 'discount_price', 'category_id', 'level_id', 'instructor_id']
+
+      for (const field of numericFields) {
+        if (data[field] !== undefined && data[field] !== null) {
+          data[field] = Number(data[field])
+        }
+      }
+    },
+
+    // Метод для перевірки обов'язкових полів
+    checkRequiredFields(data, requiredFields) {
+      const missingFields = []
+
+      for (const field of requiredFields) {
+        if (data[field] === undefined || data[field] === null || data[field] === '') {
+          missingFields.push(field)
+        }
+      }
+
+      return missingFields
+    },
+
+    // Метод для обробки помилок
+    handleError(error) {
+      if (error.response) {
+        console.error('Статус відповіді:', error.response.status)
+        console.error('Дані відповіді:', error.response.data)
+
+        if (error.response.data && error.response.data.errors) {
+          const validationErrors = error.response.data.errors
+          console.error('Помилки валідації:', validationErrors)
+
+          let errorMessage = 'Помилки валідації:\n'
+          for (const field in validationErrors) {
+            if (field === 'title') {
+              this.errors.title = validationErrors[field][0]
+            }
+            errorMessage += `${field}: ${validationErrors[field].join(', ')}\n`
+          }
+
+          alert(errorMessage)
+        } else if (error.response.data && error.response.data.message) {
+          alert(`Помилка: ${error.response.data.message}`)
+        }
+      } else if (error.request) {
+        console.error('Запит був зроблений, але відповідь не отримана:', error.request)
+        alert('Сервер не відповідає. Перевірте підключення до мережі.')
+      } else {
+        console.error('Помилка при налаштуванні запиту:', error.message)
+        alert(`Помилка: ${error.message}`)
       }
     },
   },
