@@ -307,14 +307,14 @@ export const coursesApi = {
     })
   },
 
-  // Зняти курс з публікації
-  unpublishCourse(id) {
-    return api.put(`/course_unpublish/${id}`)
-  },
-
   // Опублікувати курс
   publishCourse(id) {
-    return api.put(`/courses_publish/${id}`)
+    return api.put(`/courses/${id}/publish`)
+  },
+
+  // Зняти курс з публікації
+  unpublishCourse(id) {
+    return api.put(`/courses/${id}/unpublish`)
   },
 
   // Оновити дані курсу

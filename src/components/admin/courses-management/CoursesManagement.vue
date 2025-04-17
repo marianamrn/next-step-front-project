@@ -465,6 +465,7 @@ export default {
     },
 
     // ПУБЛІКАЦІЯ
+    // Метод для публікації курсу
     async publishCourse(course) {
       // Перевіряємо, чи є уроки в курсі
       if (!course.lessons || course.lessons.length === 0) {
@@ -473,33 +474,78 @@ export default {
       }
 
       try {
-        await api.courses.publishCourse(course.id)
+        console.log(`Публікація курсу з ID: ${course.id}`)
 
-        // Оновлюємо дані
+        // Запит на публікацію курсу
+        const response = await api.courses.publishCourse(course.id)
+        console.log('Відповідь на публікацію:', response.data)
+
+        // Показуємо повідомлення про успіх
+        alert('Курс успішно опубліковано!')
+
+        // Оновлюємо дані, якщо ми знаходимося на сторінці деталей курсу
         if (this.selectedCourse && this.selectedCourse.id === course.id) {
-          const response = await api.courses.getCourseById(course.id)
-          this.selectedCourse = response.data.data
+          const updatedCourse = await api.courses.getCourseById(course.id)
+          this.selectedCourse = updatedCourse.data.data
         }
 
+        // Оновлюємо список курсів
         this.fetchCourses()
       } catch (error) {
         console.error('Помилка при публікації курсу:', error)
+
+        // Обробка помилок
+        if (error.response) {
+          console.error('Статус відповіді:', error.response.status)
+          console.error('Дані відповіді:', error.response.data)
+
+          if (error.response.data && error.response.data.message) {
+            alert(`Помилка: ${error.response.data.message}`)
+          } else {
+            alert('Помилка при публікації курсу. Перевірте наявність уроків і спробуйте знову.')
+          }
+        } else {
+          alert('Помилка при публікації курсу. Перевірте підключення до мережі.')
+        }
       }
     },
 
+    // Метод для зняття курсу з публікації
     async unpublishCourse(course) {
       try {
-        await api.courses.unpublishCourse(course.id)
+        console.log(`Зняття з публікації курсу з ID: ${course.id}`)
 
-        // Оновлюємо дані
+        // Запит на зняття курсу з публікації
+        const response = await api.courses.unpublishCourse(course.id)
+        console.log('Відповідь на зняття з публікації:', response.data)
+
+        // Показуємо повідомлення про успіх
+        alert('Курс успішно знято з публікації!')
+
+        // Оновлюємо дані, якщо ми знаходимося на сторінці деталей курсу
         if (this.selectedCourse && this.selectedCourse.id === course.id) {
-          const response = await api.courses.getCourseById(course.id)
-          this.selectedCourse = response.data.data
+          const updatedCourse = await api.courses.getCourseById(course.id)
+          this.selectedCourse = updatedCourse.data.data
         }
 
+        // Оновлюємо список курсів
         this.fetchCourses()
       } catch (error) {
         console.error('Помилка при знятті курсу з публікації:', error)
+
+        // Обробка помилок
+        if (error.response) {
+          console.error('Статус відповіді:', error.response.status)
+          console.error('Дані відповіді:', error.response.data)
+
+          if (error.response.data && error.response.data.message) {
+            alert(`Помилка: ${error.response.data.message}`)
+          } else {
+            alert('Помилка при знятті курсу з публікації.')
+          }
+        } else {
+          alert('Помилка при знятті курсу з публікації. Перевірте підключення до мережі.')
+        }
       }
     },
 

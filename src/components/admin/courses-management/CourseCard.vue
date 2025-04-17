@@ -20,6 +20,7 @@
         <v-icon left size="18">mdi-pencil</v-icon>
         Редагувати
       </button>
+
       <button
         v-if="!course.is_published && hasLessons"
         class="publish-button"
@@ -28,14 +29,16 @@
         <v-icon left size="18">mdi-bookmark</v-icon>
         Опублікувати
       </button>
+
       <button
         v-if="course.is_published"
         class="unpublish-button"
         @click.stop="$emit('unpublish', course)"
       >
         <v-icon left size="18">mdi-bookmark-off</v-icon>
-        Скасувати публікацію
+        Зняти з публікації
       </button>
+
       <button class="delete-button" @click.stop="$emit('delete', course)">
         <v-icon left size="18">mdi-delete</v-icon>
         Видалити

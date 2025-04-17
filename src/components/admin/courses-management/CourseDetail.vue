@@ -108,19 +108,33 @@
                 {{ lesson.is_published ? 'Опубліковано' : 'Чернетка' }}
               </div>
             </div>
-            <div class="lesson-actions">
-              <button class="action-button edit" @click="$emit('edit-lesson', lesson)">
-                <v-icon size="16">mdi-pencil</v-icon>
+            <div class="course-actions">
+              <button class="edit-button" @click="$emit('edit-course', course)">
+                <v-icon left size="18">mdi-pencil</v-icon>
+                Редагувати курс
               </button>
+
               <button
-                v-if="!lesson.is_published"
-                class="action-button publish"
-                @click="$emit('publish-lesson', lesson)"
+                v-if="!course.is_published && hasLessons"
+                class="publish-button"
+                @click="$emit('publish-course', course)"
               >
-                <v-icon size="16">mdi-bookmark</v-icon>
+                <v-icon left size="18">mdi-bookmark</v-icon>
+                Опублікувати курс
               </button>
-              <button class="action-button delete" @click="$emit('delete-lesson', lesson)">
-                <v-icon size="16">mdi-delete</v-icon>
+
+              <button
+                v-if="course.is_published"
+                class="unpublish-button"
+                @click="$emit('unpublish-course', course)"
+              >
+                <v-icon left size="18">mdi-bookmark-off</v-icon>
+                Зняти з публікації
+              </button>
+
+              <button class="delete-button" @click="$emit('delete-course', course)">
+                <v-icon left size="18">mdi-delete</v-icon>
+                Видалити курс
               </button>
             </div>
           </div>
