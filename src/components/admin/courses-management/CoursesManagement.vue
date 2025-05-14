@@ -1,75 +1,24 @@
 <!-- src\components\admin\courses-management\CoursesManagement.vue -->
 <template>
   <div class="courses-management">
-    <!-- Навігаційне меню для управління курсами -->
-    <div v-if="!selectedCourse" class="course-nav">
-      <div class="filter-panel">
-        <span class="filter-label">Категорія:</span>
-        <div class="dropdown">
-          <button class="dropdown-toggle">
-            {{ selectedCategory ? selectedCategory.name : 'Всі категорії' }}
-            <v-icon>mdi-chevron-down</v-icon>
-          </button>
-          <div class="dropdown-menu">
-            <div class="dropdown-item" @click="setCategory(null)">Всі категорії</div>
-            <div
-              class="dropdown-item"
-              v-for="category in categories"
-              :key="category.id"
-              @click="setCategory(category)"
-            >
-              {{ category.name }}
-            </div>
-            <div class="dropdown-item add-category" @click="showCategoryModal = true">
-              <v-icon small>mdi-plus</v-icon>
-              Додати категорію
-            </div>
-          </div>
-        </div>
-      </div>
-      <div class="search-container">
-        <input
-          type="text"
-          v-model="searchQuery"
-          placeholder="Пошук курсів"
-          class="search-input"
-          @input="handleSearch"
-        />
-        <v-icon class="search-icon">mdi-magnify</v-icon>
-      </div>
-      <button class="add-button" @click="openCourseModal()">
-        <v-icon small>mdi-plus</v-icon>
-        Додати курс
-      </button>
-    </div>
+    <!-- Відображення списку курсів, коли не вибрано конкретний курс -->
+    <courses-list
+      v-if="!selectedCourseId"
+      :loading="loading"
+      @select-course="selectCourse"
+      @open-course-modal="openCourseModal"
+      @open-category-modal="showCategoryModal = true"
+      @edit-course="openCourseModal"
+      @publish-course="publishCourse"
+      @unpublish-course="unpublishCourse"
+      @delete-course="confirmDeleteCourse"
+    />
 
-    <!-- Грід для відображення курсів (відображається тільки якщо не вибрано курс) -->
-    <div v-if="!selectedCourse" class="courses-container">
-      <div v-if="loading" class="loading-container">
-        <div class="spinner"></div>
-        <p>Завантаження курсів...</p>
-      </div>
-      <div v-else-if="filteredCourses.length === 0" class="no-courses">
-        <p>Курсів не знайдено</p>
-      </div>
-      <div v-else class="courses-grid">
-        <course-card
-          v-for="course in filteredCourses"
-          :key="course.id"
-          :course="course"
-          @click="selectCourse(course)"
-          @edit="openCourseModal(course)"
-          @publish="publishCourse(course)"
-          @unpublish="unpublishCourse(course)"
-          @delete="confirmDeleteCourse(course)"
-        />
-      </div>
-    </div>
-
-    <!-- Детальна інформація про вибраний курс -->
-    <course-detail
-      v-if="selectedCourse"
-      :course="selectedCourse"
+    <!-- Відображення деталей курсу, коли вибрано конкретний курс -->
+    <course-details-container
+      v-else
+      ref="courseDetailsContainer"
+      :course-id="selectedCourseId"
       @back="backToCoursesList"
       @edit-course="openCourseModal"
       @publish-course="publishCourse"
@@ -100,7 +49,7 @@
     <lesson-modal
       v-if="showLessonModal"
       :lesson="currentLesson"
-      :course-id="selectedCourse ? selectedCourse.id : null"
+      :course-id="selectedCourseId"
       @close="closeLessonModal"
       @save="saveLesson"
     />
@@ -116,20 +65,20 @@
 </template>
 
 <script>
-import api from '@/services/api.js'
-import CourseCard from './CourseCard.vue'
-import CourseDetail from './CourseDetail.vue'
+import CoursesList from './CoursesList.vue'
+import CourseDetailsContainer from './CourseDetailsContainer.vue'
 import CategoryModal from './CategoryModal.vue'
 import CourseModal from './CourseModal.vue'
 import LessonModal from './LessonModal.vue'
 import ConfirmModal from './ConfirmModal.vue'
+import api from '@/services/api.js'
 import { useRouter, useRoute } from 'vue-router'
 
 export default {
   name: 'CoursesManagement',
   components: {
-    CourseCard,
-    CourseDetail,
+    CoursesList,
+    CourseDetailsContainer,
     CategoryModal,
     CourseModal,
     LessonModal,
@@ -142,17 +91,13 @@ export default {
   },
   data() {
     return {
-      courses: [],
       categories: [],
-      searchQuery: '',
-      selectedCategory: null,
-      selectedCourse: null,
+      selectedCourseId: null,
       showCategoryModal: false,
       showCourseModal: false,
       showLessonModal: false,
       showConfirmModal: false,
       loading: false,
-      error: null,
 
       // Тимчасові об'єкти для модальних вікон
       currentCategory: null,
@@ -165,46 +110,20 @@ export default {
       confirmAction: () => {},
     }
   },
-  computed: {
-    filteredCourses() {
-      if (!this.courses) return []
-
-      let filtered = this.courses
-
-      // Фільтр за категорією
-      if (this.selectedCategory) {
-        filtered = filtered.filter((course) => course.category_id === this.selectedCategory.id)
-      }
-
-      // Фільтр за пошуковим запитом
-      if (this.searchQuery) {
-        const query = this.searchQuery.toLowerCase()
-        filtered = filtered.filter(
-          (course) =>
-            course.title.toLowerCase().includes(query) ||
-            (course.description && course.description.toLowerCase().includes(query)) ||
-            (course.category && course.category.name.toLowerCase().includes(query)),
-        )
-      }
-
-      return filtered
-    },
-  },
   watch: {
     '$route.params.id': {
       immediate: true,
       handler(newId) {
         if (newId) {
-          this.loadCourseById(newId)
-        } else if (this.selectedCourse) {
-          this.selectedCourse = null
+          this.selectedCourseId = newId
+        } else if (this.selectedCourseId) {
+          this.selectedCourseId = null
         }
       },
     },
   },
   created() {
     this.fetchCategories()
-    this.fetchCourses()
   },
   methods: {
     async fetchCategories() {
@@ -213,42 +132,13 @@ export default {
         this.categories = response.data.data
       } catch (error) {
         console.error('Помилка при завантаженні категорій:', error)
-        this.error = 'Не вдалося завантажити категорії'
       }
-    },
-
-    async fetchCourses() {
-      this.loading = true
-      try {
-        if (this.selectedCategory) {
-          const response = await api.courses.getCoursesByCategory(this.selectedCategory.id)
-          this.courses = response.data.data
-        } else {
-          const response = await api.courses.getAllCourses()
-          this.courses = response.data.data
-        }
-      } catch (error) {
-        console.error('Помилка при завантаженні курсів:', error)
-        this.error = 'Не вдалося завантажити курси'
-      } finally {
-        this.loading = false
-      }
-    },
-
-    handleSearch() {
-      // Можна додати debounce для оптимізації
-      // Тут просто повторно використовуємо filteredCourses
-    },
-
-    async setCategory(category) {
-      this.selectedCategory = category
-      this.fetchCourses()
     },
 
     async selectCourse(course) {
       try {
         this.loading = true
-        await this.loadCourseById(course.id)
+        this.selectedCourseId = course.id
 
         // Оновлюємо URL з використанням name замість path
         this.router.push({
@@ -262,53 +152,8 @@ export default {
       }
     },
 
-    async loadCourseById(courseId) {
-      try {
-        this.loading = true
-        const response = await api.courses.getCourseById(courseId)
-
-        // Отримуємо і клонуємо дані курсу
-        const courseData = JSON.parse(JSON.stringify(response.data.course))
-
-        this.selectedCourse = courseData
-      } catch (error) {
-        console.error('Помилка завантаження курсу:', error)
-
-        this.selectedCourse =
-          process.env.NODE_ENV === 'development' ? this.createFallbackCourse(courseId) : null
-
-        if (!this.selectedCourse) {
-          alert(`Помилка: ${error.message || 'Невідома помилка'}`)
-        }
-      } finally {
-        this.loading = false
-      }
-    },
-
-    // Рекурсивна функція для декодування рядків в об'єкті
-    decodeStringProperties(obj) {
-      if (!obj) return
-
-      Object.keys(obj).forEach((key) => {
-        if (typeof obj[key] === 'string') {
-          // Спроба декодувати рядок, якщо він містить escape-послідовності
-          try {
-            // Декодування лише якщо рядок містить \u
-            if (obj[key].includes('\\u')) {
-              obj[key] = JSON.parse(`"${obj[key]}"`)
-            }
-          } catch (e) {
-            console.warn(`Помилка декодування властивості ${key}:`, e)
-          }
-        } else if (typeof obj[key] === 'object' && obj[key] !== null) {
-          // Рекурсивно обробляємо вкладені об'єкти
-          this.decodeStringProperties(obj[key])
-        }
-      })
-    },
-
     backToCoursesList() {
-      this.selectedCourse = null
+      this.selectedCourseId = null
       this.router.push({ name: 'AdminCourses' })
     },
 
@@ -340,7 +185,7 @@ export default {
     },
 
     openLessonModal(lesson = null) {
-      if (!this.selectedCourse) {
+      if (!this.selectedCourseId) {
         alert('Спочатку виберіть курс для додавання уроку')
         return
       }
@@ -353,7 +198,7 @@ export default {
           title: '',
           content: '',
           video_url: '',
-          attachments: [],
+          order: null,
         }
       }
       this.showLessonModal = true
@@ -423,10 +268,12 @@ export default {
           const response = await api.courses.updateCourse(formData.id, formData)
           console.log('Відповідь сервера при оновленні:', response.data)
 
-          // Якщо курс вибраний і відкритий для перегляду, оновлюємо його дані
-          if (this.selectedCourse && this.selectedCourse.id === formData.id) {
-            const detailResponse = await api.courses.getCourseById(formData.id)
-            this.selectedCourse = detailResponse.data.data
+          // Оновлюємо деталі курсу, якщо він відкритий
+          if (this.selectedCourseId === formData.id) {
+            const courseDetailsContainer = this.$refs.courseDetailsContainer
+            if (courseDetailsContainer) {
+              courseDetailsContainer.refreshCourse()
+            }
           }
 
           // Показуємо повідомлення про успішне оновлення
@@ -457,9 +304,6 @@ export default {
           // Показуємо повідомлення про успішне створення
           alert('Новий курс успішно створено')
         }
-
-        // Оновлюємо список курсів
-        await this.fetchCourses()
 
         // Закриваємо модальне вікно
         this.closeCourseModal()
@@ -495,16 +339,18 @@ export default {
 
     async saveLesson(lessonData) {
       try {
-        if (this.selectedCourse) {
+        if (this.selectedCourseId) {
           if (lessonData.id) {
-            await api.lessons.updateLesson(this.selectedCourse.id, lessonData.id, lessonData)
+            await api.lessons.updateLesson(this.selectedCourseId, lessonData.id, lessonData)
           } else {
-            await api.lessons.createLesson(this.selectedCourse.id, lessonData)
+            await api.lessons.createLesson(this.selectedCourseId, lessonData)
           }
 
-          // Оновлюємо дані курсу, щоб отримати оновлений список уроків
-          const response = await api.courses.getCourseById(this.selectedCourse.id)
-          this.selectedCourse = response.data.data
+          // Оновлюємо дані курсу після редагування уроку
+          const courseDetailsContainer = this.$refs.courseDetailsContainer
+          if (courseDetailsContainer) {
+            courseDetailsContainer.refreshCourse()
+          }
 
           this.closeLessonModal()
         }
@@ -533,13 +379,12 @@ export default {
         alert('Курс успішно опубліковано!')
 
         // Оновлюємо дані, якщо ми знаходимося на сторінці деталей курсу
-        if (this.selectedCourse && this.selectedCourse.id === course.id) {
-          const updatedCourse = await api.courses.getCourseById(course.id)
-          this.selectedCourse = updatedCourse.data.data
+        if (this.selectedCourseId === course.id) {
+          const courseDetailsContainer = this.$refs.courseDetailsContainer
+          if (courseDetailsContainer) {
+            courseDetailsContainer.refreshCourse()
+          }
         }
-
-        // Оновлюємо список курсів
-        this.fetchCourses()
       } catch (error) {
         console.error('Помилка при публікації курсу:', error)
 
@@ -572,13 +417,12 @@ export default {
         alert('Курс успішно знято з публікації!')
 
         // Оновлюємо дані, якщо ми знаходимося на сторінці деталей курсу
-        if (this.selectedCourse && this.selectedCourse.id === course.id) {
-          const updatedCourse = await api.courses.getCourseById(course.id)
-          this.selectedCourse = updatedCourse.data.data
+        if (this.selectedCourseId === course.id) {
+          const courseDetailsContainer = this.$refs.courseDetailsContainer
+          if (courseDetailsContainer) {
+            courseDetailsContainer.refreshCourse()
+          }
         }
-
-        // Оновлюємо список курсів
-        this.fetchCourses()
       } catch (error) {
         console.error('Помилка при знятті курсу з публікації:', error)
 
@@ -600,12 +444,14 @@ export default {
 
     async publishLesson(lesson) {
       try {
-        if (this.selectedCourse) {
-          await api.lessons.publishLesson(this.selectedCourse.id, lesson.id)
+        if (this.selectedCourseId) {
+          await api.lessons.publishLesson(this.selectedCourseId, lesson.id)
 
           // Оновлюємо дані курсу
-          const response = await api.courses.getCourseById(this.selectedCourse.id)
-          this.selectedCourse = response.data.data
+          const courseDetailsContainer = this.$refs.courseDetailsContainer
+          if (courseDetailsContainer) {
+            courseDetailsContainer.refreshCourse()
+          }
         }
       } catch (error) {
         console.error('Помилка при публікації уроку:', error)
@@ -635,12 +481,9 @@ export default {
         console.log('Відповідь сервера:', response.data)
 
         // Якщо курс був відкритий у детальному перегляді, повертаємось до списку
-        if (this.selectedCourse && this.selectedCourse.id === course.id) {
+        if (this.selectedCourseId === course.id) {
           this.backToCoursesList()
         }
-
-        // Оновлюємо список курсів
-        await this.fetchCourses()
 
         // Закриваємо модальне вікно підтвердження
         this.closeConfirmModal()
@@ -685,12 +528,14 @@ export default {
 
     async deleteLesson(lesson) {
       try {
-        if (this.selectedCourse) {
-          await api.lessons.deleteLesson(this.selectedCourse.id, lesson.id)
+        if (this.selectedCourseId) {
+          await api.lessons.deleteLesson(this.selectedCourseId, lesson.id)
 
           // Оновлюємо дані курсу
-          const response = await api.courses.getCourseById(this.selectedCourse.id)
-          this.selectedCourse = response.data.data
+          const courseDetailsContainer = this.$refs.courseDetailsContainer
+          if (courseDetailsContainer) {
+            courseDetailsContainer.refreshCourse()
+          }
 
           this.closeConfirmModal()
         }
@@ -714,190 +559,5 @@ export default {
   padding: 20px;
   background-color: #f9fafb;
   min-height: calc(100vh - 70px);
-}
-
-.course-nav {
-  display: flex;
-  justify-content: space-between;
-  margin-bottom: 30px;
-  align-items: center;
-}
-
-.filter-panel {
-  display: flex;
-  align-items: center;
-}
-
-.filter-label {
-  margin-right: 10px;
-  font-weight: 500;
-}
-
-.dropdown {
-  position: relative;
-}
-
-.dropdown-toggle {
-  display: flex;
-  align-items: center;
-  background-color: white;
-  border: 1px solid #e1e1e1;
-  border-radius: 5px;
-  padding: 8px 12px;
-  cursor: pointer;
-}
-
-.dropdown-menu {
-  position: absolute;
-  top: 100%;
-  left: 0;
-  z-index: 10;
-  min-width: 200px;
-  background-color: white;
-  border: 1px solid #e1e1e1;
-  border-radius: 5px;
-  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
-  margin-top: 5px;
-  display: none;
-}
-
-.dropdown:hover .dropdown-menu {
-  display: block;
-}
-
-.dropdown-item {
-  padding: 8px 12px;
-  cursor: pointer;
-}
-
-.dropdown-item:hover {
-  background-color: #f5f5f5;
-}
-
-.add-category {
-  display: flex;
-  align-items: center;
-  color: #443bc9;
-  border-top: 1px solid #e1e1e1;
-  margin-top: 5px;
-}
-
-.search-container {
-  position: relative;
-  width: 300px;
-}
-
-.search-input {
-  width: 100%;
-  padding: 8px 12px 8px 35px;
-  border: 1px solid #e1e1e1;
-  border-radius: 5px;
-}
-
-.search-icon {
-  position: absolute;
-  left: 10px;
-  top: 50%;
-  transform: translateY(-50%);
-  color: #666;
-}
-
-.add-button {
-  display: flex;
-  align-items: center;
-  background-color: #443bc9;
-  color: white;
-  border: none;
-  border-radius: 5px;
-  padding: 8px 16px;
-  cursor: pointer;
-  font-weight: 500;
-}
-
-.add-button:hover {
-  background-color: #3730a3;
-}
-
-.courses-container {
-  width: 100%;
-}
-
-.courses-grid {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 20px;
-  width: 100%;
-}
-
-.courses-grid > * {
-  flex: 1 0 280px;
-  max-width: calc(33.333% - 20px);
-  margin-bottom: 20px;
-}
-
-.loading-container {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 50px;
-  width: 100%;
-}
-
-.spinner {
-  width: 40px;
-  height: 40px;
-  border: 4px solid #f3f3f3;
-  border-top: 4px solid #443bc9;
-  border-radius: 50%;
-  animation: spin 1s linear infinite;
-  margin-bottom: 10px;
-}
-
-@keyframes spin {
-  0% {
-    transform: rotate(0deg);
-  }
-  100% {
-    transform: rotate(360deg);
-  }
-}
-
-.no-courses {
-  width: 100%;
-  text-align: center;
-  padding: 50px;
-  background-color: #f0f2f5;
-  border-radius: 8px;
-  color: #666;
-}
-
-/* Адаптивність */
-@media screen and (max-width: 1200px) {
-  .courses-grid > * {
-    max-width: calc(50% - 20px);
-  }
-}
-
-@media screen and (max-width: 768px) {
-  .courses-grid > * {
-    max-width: 100%;
-  }
-
-  .course-nav {
-    flex-direction: column;
-    align-items: stretch;
-  }
-
-  .filter-panel,
-  .search-container,
-  .add-button {
-    width: 100%;
-    margin-bottom: 10px;
-  }
-
-  .add-button {
-    justify-content: center;
-  }
 }
 </style>
