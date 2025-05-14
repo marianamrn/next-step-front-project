@@ -1,7 +1,39 @@
-// src/api/api.js
+// src/services/api.js
 import axios from 'axios'
 
-const API_URL = 'http://26.154.95.249'
+const API_URL = 'https://nextsteap.api-dev.bmax-edu.website'
+
+// Функція для рекурсивного декодування рядків у юнікоді
+const decodeUnicodeStrings = (obj) => {
+  if (!obj) return obj
+
+  if (typeof obj === 'string') {
+    try {
+      if (obj.includes('\\u')) {
+        return JSON.parse(`"${obj}"`)
+      }
+    } catch (e) {
+      console.warn('Помилка декодування рядка:', e)
+    }
+    return obj
+  }
+
+  if (Array.isArray(obj)) {
+    return obj.map((item) => decodeUnicodeStrings(item))
+  }
+
+  if (typeof obj === 'object') {
+    const result = {}
+    for (const key in obj) {
+      if (Object.prototype.hasOwnProperty.call(obj, key)) {
+        result[key] = decodeUnicodeStrings(obj[key])
+      }
+    }
+    return result
+  }
+
+  return obj
+}
 
 // Створюємо екземпляр axios з базовою URL
 const api = axios.create({
@@ -10,6 +42,7 @@ const api = axios.create({
     'Content-Type': 'application/json',
     Accept: 'application/json',
   },
+  withCredentials: false, // Змініть на true, якщо API потребує передачі cookies
 })
 
 // Додаємо перехоплювач для додавання токена до запитів
@@ -26,7 +59,13 @@ api.interceptors.request.use(
 
 // Додаємо перехоплювач для обробки відповідей
 api.interceptors.response.use(
-  (response) => response,
+  (response) => {
+    // Декодуємо юнікод у відповіді
+    if (response.data) {
+      response.data = decodeUnicodeStrings(response.data)
+    }
+    return response
+  },
   (error) => {
     // Якщо помилка 401 (неавторизований), перенаправляємо на сторінку логіну
     if (error.response && error.response.status === 401) {
@@ -41,7 +80,7 @@ api.interceptors.response.use(
 )
 
 // Список адміністраторських email
-const adminEmails = ['admin@example.com', 'super_admin@example.com']
+const adminEmails = ['admin@example.com', 'super_admin@example.com', 'petropetrenko@gmail.com']
 
 // Аутентифікація
 export const authAPI = {
@@ -231,7 +270,7 @@ export const categoriesApi = {
 
   // Створити нову категорію
   createCategory(categoryData) {
-    return api.post('/create_new_category', categoryData)
+    return api.post('/categories', categoryData)
   },
 
   // Змінити позицію категорії

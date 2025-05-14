@@ -190,14 +190,21 @@ export default {
       return filtered
     },
   },
+  watch: {
+    '$route.params.id': {
+      immediate: true,
+      handler(newId) {
+        if (newId) {
+          this.loadCourseById(newId)
+        } else if (this.selectedCourse) {
+          this.selectedCourse = null
+        }
+      },
+    },
+  },
   created() {
     this.fetchCategories()
     this.fetchCourses()
-
-    // Check if route has course ID
-    if (this.route.params.id) {
-      this.loadCourseById(this.route.params.id)
-    }
   },
   methods: {
     async fetchCategories() {
@@ -240,27 +247,69 @@ export default {
 
     async selectCourse(course) {
       try {
+        this.loading = true
         await this.loadCourseById(course.id)
 
-        // Update the URL
-        this.router.push(`/admin/courses/${course.id}`)
+        // Оновлюємо URL з використанням name замість path
+        this.router.push({
+          name: 'AdminCourseDetail',
+          params: { id: course.id },
+        })
       } catch (error) {
         console.error('Помилка при завантаженні деталей курсу:', error)
+      } finally {
+        this.loading = false
       }
     },
 
     async loadCourseById(courseId) {
       try {
+        this.loading = true
         const response = await api.courses.getCourseById(courseId)
-        this.selectedCourse = response.data.data
+
+        // Отримуємо і клонуємо дані курсу
+        const courseData = JSON.parse(JSON.stringify(response.data.course))
+
+        this.selectedCourse = courseData
       } catch (error) {
-        console.error('Помилка при завантаженні деталей курсу:', error)
+        console.error('Помилка завантаження курсу:', error)
+
+        this.selectedCourse =
+          process.env.NODE_ENV === 'development' ? this.createFallbackCourse(courseId) : null
+
+        if (!this.selectedCourse) {
+          alert(`Помилка: ${error.message || 'Невідома помилка'}`)
+        }
+      } finally {
+        this.loading = false
       }
+    },
+
+    // Рекурсивна функція для декодування рядків в об'єкті
+    decodeStringProperties(obj) {
+      if (!obj) return
+
+      Object.keys(obj).forEach((key) => {
+        if (typeof obj[key] === 'string') {
+          // Спроба декодувати рядок, якщо він містить escape-послідовності
+          try {
+            // Декодування лише якщо рядок містить \u
+            if (obj[key].includes('\\u')) {
+              obj[key] = JSON.parse(`"${obj[key]}"`)
+            }
+          } catch (e) {
+            console.warn(`Помилка декодування властивості ${key}:`, e)
+          }
+        } else if (typeof obj[key] === 'object' && obj[key] !== null) {
+          // Рекурсивно обробляємо вкладені об'єкти
+          this.decodeStringProperties(obj[key])
+        }
+      })
     },
 
     backToCoursesList() {
       this.selectedCourse = null
-      this.router.push('/admin/courses')
+      this.router.push({ name: 'AdminCourses' })
     },
 
     // МОДАЛЬНІ ВІКНА
