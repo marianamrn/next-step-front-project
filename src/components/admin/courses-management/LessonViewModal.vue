@@ -14,7 +14,7 @@
         <div class="lesson-info">
           <div class="info-item">
             <div class="info-label">Тип уроку:</div>
-            <div class="info-value">{{ getLessonType(lesson.type) }}</div>
+            <div class="info-value">{{ getLessonType(lessonType) }}</div>
           </div>
           <div class="info-item">
             <div class="info-label">Опис:</div>
@@ -25,19 +25,13 @@
         <!-- Контент уроку залежно від типу -->
         <div class="lesson-content">
           <!-- Для лекції -->
-          <div v-if="lesson.type === 'lecture'" class="lecture-content">
+          <div v-if="lessonType === 'lecture'" class="lecture-content">
             <h3>Контент лекції</h3>
-            <div v-if="lesson.content" class="content-text">{{ lesson.content }}</div>
-            <div v-if="lesson.lecture && lesson.lecture.content" class="content-text">
-              {{ lesson.lecture.content }}
-            </div>
+            <div v-if="lessonContent" class="content-text">{{ lessonContent }}</div>
 
             <!-- Тривалість -->
-            <div
-              v-if="lesson.duration_minutes || (lesson.lecture && lesson.lecture.duration_minutes)"
-              class="duration"
-            >
-              Тривалість: {{ lesson.duration_minutes || lesson.lecture?.duration_minutes }} хвилин
+            <div v-if="lessonDuration" class="duration">
+              Тривалість: {{ lessonDuration }} хвилин
             </div>
 
             <!-- Файл лекції, якщо є -->
@@ -50,108 +44,76 @@
           </div>
 
           <!-- Для тесту -->
-          <div v-if="lesson.type === 'test'" class="test-content">
+          <div v-if="lessonType === 'test'" class="test-content">
             <h3>Інформація про тест</h3>
 
             <div class="info-item">
               <div class="info-label">Тип джерела:</div>
               <div class="info-value">
-                {{ lesson.source_type === 'url' ? 'Зовнішнє посилання' : 'Внутрішній тест' }}
+                {{ testSourceType === 'url' ? 'Зовнішнє посилання' : 'Внутрішній тест' }}
               </div>
             </div>
 
-            <div
-              v-if="lesson.external_url || (lesson.test && lesson.test.external_url)"
-              class="info-item"
-            >
+            <div v-if="testExternalUrl" class="info-item">
               <div class="info-label">Посилання на тест:</div>
               <div class="info-value">
-                <a
-                  :href="lesson.external_url || lesson.test?.external_url"
-                  target="_blank"
-                  class="test-link"
-                >
-                  Відкрити тест
-                </a>
+                <a :href="testExternalUrl" target="_blank" class="test-link"> Відкрити тест </a>
               </div>
             </div>
 
             <div class="info-item">
               <div class="info-label">Обмеження часу:</div>
-              <div class="info-value">
-                {{
-                  lesson.time_limit_minutes || lesson.test?.time_limit_minutes || 'Не вказано'
-                }}
-                хвилин
-              </div>
+              <div class="info-value">{{ testTimeLimit || 'Не вказано' }} хвилин</div>
             </div>
 
             <div class="info-item">
               <div class="info-label">Прохідний бал:</div>
-              <div class="info-value">
-                {{ lesson.passing_score || lesson.test?.passing_score || 'Не вказано' }}%
-              </div>
+              <div class="info-value">{{ testPassingScore || 'Не вказано' }}%</div>
             </div>
           </div>
 
           <!-- Для додаткового матеріалу -->
-          <div v-if="lesson.type === 'extra_material'" class="material-content">
+          <div v-if="lessonType === 'extra_material'" class="material-content">
             <h3>Додатковий матеріал</h3>
 
             <div class="info-item">
               <div class="info-label">Тип матеріалу:</div>
               <div class="info-value">
-                {{ getMaterialType(lesson.material_type || lesson.extra_material?.material_type) }}
+                {{ getMaterialType(materialType) }}
               </div>
             </div>
 
             <!-- Текстовий матеріал -->
-            <div
-              v-if="
-                (lesson.material_type === 'text' ||
-                  (lesson.extra_material && lesson.extra_material.material_type === 'text')) &&
-                (lesson.material_content ||
-                  (lesson.extra_material && lesson.extra_material.content))
-              "
-              class="content-text"
-            >
-              {{ lesson.material_content || lesson.extra_material?.content }}
+            <div v-if="materialType === 'text' && materialContent" class="content-text">
+              {{ materialContent }}
             </div>
 
             <!-- Посилання -->
-            <div
-              v-if="
-                (lesson.material_type === 'url' ||
-                  (lesson.extra_material && lesson.extra_material.material_type === 'url')) &&
-                (lesson.material_url || (lesson.extra_material && lesson.extra_material.url))
-              "
-              class="material-url"
-            >
-              <a
-                :href="lesson.material_url || lesson.extra_material?.url"
-                target="_blank"
-                class="material-link"
-              >
-                Відкрити посилання
-              </a>
+            <div v-if="materialType === 'url' && materialUrl" class="material-url">
+              <a :href="materialUrl" target="_blank" class="material-link"> Відкрити посилання </a>
             </div>
 
             <!-- Файл матеріалу -->
             <div v-if="materialFile" class="file-preview">
               <div class="file-info">
-                <v-icon
-                  :color="
-                    getMaterialIconColor(
-                      lesson.material_type || lesson.extra_material?.material_type,
-                    )
-                  "
-                >
-                  {{
-                    getMaterialIcon(lesson.material_type || lesson.extra_material?.material_type)
-                  }}
+                <v-icon :color="getMaterialIconColor(materialType)">
+                  {{ getMaterialIcon(materialType) }}
                 </v-icon>
                 <a :href="materialFile" target="_blank" class="file-link"> Відкрити матеріал </a>
               </div>
+            </div>
+          </div>
+
+          <!-- Відео контент, якщо є -->
+          <div v-if="lessonVideoUrl" class="video-content">
+            <h3>Відео</h3>
+            <div class="video-container">
+              <iframe
+                :src="getYouTubeEmbedUrl(lessonVideoUrl)"
+                frameborder="0"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                allowfullscreen
+              ></iframe>
             </div>
           </div>
         </div>
@@ -177,8 +139,26 @@ export default {
     },
   },
   computed: {
+    // Обчислювані властивості для вилучення даних із різних можливих структур відповіді API
+    lessonType() {
+      return (
+        this.lesson.type || (this.lesson.lesson_type && this.lesson.lesson_type.name) || 'lecture'
+      )
+    },
+
+    lessonContent() {
+      return this.lesson.content || (this.lesson.lecture && this.lesson.lecture.content) || ''
+    },
+
+    lessonDuration() {
+      return (
+        this.lesson.duration_minutes ||
+        (this.lesson.lecture && this.lesson.lecture.duration_minutes) ||
+        null
+      )
+    },
+
     lessonFile() {
-      // Залежно від структури даних API, визначаємо URL файлу лекції
       if (this.lesson.file) {
         return this.getFileUrl(this.lesson.file)
       } else if (this.lesson.lecture && this.lesson.lecture.file_path) {
@@ -187,8 +167,59 @@ export default {
       return null
     },
 
+    lessonVideoUrl() {
+      return this.lesson.video_url || ''
+    },
+
+    // Властивості для тесту
+    testSourceType() {
+      return this.lesson.source_type || (this.lesson.test && this.lesson.test.source_type) || 'url'
+    },
+
+    testExternalUrl() {
+      return this.lesson.external_url || (this.lesson.test && this.lesson.test.external_url) || ''
+    },
+
+    testTimeLimit() {
+      return (
+        this.lesson.time_limit_minutes ||
+        (this.lesson.test && this.lesson.test.time_limit_minutes) ||
+        null
+      )
+    },
+
+    testPassingScore() {
+      return (
+        this.lesson.passing_score || (this.lesson.test && this.lesson.test.passing_score) || null
+      )
+    },
+
+    // Властивості для додаткового матеріалу
+    materialType() {
+      return (
+        this.lesson.material_type ||
+        (this.lesson.extra_material && this.lesson.extra_material.material_type) ||
+        'text'
+      )
+    },
+
+    materialContent() {
+      return (
+        this.lesson.material_content ||
+        (this.lesson.extra_material && this.lesson.extra_material.content) ||
+        ''
+      )
+    },
+
+    materialUrl() {
+      return (
+        this.lesson.material_url ||
+        (this.lesson.extra_material && this.lesson.extra_material.url) ||
+        ''
+      )
+    },
+
     materialFile() {
-      // Залежно від структури даних API, визначаємо URL файлу матеріалу
       if (this.lesson.material_file) {
         return this.getFileUrl(this.lesson.material_file)
       } else if (this.lesson.extra_material && this.lesson.extra_material.file_path) {
@@ -204,6 +235,8 @@ export default {
         test: 'Тест',
         extra_material: 'Додатковий матеріал',
         assignment: 'Завдання',
+        quiz: 'Тестування',
+        video: 'Відео',
       }
       return types[type] || type
     },
@@ -250,6 +283,33 @@ export default {
 
       return getImageUrl(path) // Функція з api.js для отримання URL файлу
     },
+
+    getYouTubeEmbedUrl(url) {
+      // Отримання ID відео з YouTube-посилання
+      if (!url) return ''
+
+      let videoId = url
+
+      // Якщо це повне посилання, витягуємо ID
+      if (url.includes('youtube.com') || url.includes('youtu.be')) {
+        try {
+          const urlObj = new URL(url)
+          if (url.includes('youtube.com/watch')) {
+            videoId = urlObj.searchParams.get('v')
+          } else if (url.includes('youtu.be/')) {
+            videoId = urlObj.pathname.split('/')[1]
+          }
+        } catch (e) {
+          console.error('Неправильний формат URL:', e)
+        }
+      }
+
+      return `https://www.youtube.com/embed/${videoId}`
+    },
+  },
+  mounted() {
+    // Логуємо структуру даних для налагодження
+    console.log('Дані уроку в модальному вікні:', this.lesson)
   },
 }
 </script>
@@ -405,5 +465,27 @@ export default {
 .edit-btn {
   background-color: #443bc9;
   color: white;
+}
+
+/* Стилі для відео */
+.video-content {
+  margin-top: 20px;
+}
+
+.video-container {
+  position: relative;
+  padding-bottom: 56.25%; /* Для співвідношення сторін 16:9 */
+  height: 0;
+  overflow: hidden;
+  margin-top: 15px;
+}
+
+.video-container iframe {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  border-radius: 4px;
 }
 </style>

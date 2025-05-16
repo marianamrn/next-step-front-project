@@ -464,21 +464,52 @@ export default {
       console.log('Перегляд уроку:', lesson)
 
       try {
-        // Спочатку отримуємо деталі уроку
+        // Спочатку перевіряємо, чи у нас вже є всі потрібні дані в уроці
+        if (
+          lesson.content ||
+          lesson.description ||
+          lesson.video_url ||
+          (lesson.lecture && lesson.lecture.content)
+        ) {
+          // Якщо у нас вже є основні дані, просто використовуємо їх
+          this.viewingLesson = { ...lesson }
+          this.currentModuleId = module.id
+          this.showLessonViewModal = true
+          console.log('Використовуємо існуючі дані уроку:', this.viewingLesson)
+          return
+        }
+
+        // Якщо ми тут, значить нам потрібно отримати деталі уроку
+        console.log('Завантаження деталей уроку:', lesson.id)
         const response = await api.lessons.getLessonById(lesson.id)
-        const lessonDetails = response.data.data || response.data
+
+        // Обробляємо різні можливі структури відповіді
+        let lessonDetails
+        if (response.data && response.data.data) {
+          lessonDetails = response.data.data
+        } else if (response.data && response.data.lesson) {
+          lessonDetails = response.data.lesson
+        } else {
+          lessonDetails = response.data
+        }
 
         console.log('Деталі уроку для перегляду:', lessonDetails)
 
         // Зберігаємо урок для перегляду
-        this.viewingLesson = lessonDetails
+        this.viewingLesson = { ...lesson, ...lessonDetails }
         this.currentModuleId = module.id
 
         // Відкриваємо модальне вікно для перегляду
         this.showLessonViewModal = true
       } catch (error) {
         console.error('Помилка при завантаженні деталей уроку:', error)
-        alert('Не вдалося завантажити деталі уроку: ' + (error.message || 'Невідома помилка'))
+
+        // Навіть при помилці відкриваємо модальне вікно з тими даними, які в нас є
+        this.viewingLesson = lesson
+        this.currentModuleId = module.id
+        this.showLessonViewModal = true
+
+        console.warn('Відображаємо урок з обмеженими даними через помилку API')
       }
     },
 

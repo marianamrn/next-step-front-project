@@ -117,33 +117,15 @@ export default {
 
       this.loading = true
       try {
-        // Використовуємо API управління уроками
-        console.log('Завантаження уроків для управління модулем:', this.module.id)
-        const response = await api.lessons.getManageLessons(this.module.id)
-
-        let lessons = []
-        if (response && response.data) {
-          if (Array.isArray(response.data)) {
-            lessons = response.data
-          } else if (response.data.data && Array.isArray(response.data.data)) {
-            lessons = response.data.data
-          } else if (response.data.lessons && Array.isArray(response.data.lessons)) {
-            lessons = response.data.lessons
-          }
+        // Спочатку перевіряємо, чи є вже уроки в модулі
+        if (this.module.lessons && this.module.lessons.length > 0) {
+          console.log('Використовуємо уроки модуля з відповіді API:', this.module.lessons)
+          return
         }
 
-        console.log('Завантажені уроки для модуля', this.module.id, ':', lessons)
-
-        this.$emit('lessons-loaded', {
-          moduleId: this.module.id,
-          lessons: lessons,
-        })
-      } catch (error) {
-        console.error('Помилка при завантаженні уроків:', error)
-
-        // Якщо не вдалося завантажити через API управління, спробуємо стандартний API
+        // Спробуємо одразу зі стандартного API, минаючи /lessons/manage, який дає 405 помилку
+        console.log('Завантаження уроків для модуля:', this.module.id)
         try {
-          console.log('Спроба завантаження через стандартний API')
           const response = await api.lessons.getLessonsByModule(this.module.id)
 
           let lessons = []
@@ -157,12 +139,15 @@ export default {
             }
           }
 
+          console.log('Завантажені уроки для модуля', this.module.id, ':', lessons)
+
           this.$emit('lessons-loaded', {
             moduleId: this.module.id,
             lessons: lessons,
           })
-        } catch (fallbackError) {
-          console.error('Помилка при завантаженні через стандартний API:', fallbackError)
+        } catch (error) {
+          console.error('Помилка при завантаженні уроків:', error)
+          // Якщо все ж виникла помилка, повертаємо порожній масив
           this.$emit('lessons-loaded', {
             moduleId: this.module.id,
             lessons: [],
