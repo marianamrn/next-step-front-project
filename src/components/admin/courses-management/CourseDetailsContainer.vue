@@ -17,10 +17,6 @@
       @publish-course="$emit('publish-course', $event)"
       @unpublish-course="$emit('unpublish-course', $event)"
       @delete-course="$emit('delete-course', $event)"
-      @add-lesson="$emit('add-lesson')"
-      @edit-lesson="$emit('edit-lesson', $event)"
-      @publish-lesson="$emit('publish-lesson', $event)"
-      @delete-lesson="$emit('delete-lesson', $event)"
     />
   </div>
 </template>
@@ -63,20 +59,50 @@ export default {
         this.loading = true
         this.error = null
 
+        console.log('Завантаження курсу за ID:', courseId)
         const response = await api.courses.getCourseById(courseId)
+        console.log('Завантажені дані курсу:', response.data)
 
         // Отримуємо і клонуємо дані курсу
-        const courseData = JSON.parse(JSON.stringify(response.data.course))
+        let courseData
+
+        // Перевіряємо можливі формати відповіді API
+        if (response.data && response.data.course) {
+          courseData = JSON.parse(JSON.stringify(response.data.course))
+        } else {
+          courseData = JSON.parse(JSON.stringify(response.data))
+        }
+
+        console.log('Дані курсу після клонування:', courseData)
+        console.log('ID курсу:', courseData.id, typeof courseData.id)
+
+        // Переконуємося, що у курсу є поле modules
+        if (!courseData.modules) {
+          courseData.modules = []
+        }
+
+        // Якщо модулі є, переконуємося, що у кожного модуля є поле lessons
+        if (Array.isArray(courseData.modules)) {
+          courseData.modules.forEach((module) => {
+            if (!module.lessons) {
+              module.lessons = []
+            }
+          })
+        }
+
         this.course = courseData
       } catch (error) {
         console.error('Помилка завантаження курсу:', error)
         this.error = 'Помилка завантаження курсу. Спробуйте пізніше.'
-
-        if (process.env.NODE_ENV === 'development') {
-          this.course = this.createFallbackCourse(courseId)
-        }
       } finally {
         this.loading = false
+      }
+    },
+
+    // Метод для оновлення даних курсу після змін
+    refreshCourse() {
+      if (this.course && this.course.id) {
+        this.loadCourseById(this.course.id)
       }
     },
 
@@ -91,20 +117,7 @@ export default {
         price: 999,
         level: { name: 'Початковий' },
         instructor: { full_name: 'Тестовий Викладач' },
-        lessons: [
-          {
-            id: 1,
-            title: 'Урок 1',
-            content: 'Тестовий контент',
-            is_published: true,
-          },
-          {
-            id: 2,
-            title: 'Урок 2',
-            content: 'Тестовий контент',
-            is_published: false,
-          },
-        ],
+        lessons: [],
         requirements: 'Тестові вимоги',
         what_you_learn: 'Тестові знання',
       }

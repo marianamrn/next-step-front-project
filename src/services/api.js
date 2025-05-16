@@ -399,44 +399,6 @@ export const coursesApi = {
   },
 }
 
-// API для уроків
-export const lessonsApi = {
-  // Отримати всі уроки курсу
-  getCourseLessons(courseId) {
-    return api.get(`/courses/${courseId}/lessons`)
-  },
-
-  // Отримати урок за ID
-  getLessonById(courseId, lessonId) {
-    return api.get(`/courses/${courseId}/lessons/${lessonId}`)
-  },
-
-  // Створити новий урок
-  createLesson(courseId, lessonData) {
-    return api.post(`/courses/${courseId}/lessons`, lessonData)
-  },
-
-  // Оновити урок
-  updateLesson(courseId, lessonId, lessonData) {
-    return api.put(`/courses/${courseId}/lessons/${lessonId}`, lessonData)
-  },
-
-  // Опублікувати урок
-  publishLesson(courseId, lessonId) {
-    return api.put(`/courses/${courseId}/lessons/${lessonId}/publish`)
-  },
-
-  // Зняти урок з публікації
-  unpublishLesson(courseId, lessonId) {
-    return api.put(`/courses/${courseId}/lessons/${lessonId}/unpublish`)
-  },
-
-  // Видалити урок
-  deleteLesson(courseId, lessonId) {
-    return api.delete(`/courses/${courseId}/lessons/${lessonId}`)
-  },
-}
-
 // Функція для обробки завантаження зображень
 export const getImageUrl = (imagePath) => {
   if (!imagePath) return 'https://via.placeholder.com/150'
@@ -448,7 +410,164 @@ export const getImageUrl = (imagePath) => {
   }
 }
 
-// Експорт всього API
+// API для модулів
+export const modulesApi = {
+  // Отримання всіх модулів курсу
+  getModulesByCourse(courseId) {
+    if (!courseId) {
+      console.error('ID курсу не вказано в запиті getModulesByCourse')
+      return Promise.reject(new Error('ID курсу не вказано'))
+    }
+
+    // Використовуємо основний ендпоінт отримання курсу, що має також повертати модулі
+    return api
+      .get(`/courses/${courseId}`)
+      .then((response) => {
+        // Якщо у відповіді є модулі, повертаємо їх
+        if (response.data && response.data.modules) {
+          return { data: response.data.modules }
+        }
+        throw new Error('Модулі не знайдено у відповіді')
+      })
+      .catch((error) => {
+        // Якщо не знайдено модулі в першому ендпоінті, спробуємо інший
+        console.warn(
+          'Не вдалося отримати модулі з основного ендпоінту, використовуємо альтернативний',
+          error.message,
+        )
+        return api.get(`/modules/${courseId}`)
+      })
+  },
+
+  // Отримання модуля за ID
+  getModuleById(moduleId) {
+    return api.get(`/courses/modules/${moduleId}`)
+  },
+
+  // Створення нового модуля
+  createModule(moduleData) {
+    return api.post('/modules/manage', moduleData)
+  },
+
+  // Оновлення модуля
+  updateModule(moduleId, moduleData) {
+    return api.put(`/modules/manage/${moduleId}`, moduleData)
+  },
+
+  // Видалення модуля
+  deleteModule(moduleId) {
+    return api.delete(`/modules/manage/${moduleId}`)
+  },
+
+  // Зміна позиції модуля
+  changeModulePosition(moduleId, position) {
+    return api.put(`/modules/manage/${moduleId}/position`, { position })
+  },
+
+  // Масова зміна позицій модулів
+  updateModulesPositions(positionsData) {
+    return api.post('/modules/manage/positions', { positions: positionsData })
+  },
+}
+
+// API для уроків
+export const lessonsApi = {
+  // Отримання всіх уроків модуля (для відображення)
+  getLessonsByModule(moduleId) {
+    return api.get(`/modules/${moduleId}/lessons`).catch((error) => {
+      console.warn(
+        `Не вдалося отримати уроки з ендпоінту /modules/${moduleId}/lessons:`,
+        error.message,
+      )
+      // Спробуємо альтернативний ендпоінт
+      return api.get(`/lessons/module/${moduleId}`)
+    })
+  },
+
+  // Отримання всіх уроків для управління (НОВИЙ МЕТОД)
+  getManageLessons(moduleId) {
+    return api.get(`/lessons/manage/${moduleId}`)
+  },
+
+  // Отримання уроку за ID
+  getLessonById(lessonId) {
+    return api.get(`/lessons/${lessonId}`)
+  },
+
+  // Створення нового уроку
+  createLesson(lessonData) {
+    const formData = new FormData()
+
+    // Додаємо основні дані уроку
+    for (const key in lessonData) {
+      if (key !== 'file' && key !== 'material_file') {
+        formData.append(key, lessonData[key])
+      }
+    }
+
+    // Додаємо файли, якщо вони є
+    if (lessonData.file) {
+      formData.append('file', lessonData.file)
+    }
+
+    if (lessonData.material_file) {
+      formData.append('material_file', lessonData.material_file)
+    }
+
+    return api.post('/lessons/manage', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    })
+  },
+
+  // Оновлення уроку
+  updateLesson(lessonId, lessonData) {
+    const formData = new FormData()
+
+    // Додаємо основні дані уроку
+    for (const key in lessonData) {
+      if (key !== 'file' && key !== 'material_file') {
+        formData.append(key, lessonData[key])
+      }
+    }
+
+    // Додаємо файли, якщо вони є
+    if (lessonData.file) {
+      formData.append('file', lessonData.file)
+    }
+
+    if (lessonData.material_file) {
+      formData.append('material_file', lessonData.material_file)
+    }
+
+    // Додаємо метод PUT для form-data
+    formData.append('_method', 'PUT')
+
+    return api.post(`/lessons/manage/${lessonId}`, formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    })
+  },
+
+  // Видалення уроку
+  deleteLesson(lessonId) {
+    return api.delete(`/lessons/manage/${lessonId}`)
+  },
+
+  // Зміна позиції уроку
+  changeLessonPosition(lessonId, position) {
+    return api.put(`/lessons/manage/${lessonId}/position`, { position })
+  },
+
+  // Масова зміна позицій уроків
+  updateLessonsPositions(positionsData) {
+    return api.post('/lessons/manage/positions', { positions: positionsData })
+  },
+}
+
+// Оновимо експорт, щоб включити нові API
 export default {
   auth: authAPI,
   students: studentsApi,
@@ -457,5 +576,6 @@ export default {
   categories: categoriesApi,
   courses: coursesApi,
   lessons: lessonsApi,
+  modules: modulesApi,
   getImageUrl,
 }

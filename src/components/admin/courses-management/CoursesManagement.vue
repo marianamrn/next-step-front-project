@@ -24,10 +24,6 @@
       @publish-course="publishCourse"
       @unpublish-course="unpublishCourse"
       @delete-course="confirmDeleteCourse"
-      @add-lesson="openLessonModal()"
-      @edit-lesson="openLessonModal"
-      @publish-lesson="publishLesson"
-      @delete-lesson="confirmDeleteLesson"
     />
 
     <!-- Модальні вікна -->
@@ -46,14 +42,6 @@
       @save="saveCourse"
     />
 
-    <lesson-modal
-      v-if="showLessonModal"
-      :lesson="currentLesson"
-      :course-id="selectedCourseId"
-      @close="closeLessonModal"
-      @save="saveLesson"
-    />
-
     <confirm-modal
       v-if="showConfirmModal"
       :title="confirmTitle"
@@ -69,7 +57,6 @@ import CoursesList from './CoursesList.vue'
 import CourseDetailsContainer from './CourseDetailsContainer.vue'
 import CategoryModal from './CategoryModal.vue'
 import CourseModal from './CourseModal.vue'
-import LessonModal from './LessonModal.vue'
 import ConfirmModal from './ConfirmModal.vue'
 import api from '@/services/api.js'
 import { useRouter, useRoute } from 'vue-router'
@@ -81,7 +68,6 @@ export default {
     CourseDetailsContainer,
     CategoryModal,
     CourseModal,
-    LessonModal,
     ConfirmModal,
   },
   setup() {
@@ -95,14 +81,12 @@ export default {
       selectedCourseId: null,
       showCategoryModal: false,
       showCourseModal: false,
-      showLessonModal: false,
       showConfirmModal: false,
       loading: false,
 
       // Тимчасові об'єкти для модальних вікон
       currentCategory: null,
       currentCourse: null,
-      currentLesson: null,
 
       // Для модального вікна підтвердження
       confirmTitle: '',
@@ -182,31 +166,6 @@ export default {
     closeCourseModal() {
       this.showCourseModal = false
       this.currentCourse = null
-    },
-
-    openLessonModal(lesson = null) {
-      if (!this.selectedCourseId) {
-        alert('Спочатку виберіть курс для додавання уроку')
-        return
-      }
-
-      if (lesson) {
-        this.currentLesson = { ...lesson }
-      } else {
-        // Створення нового уроку
-        this.currentLesson = {
-          title: '',
-          content: '',
-          video_url: '',
-          order: null,
-        }
-      }
-      this.showLessonModal = true
-    },
-
-    closeLessonModal() {
-      this.showLessonModal = false
-      this.currentLesson = null
     },
 
     openCategoryModal(category = null) {
@@ -337,37 +296,9 @@ export default {
       }
     },
 
-    async saveLesson(lessonData) {
-      try {
-        if (this.selectedCourseId) {
-          if (lessonData.id) {
-            await api.lessons.updateLesson(this.selectedCourseId, lessonData.id, lessonData)
-          } else {
-            await api.lessons.createLesson(this.selectedCourseId, lessonData)
-          }
-
-          // Оновлюємо дані курсу після редагування уроку
-          const courseDetailsContainer = this.$refs.courseDetailsContainer
-          if (courseDetailsContainer) {
-            courseDetailsContainer.refreshCourse()
-          }
-
-          this.closeLessonModal()
-        }
-      } catch (error) {
-        console.error('Помилка при збереженні уроку:', error)
-      }
-    },
-
     // ПУБЛІКАЦІЯ
     // Метод для публікації курсу
     async publishCourse(course) {
-      // Перевіряємо, чи є уроки в курсі
-      if (!course.lessons || course.lessons.length === 0) {
-        alert('Неможливо опублікувати курс без уроків. Додайте щонайменше один урок.')
-        return
-      }
-
       try {
         console.log(`Публікація курсу з ID: ${course.id}`)
 
@@ -396,7 +327,7 @@ export default {
           if (error.response.data && error.response.data.message) {
             alert(`Помилка: ${error.response.data.message}`)
           } else {
-            alert('Помилка при публікації курсу. Перевірте наявність уроків і спробуйте знову.')
+            alert('Помилка при публікації курсу. Перевірте наявність модулів і спробуйте знову.')
           }
         } else {
           alert('Помилка при публікації курсу. Перевірте підключення до мережі.')
@@ -439,22 +370,6 @@ export default {
         } else {
           alert('Помилка при знятті курсу з публікації. Перевірте підключення до мережі.')
         }
-      }
-    },
-
-    async publishLesson(lesson) {
-      try {
-        if (this.selectedCourseId) {
-          await api.lessons.publishLesson(this.selectedCourseId, lesson.id)
-
-          // Оновлюємо дані курсу
-          const courseDetailsContainer = this.$refs.courseDetailsContainer
-          if (courseDetailsContainer) {
-            courseDetailsContainer.refreshCourse()
-          }
-        }
-      } catch (error) {
-        console.error('Помилка при публікації уроку:', error)
       }
     },
 
@@ -516,31 +431,6 @@ export default {
 
         // Закриваємо модальне вікно підтвердження незалежно від результату
         this.closeConfirmModal()
-      }
-    },
-
-    confirmDeleteLesson(lesson) {
-      this.confirmTitle = 'Видалити урок'
-      this.confirmMessage = `Ви впевнені, що хочете видалити урок "${lesson.title}"? Ця дія є незворотною.`
-      this.confirmAction = () => this.deleteLesson(lesson)
-      this.showConfirmModal = true
-    },
-
-    async deleteLesson(lesson) {
-      try {
-        if (this.selectedCourseId) {
-          await api.lessons.deleteLesson(this.selectedCourseId, lesson.id)
-
-          // Оновлюємо дані курсу
-          const courseDetailsContainer = this.$refs.courseDetailsContainer
-          if (courseDetailsContainer) {
-            courseDetailsContainer.refreshCourse()
-          }
-
-          this.closeConfirmModal()
-        }
-      } catch (error) {
-        console.error('Помилка при видаленні уроку:', error)
       }
     },
 

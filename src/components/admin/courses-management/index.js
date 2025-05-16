@@ -4,8 +4,10 @@ import CourseCard from './CourseCard.vue'
 import CourseDetail from './CourseDetail.vue'
 import CategoryModal from './CategoryModal.vue'
 import CourseModal from './CourseModal.vue'
-import LessonModal from './LessonModal.vue'
 import ConfirmModal from './ConfirmModal.vue'
+import ModuleItem from './ModuleItem.vue'
+import ModuleModal from './ModuleModal.vue'
+import LessonExtendedModal from './LessonExtendedModal.vue'
 
 export {
   CoursesManagement,
@@ -13,8 +15,10 @@ export {
   CourseDetail,
   CategoryModal,
   CourseModal,
-  LessonModal,
   ConfirmModal,
+  ModuleItem,
+  ModuleModal,
+  LessonExtendedModal,
 }
 
 export default CoursesManagement
