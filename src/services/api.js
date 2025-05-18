@@ -472,98 +472,181 @@ export const modulesApi = {
 
 // API для уроків
 export const lessonsApi = {
-  // Отримання всіх уроків модуля (для відображення)
+  // Отримання всіх уроків модуля
   getLessonsByModule(moduleId) {
-    return api.get(`/modules/${moduleId}/lessons`).catch((error) => {
-      console.warn(
-        `Не вдалося отримати уроки з ендпоінту /modules/${moduleId}/lessons:`,
-        error.message,
-      )
-      // Спробуємо альтернативний ендпоінт
-      return api.get(`/lessons/module/${moduleId}`)
-    })
-  },
-
-  // Отримання всіх уроків для управління (НОВИЙ МЕТОД)
-  getManageLessons(moduleId) {
-    return api.get(`/lessons/manage/${moduleId}`)
+    console.log(`Отримання уроків для модуля ${moduleId}`)
+    return api.get(`/modules/${moduleId}/lessons`)
   },
 
   // Отримання уроку за ID
   getLessonById(lessonId) {
+    console.log(`Отримання уроку ${lessonId}`)
     return api.get(`/lessons/${lessonId}`)
   },
 
   // Створення нового уроку
   createLesson(lessonData) {
-    const formData = new FormData()
+    console.log('API: Створення уроку з даними:', lessonData)
 
-    // Додаємо основні дані уроку
-    for (const key in lessonData) {
-      if (key !== 'file' && key !== 'material_file') {
-        formData.append(key, lessonData[key])
+    // Перевіряємо наявність файлів для формування correct Content-Type
+    const hasFiles = lessonData.file || lessonData.material_file
+
+    if (hasFiles) {
+      // Якщо є файли, потрібно використовувати FormData
+      const formData = new FormData()
+
+      // Додаємо всі поля, крім файлів
+      for (const key in lessonData) {
+        if (key === 'file' || key === 'material_file') continue
+
+        if (lessonData[key] !== null && lessonData[key] !== undefined) {
+          formData.append(key, lessonData[key])
+        }
       }
-    }
 
-    // Додаємо файли, якщо вони є
-    if (lessonData.file) {
-      formData.append('file', lessonData.file)
-    }
+      // Додаємо файли
+      if (lessonData.file) {
+        formData.append('file', lessonData.file)
+      }
 
-    if (lessonData.material_file) {
-      formData.append('material_file', lessonData.material_file)
-    }
+      if (lessonData.material_file) {
+        formData.append('material_file', lessonData.material_file)
+      }
 
-    return api.post('/lessons/manage', formData, {
-      headers: {
-        'Content-Type': 'multipart/form-data',
-      },
-    })
+      // Логуємо поля FormData для діагностики
+      console.log('FormData fields:')
+      for (const [key, value] of formData.entries()) {
+        if (value instanceof File) {
+          console.log(`${key}: File (${value.name}, ${value.type}, ${value.size} bytes)`)
+        } else {
+          console.log(`${key}: ${value}`)
+        }
+      }
+
+      // Відправляємо запит з FormData
+      return api.post('/lessons/manage', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      })
+    } else {
+      // Якщо немає файлів, можна відправляти як звичайний JSON
+      return api.post('/lessons/manage', lessonData)
+    }
   },
 
   // Оновлення уроку
   updateLesson(lessonId, lessonData) {
-    const formData = new FormData()
+    console.log(`API: Оновлення уроку з ID ${lessonId} з даними:`, lessonData)
 
-    // Додаємо основні дані уроку
-    for (const key in lessonData) {
-      if (key !== 'file' && key !== 'material_file') {
-        formData.append(key, lessonData[key])
+    // Перевіряємо наявність файлів
+    const hasFiles = lessonData.file || lessonData.material_file
+
+    if (hasFiles) {
+      // Якщо є файли, потрібно використовувати FormData з _method: PUT
+      const formData = new FormData()
+
+      // Додаємо метод PUT
+      formData.append('_method', 'PUT')
+
+      // Додаємо всі поля, крім файлів і полів, які не можна оновлювати
+      for (const key in lessonData) {
+        if (key === 'file' || key === 'material_file' || key === 'type' || key === 'module_id')
+          continue
+
+        if (lessonData[key] !== null && lessonData[key] !== undefined) {
+          formData.append(key, lessonData[key])
+        }
       }
+
+      // Додаємо файли
+      if (lessonData.file) {
+        formData.append('file', lessonData.file)
+      }
+
+      if (lessonData.material_file) {
+        formData.append('material_file', lessonData.material_file)
+      }
+
+      // Логуємо поля FormData для діагностики
+      console.log('FormData fields for update:')
+      for (const [key, value] of formData.entries()) {
+        if (value instanceof File) {
+          console.log(`${key}: File (${value.name}, ${value.type}, ${value.size} bytes)`)
+        } else {
+          console.log(`${key}: ${value}`)
+        }
+      }
+
+      // Відправляємо запит з FormData через POST з _method: PUT
+      return api.post(`/lessons/manage/${lessonId}`, formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      })
+    } else {
+      // Якщо немає файлів, можна використовувати PUT запит
+      return api.put(`/lessons/manage/${lessonId}`, lessonData)
     }
-
-    // Додаємо файли, якщо вони є
-    if (lessonData.file) {
-      formData.append('file', lessonData.file)
-    }
-
-    if (lessonData.material_file) {
-      formData.append('material_file', lessonData.material_file)
-    }
-
-    // Додаємо метод PUT для form-data
-    formData.append('_method', 'PUT')
-
-    return api.post(`/lessons/manage/${lessonId}`, formData, {
-      headers: {
-        'Content-Type': 'multipart/form-data',
-      },
-    })
   },
 
   // Видалення уроку
   deleteLesson(lessonId) {
+    console.log(`Видалення уроку ${lessonId}`)
     return api.delete(`/lessons/manage/${lessonId}`)
   },
 
-  // Зміна позиції уроку
-  changeLessonPosition(lessonId, position) {
-    return api.put(`/lessons/manage/${lessonId}/position`, { position })
-  },
+  // Додайте цей метод до api.js
+  createLessonRaw(lessonData, files = {}) {
+    console.log('Створення нового уроку з даними:', lessonData)
 
-  // Масова зміна позицій уроків
-  updateLessonsPositions(positionsData) {
-    return api.post('/lessons/manage/positions', { positions: positionsData })
+    // Отримуємо базову URL з конфігурації
+    const apiUrl = `${API_URL}/api/lessons/manage`
+
+    // Створюємо FormData вручну
+    const formData = new FormData()
+
+    // Додаємо всі поля
+    for (const key in lessonData) {
+      if (lessonData[key] !== undefined && lessonData[key] !== null) {
+        formData.append(key, lessonData[key])
+      }
+    }
+
+    // Додаємо файли
+    for (const key in files) {
+      if (files[key]) {
+        formData.append(key, files[key])
+      }
+    }
+
+    // Отримуємо токен з localStorage
+    const token = localStorage.getItem('token')
+
+    // Відправляємо запит через fetch API
+    return fetch(apiUrl, {
+      method: 'POST',
+      body: formData,
+      headers: {
+        Accept: 'application/json',
+        Authorization: token ? `Bearer ${token}` : '',
+      },
+    }).then((response) => {
+      // Спочатку отримуємо JSON
+      return response.json().then((data) => {
+        // Якщо статус не OK, кидаємо помилку з даними
+        if (!response.ok) {
+          const error = new Error(data.message || 'Помилка запиту')
+          error.response = {
+            status: response.status,
+            data: data,
+          }
+          throw error
+        }
+        // Якщо все добре, повертаємо дані
+        return { data }
+      })
+    })
   },
 }
 

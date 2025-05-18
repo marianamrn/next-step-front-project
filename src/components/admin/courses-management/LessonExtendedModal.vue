@@ -65,6 +65,7 @@
               rows="6"
               class="form-control"
             ></textarea>
+            <div v-if="errors.content" class="error-message">{{ errors.content }}</div>
           </div>
 
           <div class="form-group">
@@ -90,6 +91,7 @@
                 />
               </label>
             </div>
+            <div v-if="errors.file" class="error-message">{{ errors.file }}</div>
           </div>
 
           <div class="form-group">
@@ -123,6 +125,7 @@
               placeholder="Введіть посилання на зовнішній тест (Google Forms, тощо)"
               class="form-control"
             />
+            <div v-if="errors.external_url" class="error-message">{{ errors.external_url }}</div>
           </div>
 
           <div class="form-group">
@@ -170,6 +173,9 @@
               rows="6"
               class="form-control"
             ></textarea>
+            <div v-if="errors.material_content" class="error-message">
+              {{ errors.material_content }}
+            </div>
           </div>
 
           <div v-if="form.material_type === 'url'" class="form-group">
@@ -181,6 +187,7 @@
               placeholder="Введіть посилання на ресурс"
               class="form-control"
             />
+            <div v-if="errors.material_url" class="error-message">{{ errors.material_url }}</div>
           </div>
 
           <div v-if="['file', 'video', 'image'].includes(form.material_type)" class="form-group">
@@ -210,6 +217,7 @@
                 />
               </label>
             </div>
+            <div v-if="errors.material_file" class="error-message">{{ errors.material_file }}</div>
           </div>
         </div>
       </div>
@@ -230,6 +238,7 @@
 
 <script>
 import api from '@/services/api.js'
+import axios from 'axios' // Імпортуємо axios для роботи з FormData
 
 export default {
   name: 'LessonExtendedModal',
@@ -248,7 +257,7 @@ export default {
       form: {
         title: '',
         description: '',
-        module_id: this.moduleId,
+        module_id: null,
         position: null,
         type: 'lecture',
         status: 'active',
@@ -274,6 +283,12 @@ export default {
       materialFilePreview: null,
       errors: {
         title: '',
+        content: '',
+        file: '',
+        external_url: '',
+        material_content: '',
+        material_url: '',
+        material_file: '',
       },
       loading: false,
     }
@@ -283,42 +298,26 @@ export default {
       return this.lesson && this.lesson.id
     },
     isFormValid() {
-      if (!this.form.title.trim()) return false
-      if (this.errors.title) return false
-
-      // Валідація для різних типів уроків
-      if (this.form.type === 'lecture') {
-        // Для лекції - або контент, або файл повинен бути
-        if (!this.form.content && !this.fileData && !this.filePreview) return false
-      } else if (this.form.type === 'test') {
-        // Для тесту - якщо зовнішній, то повинен бути URL
-        if (this.form.source_type === 'url' && !this.form.external_url) return false
-      } else if (this.form.type === 'extra_material') {
-        // Для додаткового матеріалу - залежно від типу
-        if (this.form.material_type === 'text' && !this.form.material_content) return false
-        if (this.form.material_type === 'url' && !this.form.material_url) return false
-        if (
-          ['file', 'video', 'image'].includes(this.form.material_type) &&
-          !this.materialFileData &&
-          !this.materialFilePreview
-        )
-          return false
-      }
-
-      return true
+      return this.validateForm()
     },
   },
   created() {
+    console.log('LessonExtendedModal створено з moduleId:', this.moduleId)
     this.initForm()
   },
   methods: {
     initForm() {
+      console.log('initForm викликано з moduleId:', this.moduleId)
+
+      // Завжди встановлюємо module_id з props
+      const module_id = parseInt(this.moduleId, 10)
+
       if (this.isEdit && this.lesson) {
         // Базові поля для всіх типів уроків
         this.form = {
           title: this.lesson.title || '',
           description: this.lesson.description || '',
-          module_id: this.moduleId,
+          module_id: module_id,
           position: this.lesson.position || null,
           type: this.lesson.type || 'lecture',
           status: this.lesson.status || 'active',
@@ -351,7 +350,7 @@ export default {
         this.form = {
           title: '',
           description: '',
-          module_id: this.moduleId,
+          module_id: module_id,
           position: null,
           type: 'lecture',
           status: 'active',
@@ -376,12 +375,26 @@ export default {
         this.materialFileData = null
         this.materialFilePreview = null
       }
+
+      console.log('Форма ініціалізована з module_id:', this.form.module_id)
     },
 
     handleFileUpload(event) {
       const file = event.target.files[0]
       if (!file) return
 
+      // Перевірка розміру файлу (10 МБ в байтах = 10 * 1024 * 1024)
+      const maxSizeBytes = 10 * 1024 * 1024
+      if (file.size > maxSizeBytes) {
+        this.errors.file = `Розмір файлу перевищує 10 МБ (поточний розмір: ${(file.size / (1024 * 1024)).toFixed(2)} МБ)`
+        alert(
+          `Файл занадто великий. Максимальний розмір - 10 МБ, ваш файл - ${(file.size / (1024 * 1024)).toFixed(2)} МБ`,
+        )
+        event.target.value = '' // Скидаємо вибраний файл
+        return
+      }
+
+      this.errors.file = '' // Скидаємо помилку, якщо вона була
       this.fileData = file
 
       // Створюємо URL для перегляду файлу
@@ -395,12 +408,25 @@ export default {
     removeFile() {
       this.fileData = null
       this.filePreview = null
+      this.errors.file = ''
     },
 
     handleMaterialFileUpload(event) {
       const file = event.target.files[0]
       if (!file) return
 
+      // Перевірка розміру файлу (10 МБ в байтах = 10 * 1024 * 1024)
+      const maxSizeBytes = 10 * 1024 * 1024
+      if (file.size > maxSizeBytes) {
+        this.errors.material_file = `Розмір файлу перевищує 10 МБ (поточний розмір: ${(file.size / (1024 * 1024)).toFixed(2)} МБ)`
+        alert(
+          `Файл занадто великий. Максимальний розмір - 10 МБ, ваш файл - ${(file.size / (1024 * 1024)).toFixed(2)} МБ`,
+        )
+        event.target.value = '' // Скидаємо вибраний файл
+        return
+      }
+
+      this.errors.material_file = '' // Скидаємо помилку, якщо вона була
       this.materialFileData = file
 
       // Створюємо URL для перегляду файлу
@@ -414,6 +440,7 @@ export default {
     removeMaterialFile() {
       this.materialFileData = null
       this.materialFilePreview = null
+      this.errors.material_file = ''
     },
 
     getFileName(fileUrl) {
@@ -465,11 +492,72 @@ export default {
 
     validateForm() {
       let isValid = true
-      this.errors.title = ''
 
-      if (!this.form.title.trim()) {
+      // Скидаємо всі помилки
+      this.errors = {
+        title: '',
+        content: '',
+        file: '',
+        external_url: '',
+        material_content: '',
+        material_url: '',
+        material_file: '',
+      }
+
+      // Перевірка назви уроку
+      if (!this.form.title || !this.form.title.trim()) {
         this.errors.title = "Назва уроку є обов'язковою"
         isValid = false
+      }
+
+      // Перевірки в залежності від типу уроку
+      if (this.form.type === 'lecture') {
+        // Для лекції потрібен або контент, або файл
+        if (!this.form.content && !this.fileData && !this.filePreview) {
+          this.errors.content = 'Додайте текст або файл'
+          isValid = false
+        }
+
+        // Перевірка розміру файлу
+        if (this.fileData && this.fileData.size > 10 * 1024 * 1024) {
+          this.errors.file = 'Розмір файлу не повинен перевищувати 10 МБ'
+          isValid = false
+        }
+      } else if (this.form.type === 'test') {
+        // Для тесту перевіряємо наявність URL при типі 'url'
+        if (this.form.source_type === 'url' && !this.form.external_url) {
+          this.errors.external_url = "Посилання на тест є обов'язковим"
+          isValid = false
+        }
+      } else if (this.form.type === 'extra_material') {
+        // Для додаткового матеріалу перевіряємо в залежності від типу
+        if (
+          this.form.material_type === 'text' &&
+          (!this.form.material_content || !this.form.material_content.trim())
+        ) {
+          this.errors.material_content = "Вміст матеріалу є обов'язковим"
+          isValid = false
+        } else if (this.form.material_type === 'url' && !this.form.material_url) {
+          this.errors.material_url = "Посилання є обов'язковим"
+          isValid = false
+        } else if (
+          ['file', 'video', 'image'].includes(this.form.material_type) &&
+          !this.materialFileData &&
+          !this.materialFilePreview
+        ) {
+          this.errors.material_file = "Файл є обов'язковим"
+          isValid = false
+        }
+
+        // Перевірка розміру файлу для додаткового матеріалу
+        if (this.materialFileData && this.materialFileData.size > 10 * 1024 * 1024) {
+          this.errors.material_file = 'Розмір файлу не повинен перевищувати 10 МБ'
+          isValid = false
+        }
+      }
+
+      if (!isValid) {
+        console.log('Форма не пройшла валідацію. Помилки:', this.errors)
       }
 
       return isValid
@@ -481,46 +569,136 @@ export default {
       this.loading = true
 
       try {
-        // Створюємо копію форми для відправки
-        const formData = { ...this.form }
+        // Створюємо FormData вручну для дотримання точного формату
+        const formData = new FormData()
 
-        // Переконаємось, що module_id є у формі
-        formData.module_id = this.moduleId
+        // Додаємо базові поля для всіх типів уроків
+        formData.append('title', this.form.title)
+        formData.append('description', this.form.description || '')
+        formData.append('module_id', this.moduleId.toString())
+        formData.append('status', 'active')
 
-        console.log('Дані форми для відправки:', formData)
+        // Додаємо тип уроку
+        formData.append('type', this.form.type)
 
-        let response
-
-        if (this.isEdit) {
-          console.log('Оновлення уроку з id:', this.lesson.id)
-          response = await api.lessons.updateLesson(this.lesson.id, formData)
-        } else {
-          console.log('Створення нового уроку для модуля:', this.moduleId)
-          response = await api.lessons.createLesson(formData)
+        // Додаємо позицію, якщо вказана
+        if (this.form.position !== null && this.form.position !== undefined) {
+          formData.append('position', this.form.position.toString())
         }
 
-        console.log('Відповідь API:', response.data)
+        // Додаємо специфічні поля в залежності від типу уроку
+        if (this.form.type === 'lecture') {
+          // Для лекції
+          if (this.form.content) {
+            formData.append('content', this.form.content)
+          }
 
-        // Визначаємо, які дані уроку повернути
-        const lessonData = response.data.data || response.data
+          if (this.fileData) {
+            formData.append('file', this.fileData)
+          }
 
-        this.$emit('save', lessonData)
-      } catch (error) {
-        console.error('Помилка при збереженні уроку:', error)
+          formData.append('duration_minutes', (this.form.duration_minutes || 30).toString())
+        } else if (this.form.type === 'test') {
+          // Для тесту
+          formData.append('source_type', this.form.source_type || 'url')
 
-        if (error.response && error.response.data) {
-          const { errors } = error.response.data
-          if (errors) {
-            if (errors.title) {
-              this.errors.title = errors.title[0]
+          if (this.form.source_type === 'url') {
+            let externalUrl = this.form.external_url || ''
+            if (
+              externalUrl &&
+              !externalUrl.startsWith('http://') &&
+              !externalUrl.startsWith('https://')
+            ) {
+              externalUrl = 'https://' + externalUrl
             }
+            formData.append('external_url', externalUrl)
+          }
 
-            // Додаткова обробка інших помилок, якщо потрібно
-            console.log('Помилки валідації:', errors)
+          formData.append('time_limit_minutes', (this.form.time_limit_minutes || 20).toString())
+          formData.append('passing_score', (this.form.passing_score || 70).toString())
+        } else if (this.form.type === 'extra_material') {
+          // Для додаткового матеріалу
+          formData.append('material_type', this.form.material_type || 'text')
+
+          if (this.form.material_type === 'text') {
+            formData.append('material_content', this.form.material_content || '')
+          } else if (this.form.material_type === 'url') {
+            let materialUrl = this.form.material_url || ''
+            if (
+              materialUrl &&
+              !materialUrl.startsWith('http://') &&
+              !materialUrl.startsWith('https://')
+            ) {
+              materialUrl = 'https://' + materialUrl
+            }
+            formData.append('material_url', materialUrl)
+          } else if (['file', 'video', 'image'].includes(this.form.material_type)) {
+            if (this.materialFileData) {
+              formData.append('material_file', this.materialFileData)
+            }
           }
         }
 
-        alert('Помилка при збереженні уроку: ' + (error.response?.data?.message || error.message))
+        // Логуємо всі поля для відлагодження
+        console.log('FormData для створення уроку:')
+        for (const pair of formData.entries()) {
+          if (pair[1] instanceof File) {
+            console.log(
+              `${pair[0]}: File (${pair[1].name}, ${pair[1].size} bytes, ${pair[1].type})`,
+            )
+          } else {
+            console.log(`${pair[0]}: ${pair[1]}`)
+          }
+        }
+
+        // Відправляємо запит безпосередньо через API
+        const response = await api.post('/lessons/manage', formData, {
+          headers: {
+            'Content-Type': 'multipart/form-data',
+          },
+        })
+
+        console.log('Відповідь API:', response.data)
+
+        // Отримуємо дані створеного уроку
+        const lessonData = response.data.data || response.data
+
+        // Емітуємо подію збереження
+        this.$emit('save', lessonData)
+      } catch (error) {
+        console.error('Повна помилка при збереженні уроку:', error)
+
+        if (error.response) {
+          console.error('Статус помилки:', error.response.status)
+          console.error('Дані помилки:', error.response.data)
+
+          if (error.response.data && error.response.data.errors) {
+            const errors = error.response.data.errors
+            console.error('Помилки валідації:', JSON.stringify(errors, null, 2))
+
+            // Оновлюємо помилки в UI
+            for (const field in errors) {
+              if (this.errors.hasOwnProperty(field)) {
+                this.errors[field] = Array.isArray(errors[field]) ? errors[field][0] : errors[field]
+              }
+            }
+
+            // Формуємо повідомлення для користувача
+            const errorMessages = []
+            for (const field in errors) {
+              const fieldMessages = Array.isArray(errors[field]) ? errors[field] : [errors[field]]
+              errorMessages.push(`${field}: ${fieldMessages.join(', ')}`)
+            }
+
+            alert(`Помилки валідації:\n${errorMessages.join('\n')}`)
+          } else if (error.response.data && error.response.data.message) {
+            alert(`Помилка: ${error.response.data.message}`)
+          } else {
+            alert(`Помилка сервера: ${error.response.status}`)
+          }
+        } else {
+          alert('Помилка при збереженні уроку. Спробуйте пізніше.')
+        }
       } finally {
         this.loading = false
       }

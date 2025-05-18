@@ -1,4 +1,3 @@
-<!-- LessonViewModal.vue -->
 <template>
   <div class="modal-overlay" v-if="lesson">
     <div class="modal-container">
@@ -172,10 +171,6 @@ export default {
     },
 
     // Властивості для тесту
-    testSourceType() {
-      return this.lesson.source_type || (this.lesson.test && this.lesson.test.source_type) || 'url'
-    },
-
     testExternalUrl() {
       return this.lesson.external_url || (this.lesson.test && this.lesson.test.external_url) || ''
     },

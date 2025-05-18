@@ -389,10 +389,42 @@ export default {
 
     // Функції для модальних вікон уроків
     openLessonModal(lesson = null, module = null) {
+      console.log('openLessonModal викликано з параметрами:', { lesson, module })
+
+      // Перевіримо порядок параметрів, якщо вони переплуталися
+      if (lesson && typeof lesson === 'object' && !lesson.title && module === null) {
+        // Це може бути об'єкт модуля замість уроку
+        if (lesson.lessons !== undefined || lesson.id) {
+          console.log('Перший аргумент більше схожий на модуль, міняємо місцями')
+          module = lesson
+          lesson = null
+        }
+      }
+
+      // Якщо досі не знайшли модуль, спробуємо знайти в поточних даних
       if (!module) {
-        alert('Необхідно вибрати модуль для уроку')
+        if (this.currentModuleId) {
+          // Якщо у нас є ID поточного модуля, знайдемо його об'єкт
+          const foundModule = this.modules.find((m) => m.id === this.currentModuleId)
+          if (foundModule) {
+            console.log('Використовуємо поточний модуль за ID:', foundModule)
+            module = foundModule
+          }
+        } else {
+          console.error('Модуль не передано в openLessonModal')
+          alert('Необхідно вибрати модуль для уроку')
+          return
+        }
+      }
+
+      // Перевіримо, чи module є об'єктом і має id
+      if (!module || !module.id) {
+        console.error('Переданий модуль не має ID:', module)
+        alert('Неправильний формат модуля')
         return
       }
+
+      console.log('Відкриваємо модальне вікно для модуля ID:', module.id)
 
       this.currentLesson = lesson
       this.currentModuleId = module.id
@@ -406,62 +438,16 @@ export default {
     },
 
     async saveLesson(lessonData) {
-      try {
-        const moduleIndex = this.modules.findIndex((m) => m.id === this.currentModuleId)
-
-        if (lessonData.id) {
-          // Оновлюємо існуючий урок
-          console.log('Оновлення уроку:', lessonData)
-          await api.lessons.updateLesson(lessonData.id, lessonData)
-
-          // Оновлюємо урок у списку
-          if (moduleIndex !== -1 && this.modules[moduleIndex].lessons) {
-            const lessonIndex = this.modules[moduleIndex].lessons.findIndex(
-              (l) => l.id === lessonData.id,
-            )
-            if (lessonIndex !== -1) {
-              this.modules[moduleIndex].lessons[lessonIndex] = {
-                ...this.modules[moduleIndex].lessons[lessonIndex],
-                ...lessonData,
-              }
-              // Оновлюємо список модулів, щоб Vue оновив представлення
-              this.modules = [...this.modules]
-            }
-          }
-        } else {
-          // Створюємо новий урок
-          console.log('Створення нового уроку:', lessonData)
-          const response = await api.lessons.createLesson({
-            ...lessonData,
-            module_id: this.currentModuleId,
-          })
-
-          // Оновлюємо список уроків в модулі
-          if (moduleIndex !== -1) {
-            // Отримуємо оновлений список уроків
-            const lessonsResponse = await api.lessons.getManageLessons(this.currentModuleId)
-            if (lessonsResponse.data && lessonsResponse.data.data) {
-              this.modules[moduleIndex].lessons = lessonsResponse.data.data
-            } else if (Array.isArray(lessonsResponse.data)) {
-              this.modules[moduleIndex].lessons = lessonsResponse.data
-            } else {
-              this.modules[moduleIndex].lessons.push(response.data.data || response.data)
-            }
-            // Оновлюємо список модулів
-            this.modules = [...this.modules]
-          }
-        }
-
-        this.closeLessonModal()
-      } catch (error) {
-        console.error('Помилка при збереженні уроку:', error)
-        alert('Не вдалося зберегти урок: ' + (error.response?.data?.message || error.message))
-      }
+      // Оновлюємо список уроків після успішного збереження
+      this.loadModules() // або інша функція для оновлення списку уроків
+      // Закриваємо модальне вікно
+      this.showLessonModal = false
     },
 
     // Перегляд деталей уроку
     async viewLesson(lesson, module) {
       console.log('Перегляд уроку:', lesson)
+      console.log('Модуль:', module)
 
       try {
         // Спочатку перевіряємо, чи у нас вже є всі потрібні дані в уроці
