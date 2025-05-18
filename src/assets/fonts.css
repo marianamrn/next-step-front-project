@@ -1,0 +1,26 @@
+/* Підключення шрифтів VinnytsiaSans */
+
+@font-face {
+  font-family: 'VinnytsiaSansReg';
+  src:
+    url('./fonts/VinnytsiaSansReg.woff2') format('woff2'),
+    url('./fonts/VinnytsiaSansReg.woff') format('woff'),
+    url('./fonts/VinnytsiaSansReg.ttf') format('truetype');
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'VinnytsiaSansBold';
+  src:
+    url('./fonts/VinnytsiaSansBold.woff2') format('woff2'),
+    url('./fonts/VinnytsiaSansBold.woff') format('woff'),
+    url('./fonts/VinnytsiaSansBold.ttf') format('truetype');
+  font-weight: bold;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* Fallback на Google Fonts якщо локальні шрифти не завантажились */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');

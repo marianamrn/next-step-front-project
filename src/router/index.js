@@ -5,7 +5,12 @@ import RegisterPage from '@/components/login-components/registration.vue'
 import AdminPanel from '@/components/admin/AdminPanel.vue'
 import StudentManagement from '@/components/admin/StudentManagement.vue'
 import CoursesManagement from '@/components/admin/courses-management'
+
+// Публічні сторінки для користувачів
 import HomePage from '@/components/pages/HomePage.vue'
+import AboutUs from '@/components/pages/AboutUs.vue'
+import CoursesPage from '@/components/pages/CoursesPage.vue'
+import MyCoursesPage from '@/components/pages/MyCoursesPage.vue'
 
 // Перевірка авторизації
 const checkAuth = (to, from, next) => {
@@ -19,32 +24,65 @@ const checkAuth = (to, from, next) => {
   }
 }
 
+// Перевірка адміністратора
+const checkAdmin = (to, from, next) => {
+  const user = JSON.parse(localStorage.getItem('user') || '{}')
+  const adminEmails = ['admin@example.com', 'super_admin@example.com', 'petropetrenko@gmail.com']
+
+  const isAdmin =
+    adminEmails.includes(user.email?.toLowerCase()) || user.email?.toLowerCase().includes('admin')
+
+  if (!isAdmin) {
+    next('/home')
+  } else {
+    next()
+  }
+}
+
 const routes = [
-  { path: '/', redirect: '/login' }, // Перенаправлення на сторінку логіну
+  // Головний редирект на домашню сторінку
+  { path: '/', redirect: '/home' },
+
+  // Сторінки авторизації
   { path: '/login', name: 'Login', component: LoginPage },
   { path: '/register', name: 'Register', component: RegisterPage },
 
-  // Домашня сторінка для звичайних користувачів
+  // Публічні сторінки для користувачів
   {
     path: '/home',
     name: 'Home',
     component: HomePage,
-    meta: { requiresAuth: true }, // Вмикаємо перевірку авторизації
+  },
+  {
+    path: '/courses',
+    name: 'Courses',
+    component: CoursesPage,
+  },
+  {
+    path: '/about',
+    name: 'About',
+    component: AboutUs,
+  },
+  {
+    path: '/my-courses',
+    name: 'MyCourses',
+    component: MyCoursesPage,
+    meta: { requiresAuth: true },
   },
 
   // Адміністративна панель
   {
     path: '/admin',
     component: AdminPanel,
-    meta: { requiresAuth: true }, // Вмикаємо перевірку авторизації
+    meta: { requiresAuth: true },
+    beforeEnter: [checkAuth, checkAdmin],
     children: [
-      { path: '', redirect: '/admin/students' }, // За замовчуванням показуємо управління студентами
+      { path: '', redirect: '/admin/students' },
       {
         path: 'students',
         name: 'AdminStudents',
         component: StudentManagement,
       },
-      // Сторінка детальної інформації про студента
       {
         path: 'students/:id',
         name: 'AdminStudentDetail',
@@ -103,7 +141,7 @@ const routes = [
   },
 
   // Маршрут для неіснуючих сторінок
-  { path: '/:pathMatch(.*)*', redirect: '/login' },
+  { path: '/:pathMatch(.*)*', redirect: '/home' },
 ]
 
 const router = createRouter({

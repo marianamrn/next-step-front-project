@@ -1,6 +1,6 @@
 <template>
-  <div class="courses-page">
-    <coming-soon feature="Курси" />
+  <div class="about-page">
+    <coming-soon feature="Про нас" />
   </div>
 </template>
 
@@ -8,7 +8,7 @@
 import ComingSoon from '@/components/admin/ComingSoon.vue'
 
 export default {
-  name: 'CoursesPage',
+  name: 'AboutUs',
   components: {
     ComingSoon,
   },
@@ -16,7 +16,7 @@ export default {
 </script>
 
 <style scoped>
-.courses-page {
+.about-page {
   min-height: calc(100vh - 140px);
 }
 </style>

@@ -1,77 +1,112 @@
-/* src/assets/main.css */
-/* Загальні стилі для всього додатку */
+/* Основні стилі проєкту */
 
-:root {
-  --primary-color: #443bc9;
-  --secondary-color: #2196f3;
-  --text-color: #333;
-  --text-light: #666;
-  --background-color: #f9fafb;
-  --border-color: #e1e1e1;
-}
+/* Імпорт шрифтів */
+@import './fonts.css';
 
+/* Скидання стилів */
 * {
   box-sizing: border-box;
   margin: 0;
   padding: 0;
 }
 
+/* Глобальні CSS змінні кольорів */
+:root {
+  /* Основні кольори платформи */
+  --primary-color: #443bc9;
+  --accent-color: #5f56dc;
+  --background-color: #f4f5ff;
+  --text-color: #000000;
+  --secondary-text-color: #777777;
+
+  /* Акцентні кольори */
+  --accent-orange: #f95e15;
+  --accent-yellow: #ffd963;
+  --accent-blue: #0e5fff;
+  --accent-yellow-alt: #ffd963;
+
+  /* Системні кольори */
+  --success-color: #4caf50;
+  --error-color: #f44336;
+  --warning-color: #ff9800;
+  --info-color: #2196f3;
+  --border-color: #e1e1e1;
+  --white: #ffffff;
+  --light-gray: #f9fafb;
+}
+
+/* Базові стилі для body */
 body {
-  font-family: 'Roboto', Arial, sans-serif;
+  font-family:
+    'VinnytsiaSansReg',
+    'Inter',
+    -apple-system,
+    BlinkMacSystemFont,
+    'Segoe UI',
+    Roboto,
+    sans-serif;
   color: var(--text-color);
-  background-color: var(--background-color);
+  background-color: var(--white);
   line-height: 1.6;
+  font-size: 16px;
 }
 
-/* Виправлення для помилки стилів courses/1:1 */
-.course-detail a,
-.lesson-detail a {
+/* Стилі для заголовків */
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  font-family: 'VinnytsiaSansBold', 'Inter', sans-serif;
+  font-weight: bold;
+  margin-bottom: 0.5em;
+}
+
+/* Утиліти для текстів */
+.text-primary {
   color: var(--primary-color);
-  text-decoration: none;
 }
 
-.course-detail a:hover,
-.lesson-detail a:hover {
-  text-decoration: underline;
+.text-secondary {
+  color: var(--secondary-text-color);
 }
 
-/* Загальні стилі для посилань */
-a {
-  color: var(--primary-color);
-  text-decoration: none;
+.font-bold {
+  font-family: 'VinnytsiaSansBold', 'Inter', sans-serif;
+  font-weight: bold;
 }
 
-/* Виправлення для стилів у модулі курсів */
-[class^='courses-'],
-[class*=' courses-'] {
-  color: inherit;
-  font-family: inherit;
+.font-regular {
+  font-family: 'VinnytsiaSansReg', 'Inter', sans-serif;
+  font-weight: normal;
 }
 
-/* Виправлення для проблеми з імпортом стилів */
-.course-content .course-text {
-  color: var(--text-color);
+/* Утиліти для кнопок */
+.btn-primary {
+  background-color: var(--primary-color) !important;
+  color: var(--white) !important;
 }
 
-/* Фікс для стилів у детальному перегляді курсу */
-.course-detail .course-header {
-  position: relative;
-  color: white;
-  padding: 40px;
-  background-size: cover;
-  background-position: center;
-  display: flex;
-  flex-direction: column;
-  justify-content: flex-end;
-  min-height: 250px;
+.btn-primary:hover {
+  background-color: var(--accent-color) !important;
 }
 
-.course-detail .course-overlay {
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: linear-gradient(to bottom, rgba(0, 0, 0, 0.3), rgba(0, 0, 0, 0.7));
-  z-index: 1;
+.btn-accent {
+  background-color: var(--accent-orange) !important;
+  color: var(--white) !important;
+}
+
+/* Контейнери */
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 20px;
+}
+
+/* Responsive утиліти */
+@media (max-width: 768px) {
+  .container {
+    padding: 0 15px;
+  }
 }
