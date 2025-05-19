@@ -11,6 +11,7 @@ import HomePage from '@/components/pages/HomePage.vue'
 import AboutUs from '@/components/pages/AboutUs.vue'
 import CoursesPage from '@/components/pages/CoursesPage.vue'
 import MyCoursesPage from '@/components/pages/MyCoursesPage.vue'
+import CourseDetails from '@/components/courses/CourseDetails.vue'
 
 // Перевірка авторизації
 const checkAuth = (to, from, next) => {
@@ -68,6 +69,13 @@ const routes = [
     name: 'MyCourses',
     component: MyCoursesPage,
     meta: { requiresAuth: true },
+  },
+  {
+    path: '/courses/:id',
+    name: 'CourseDetails',
+    component: CourseDetails,
+    props: true,
+    meta: { requiresAuth: false },
   },
 
   // Адміністративна панель

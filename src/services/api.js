@@ -307,6 +307,7 @@ export const coursesApi = {
       params: {
         page,
         per_page: perPage,
+        //published: true, // Тільки опубліковані курси
       },
     })
   },
@@ -316,9 +317,20 @@ export const coursesApi = {
     return api.get(`/courses/${id}`)
   },
 
-  // Отримати курси за категорією
+  // Пошук курсів
+  searchCourses(query, page = 1, perPage = 15) {
+    return api.get('/courses/search', {
+      params: {
+        query,
+        page,
+        per_page: perPage,
+      },
+    })
+  },
+
+  // Отримати курси за категорією (оновлена функція)
   getCoursesByCategory(categoryId, page = 1, perPage = 15) {
-    return api.get(`/course_by_category_id/${categoryId}`, {
+    return api.get(`/courses/category/${categoryId}`, {
       params: {
         page,
         per_page: perPage,
@@ -328,7 +340,7 @@ export const coursesApi = {
 
   // Отримати курси за рівнем
   getCoursesByLevel(levelId, page = 1, perPage = 15) {
-    return api.get(`/course_by_level_id/${levelId}`, {
+    return api.get(`/courses/level/${levelId}`, {
       params: {
         page,
         per_page: perPage,
@@ -338,10 +350,60 @@ export const coursesApi = {
 
   // Отримати курси за інструктором
   getCoursesByInstructor(instructorId, page = 1, perPage = 15) {
-    return api.get(`/course_by_instructor_id/${instructorId}`, {
+    return api.get(`/courses/instructor/${instructorId}`, {
       params: {
         page,
         per_page: perPage,
+      },
+    })
+  },
+
+  // Отримати всі рівні
+  getAllLevels() {
+    return api.get('/levels')
+  },
+
+  // Отримати всіх інструкторів
+  getAllInstructors() {
+    return api.get('/instructors')
+  },
+
+  // Отримати курси з фільтрами
+  getCoursesWithFilters(filters = {}, page = 1, perPage = 15) {
+    const params = {
+      page,
+      per_page: perPage,
+      ...filters,
+    }
+
+    // Видаляємо порожні параметри
+    Object.keys(params).forEach((key) => {
+      if (params[key] === '' || params[key] === null || params[key] === undefined) {
+        delete params[key]
+      }
+    })
+
+    return api.get('/courses', { params })
+  },
+
+  // Отримати популярні курси
+  getPopularCourses(page = 1, perPage = 15) {
+    return api.get('/courses', {
+      params: {
+        page,
+        per_page: perPage,
+        sort: 'popular',
+      },
+    })
+  },
+
+  // Отримати новітні курси
+  getLatestCourses(page = 1, perPage = 15) {
+    return api.get('/courses', {
+      params: {
+        page,
+        per_page: perPage,
+        sort: 'latest',
       },
     })
   },
