@@ -8,6 +8,12 @@
 
     <!-- Статистика платформи -->
     <platform-statistic-info />
+
+    <!-- Переваги наших курсів -->
+    <our-advantages />
+
+    <!-- Категорії курсів -->
+    <find-what-you-like />
   </div>
 </template>
 
@@ -15,6 +21,8 @@
 import ContactUs from '@/components/home/ContactUs.vue'
 import MainHomeBanner from '@/components/home/MainHomeBanner.vue'
 import PlatformStatisticInfo from '@/components/home/PlatformStatisticInfo.vue'
+import OurAdvantages from '@/components/home/OurAdvantages.vue'
+import FindWhatYouLike from '@/components/home/FindWhatYouLike.vue'
 
 export default {
   name: 'HomePage',
@@ -22,6 +30,8 @@ export default {
     ContactUs,
     MainHomeBanner,
     PlatformStatisticInfo,
+    OurAdvantages,
+    FindWhatYouLike,
   },
 }
 </script>
