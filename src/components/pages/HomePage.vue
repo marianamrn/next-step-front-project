@@ -14,6 +14,9 @@
 
     <!-- Категорії курсів -->
     <find-what-you-like />
+
+    <!-- Найпопулярніші курси -->
+    <most-popular-courses />
   </div>
 </template>
 
@@ -23,6 +26,7 @@ import MainHomeBanner from '@/components/home/MainHomeBanner.vue'
 import PlatformStatisticInfo from '@/components/home/PlatformStatisticInfo.vue'
 import OurAdvantages from '@/components/home/OurAdvantages.vue'
 import FindWhatYouLike from '@/components/home/FindWhatYouLike.vue'
+import MostPopularCourses from '@/components/home/MostPopularCourses.vue'
 
 export default {
   name: 'HomePage',
@@ -32,6 +36,7 @@ export default {
     PlatformStatisticInfo,
     OurAdvantages,
     FindWhatYouLike,
+    MostPopularCourses,
   },
 }
 </script>
