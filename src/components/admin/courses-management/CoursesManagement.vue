@@ -7,7 +7,8 @@
       :loading="loading"
       @select-course="selectCourse"
       @open-course-modal="openCourseModal"
-      @open-category-modal="showCategoryModal = true"
+      @open-category-modal="openCategoryModal"
+      @edit-category="openCategoryModal"
       @edit-course="openCourseModal"
       @publish-course="publishCourse"
       @unpublish-course="unpublishCourse"
@@ -114,6 +115,7 @@ export default {
       try {
         const response = await api.categories.getAllCategories()
         this.categories = response.data.data
+        console.log('Завантажені категорії:', this.categories)
       } catch (error) {
         console.error('Помилка при завантаженні категорій:', error)
       }
@@ -141,7 +143,7 @@ export default {
       this.router.push({ name: 'AdminCourses' })
     },
 
-    // МОДАЛЬНІ ВІКНА
+    // МОДАЛЬНІ ВІКНА КУРСІВ
     openCourseModal(course = null) {
       if (course) {
         this.currentCourse = { ...course }
@@ -168,14 +170,10 @@ export default {
       this.currentCourse = null
     },
 
+    // МОДАЛЬНІ ВІКНА КАТЕГОРІЙ
     openCategoryModal(category = null) {
-      this.currentCategory = category
-        ? { ...category }
-        : {
-            name: '',
-            description: '',
-            parent_id: null,
-          }
+      console.log('Відкриття модального вікна категорії:', category)
+      this.currentCategory = category ? { ...category } : null
       this.showCategoryModal = true
     },
 
@@ -184,21 +182,26 @@ export default {
       this.currentCategory = null
     },
 
-    // ЗБЕРЕЖЕННЯ ДАНИХ
+    // ЗБЕРЕЖЕННЯ ДАНИХ КАТЕГОРІЙ
     async saveCategory(categoryData) {
       try {
-        if (categoryData.id) {
-          await api.categories.updateCategory(categoryData.id, categoryData)
-        } else {
-          await api.categories.createCategory(categoryData)
-        }
+        console.log('Збереження категорії:', categoryData)
+
+        // Категорія успішно збережена через CategoryModal
+        // Оновлюємо список категорій
+        await this.fetchCategories()
+
+        // Закриваємо модальне вікно
         this.closeCategoryModal()
-        this.fetchCategories()
+
+        console.log('Категорію успішно збережено та список оновлено')
       } catch (error) {
         console.error('Помилка при збереженні категорії:', error)
+        alert('Помилка при збереженні категорії. Спробуйте пізніше.')
       }
     },
 
+    // ЗБЕРЕЖЕННЯ ДАНИХ КУРСІВ
     async saveCourse(courseData) {
       try {
         console.log('Дані курсу для збереження:', JSON.stringify(courseData, null, 2))
@@ -296,8 +299,7 @@ export default {
       }
     },
 
-    // ПУБЛІКАЦІЯ
-    // Метод для публікації курсу
+    // ПУБЛІКАЦІЯ КУРСІВ
     async publishCourse(course) {
       try {
         console.log(`Публікація курсу з ID: ${course.id}`)
@@ -373,8 +375,7 @@ export default {
       }
     },
 
-    // ВИДАЛЕННЯ
-    // Метод для підтвердження видалення курсу
+    // ВИДАЛЕННЯ КУРСІВ
     confirmDeleteCourse(course) {
       this.confirmTitle = 'Видалити курс'
       this.confirmMessage = `Ви впевнені, що хочете видалити курс "${course.title}"? Ця дія є незворотною.`
@@ -382,7 +383,6 @@ export default {
       this.showConfirmModal = true
     },
 
-    // Метод для видалення курсу
     async deleteCourse(course) {
       try {
         console.log(`Видалення курсу з ID: ${course.id}`)

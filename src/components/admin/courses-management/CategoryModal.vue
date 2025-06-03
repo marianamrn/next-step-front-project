@@ -34,6 +34,17 @@
         </div>
 
         <div class="form-group">
+          <label for="category-icon">Іконка (опціонально)</label>
+          <input
+            id="category-icon"
+            type="text"
+            v-model="form.icon"
+            placeholder="Назва іконки (наприклад: code, book, design)"
+            class="form-control"
+          />
+        </div>
+
+        <div class="form-group">
           <label for="parent-category">Батьківська категорія</label>
           <select id="parent-category" v-model="form.parent_id" class="form-control">
             <option :value="null">Немає (головна категорія)</option>
@@ -45,6 +56,24 @@
               {{ category.name }}
             </option>
           </select>
+        </div>
+
+        <div class="form-group">
+          <label for="category-position">Позиція (опціонально)</label>
+          <input
+            id="category-position"
+            type="number"
+            v-model.number="form.position"
+            placeholder="Позиція для сортування"
+            class="form-control"
+          />
+        </div>
+
+        <div class="form-group">
+          <label class="checkbox-label">
+            <input type="checkbox" v-model="form.is_active" />
+            Активна категорія
+          </label>
         </div>
       </div>
 
@@ -78,7 +107,9 @@ export default {
       form: {
         name: '',
         description: '',
+        icon: '',
         parent_id: null,
+        position: 0,
         is_active: true,
       },
       availableParentCategories: [],
@@ -117,19 +148,23 @@ export default {
     },
 
     initForm() {
-      if (this.isEdit) {
+      if (this.isEdit && this.category) {
         this.form = {
           id: this.category.id,
           name: this.category.name || '',
           description: this.category.description || '',
+          icon: this.category.icon || '',
           parent_id: this.category.parent_id,
+          position: this.category.position || 0,
           is_active: this.category.is_active !== undefined ? this.category.is_active : true,
         }
       } else {
         this.form = {
           name: '',
           description: '',
+          icon: '',
           parent_id: null,
+          position: 0,
           is_active: true,
         }
       }
@@ -153,20 +188,53 @@ export default {
       this.loading = true
 
       try {
-        if (this.isEdit) {
-          await api.categories.updateCategory(this.category.id, this.form)
-        } else {
-          await api.categories.createCategory(this.form)
+        // Підготовка даних для відправки
+        const categoryData = {
+          name: this.form.name.trim(),
+          description: this.form.description ? this.form.description.trim() : '',
+          icon: this.form.icon ? this.form.icon.trim() : '',
+          parent_id: this.form.parent_id,
+          position: this.form.position || 0,
+          is_active: this.form.is_active,
         }
 
-        this.$emit('save', this.form)
+        // Видаляємо порожні поля
+        Object.keys(categoryData).forEach((key) => {
+          if (categoryData[key] === '' || categoryData[key] === null) {
+            delete categoryData[key]
+          }
+        })
+
+        console.log('Дані для збереження категорії:', categoryData)
+
+        let response
+        if (this.isEdit) {
+          response = await api.categories.updateCategory(this.category.id, categoryData)
+        } else {
+          response = await api.categories.createCategory(categoryData)
+        }
+
+        console.log('Відповідь API:', response.data)
+
+        // Emit успішного збереження
+        this.$emit('save', response.data.data || response.data)
+
+        // Показуємо повідомлення про успіх
+        alert(this.isEdit ? 'Категорію успішно оновлено!' : 'Категорію успішно створено!')
       } catch (error) {
         console.error('Помилка при збереженні категорії:', error)
+
         if (error.response && error.response.data) {
           const { errors } = error.response.data
           if (errors && errors.name) {
-            this.errors.name = errors.name[0]
+            this.errors.name = Array.isArray(errors.name) ? errors.name[0] : errors.name
           }
+
+          // Показуємо загальну помилку
+          const message = error.response.data.message || 'Помилка при збереженні категорії'
+          alert(message)
+        } else {
+          alert("Помилка з'єднання з сервером. Спробуйте пізніше.")
         }
       } finally {
         this.loading = false
@@ -256,6 +324,17 @@ export default {
 textarea.form-control {
   resize: vertical;
   min-height: 80px;
+}
+
+.checkbox-label {
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+}
+
+.checkbox-label input[type='checkbox'] {
+  width: auto;
+  margin-right: 8px;
 }
 
 .error-message {

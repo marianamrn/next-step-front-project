@@ -241,8 +241,12 @@ export const adminsApi = {
   },
 }
 
+// Замініть існуючий categoriesApi в src/services/api.js на цей код:
+
 // API для категорій курсів
 export const categoriesApi = {
+  // ПУБЛІЧНІ МЕТОДИ (без автентифікації)
+
   // Отримати всі категорії
   getAllCategories() {
     return api.get('/categories')
@@ -260,42 +264,52 @@ export const categoriesApi = {
 
   // Отримати ієрархію категорій
   getCategoriesHierarchy() {
-    return api.get('/categories_hierarchy')
+    return api.get('/categories/hierarchy')
   },
 
   // Отримати всі активні категорії
-  getAllActiveCategories() {
-    return api.get('/all_active_categories')
+  getActiveCategories() {
+    return api.get('/categories/active')
   },
 
-  // Створити нову категорію
+  // АДМІНІСТРАТОРСЬКІ МЕТОДИ (потрібна автентифікація та права адміністратора)
+
+  // Створити нову категорію - ВИПРАВЛЕНО відповідно до маршрутів
   createCategory(categoryData) {
-    return api.post('/categories', categoryData)
+    console.log('Створення категорії з даними:', categoryData)
+    return api.post('/categories/manage', categoryData)
   },
 
-  // Змінити позицію категорії
-  changePosition(id, position) {
-    return api.post('/change_position_category', { id, position })
-  },
-
-  // Оновити категорію
+  // Оновити категорію - ВИПРАВЛЕНО відповідно до маршрутів
   updateCategory(id, categoryData) {
-    return api.put(`/update_category_by_id/${id}`, categoryData)
+    console.log(`Оновлення категорії ${id} з даними:`, categoryData)
+    return api.put(`/categories/manage/${id}`, categoryData)
   },
 
-  // Деактивувати категорію
-  deactivateCategory(id) {
-    return api.put(`/deactivate_category/${id}`)
+  // Видалити категорію - ВИПРАВЛЕНО відповідно до маршрутів
+  deleteCategory(id) {
+    console.log(`Видалення категорії ${id}`)
+    return api.delete(`/categories/manage/${id}`)
+  },
+
+  // Змінити позицію категорій
+  updateCategoriesPositions(positions) {
+    return api.post('/categories/manage/positions', { positions })
+  },
+
+  // Перемикання активності категорії
+  toggleCategoryActive(id) {
+    return api.put(`/categories/manage/${id}/toggle-active`)
   },
 
   // Активувати категорію
   activateCategory(id) {
-    return api.put(`/activate_category/${id}`)
+    return api.put(`/categories/manage/${id}/activate`)
   },
 
-  // Видалити категорію
-  deleteCategory(id) {
-    return api.delete(`/delete_category/${id}`)
+  // Деактивувати категорію
+  deactivateCategory(id) {
+    return api.put(`/categories/manage/${id}/deactivate`)
   },
 }
 
