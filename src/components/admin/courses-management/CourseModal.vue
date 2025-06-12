@@ -274,6 +274,7 @@ export default {
           this.coverPreview = getImageUrl(this.course.cover_image)
         }
       } else {
+        // Ініціалізація форми для нового курсу
         this.form = {
           title: '',
           description: '',
@@ -294,7 +295,6 @@ export default {
 
         // Зберігаємо початковий стан форми для нового курсу
         this.originalForm = { ...this.form }
-
         this.coverPreview = null
       }
     },
@@ -389,13 +389,7 @@ export default {
       this.loading = true
 
       try {
-        if (this.isEdit) {
-          // Якщо це редагування, викликаємо метод оновлення
-          await this.updateExistingCourse()
-        } else {
-          // Якщо це нове створення, викликаємо метод створення
-          await this.createNewCourse()
-        }
+        // Просто передаємо дані форми в батьківський компонент
         await this.$emit('save', this.form)
         this.$emit('close') // Автоматично закриваємо модалку після збереження
       } catch (error) {
@@ -404,118 +398,6 @@ export default {
       } finally {
         this.loading = false
       }
-    },
-
-    // Метод для створення нового курсу
-    async createNewCourse() {
-      // Клонуємо об'єкт форми
-      const formData = { ...this.form }
-
-      // Переконуємося, що числові поля є числами
-      this.convertNumericFields(formData)
-
-      // Перевіряємо обов'язкові поля
-      const requiredFields = ['title', 'category_id', 'price', 'level_id']
-      const missingFields = this.checkRequiredFields(formData, requiredFields)
-
-      if (missingFields.length > 0) {
-        alert(`Відсутні обов'язкові поля: ${missingFields.join(', ')}`)
-        return
-      }
-
-      console.log('Створення нового курсу з даними:', JSON.stringify(formData, null, 2))
-
-      // Відправляємо запит на створення курсу
-      const response = await api.courses.createCourse(formData)
-      console.log('Відповідь на створення курсу:', response.data)
-
-      // Якщо є обкладинка і курс успішно створено
-      if (this.coverFile && response.data && response.data.id) {
-        try {
-          await this.uploadCover(response.data.id)
-        } catch (coverError) {
-          console.error('Помилка при завантаженні обкладинки:', coverError)
-          // Продовжуємо, навіть якщо обкладинка не завантажилась
-        }
-      }
-
-      alert('Курс успішно створено!')
-    },
-
-    // Метод для оновлення існуючого курсу
-    async updateExistingCourse() {
-      const courseId = this.course.id
-
-      // Визначаємо, які поля були змінені
-      const changedFields = {}
-
-      // Порівнюємо значення полів з початковими
-      for (const [key, value] of Object.entries(this.form)) {
-        if (JSON.stringify(this.originalForm[key]) !== JSON.stringify(value)) {
-          changedFields[key] = value
-        }
-      }
-
-      console.log('Оновлення полів курсу:', JSON.stringify(changedFields, null, 2))
-
-      // Якщо немає змінених полів (крім обкладинки)
-      if (Object.keys(changedFields).length === 0 && !this.coverFile) {
-        alert('Немає змін для збереження')
-        return
-      }
-
-      // Переконуємося, що числові поля є числами
-      this.convertNumericFields(changedFields)
-
-      // Додаємо ID курсу до даних
-      changedFields.id = courseId
-
-      // Відправляємо запит на оновлення курсу тільки зі зміненими полями
-      try {
-        await api.courses.updateCourse(courseId, changedFields)
-
-        // Обробляємо обкладинку окремо, тільки якщо вона змінилась
-        if (this.coverFile) {
-          try {
-            await this.uploadCover(courseId)
-          } catch (coverError) {
-            console.error('Помилка при завантаженні обкладинки:', coverError)
-            // Продовжуємо виконання, навіть якщо обкладинка не завантажилась
-          }
-        }
-
-        // Отримуємо оновлені дані курсу
-        const updatedCourseResponse = await api.courses.getCourseById(courseId)
-
-        alert('Курс успішно оновлено!')
-        this.$emit('save', updatedCourseResponse.data.data)
-      } catch (error) {
-        throw error // Перекидаємо помилку для обробки у вищому методі
-      }
-    },
-
-    // Метод для конвертації числових полів
-    convertNumericFields(data) {
-      const numericFields = ['price', 'discount_price', 'category_id', 'level_id', 'instructor_id']
-
-      for (const field of numericFields) {
-        if (data[field] !== undefined && data[field] !== null) {
-          data[field] = Number(data[field])
-        }
-      }
-    },
-
-    // Метод для перевірки обов'язкових полів
-    checkRequiredFields(data, requiredFields) {
-      const missingFields = []
-
-      for (const field of requiredFields) {
-        if (data[field] === undefined || data[field] === null || data[field] === '') {
-          missingFields.push(field)
-        }
-      }
-
-      return missingFields
     },
 
     // Метод для обробки помилок

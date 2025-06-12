@@ -222,12 +222,32 @@ export default {
             formData[field] = Number(formData[field])
           }
         })
+
+        // Перевіряємо обов'язкові поля
+        const requiredFields = ['title', 'category_id', 'price', 'level_id']
+        const missingFields = requiredFields.filter(field => !formData[field])
+        if (missingFields.length > 0) {
+          alert(`Відсутні обов'язкові поля: ${missingFields.join(', ')}`)
+          return
+        }
+
         let response
         if (formData.id) {
           response = await api.courses.updateCourse(formData.id, formData)
         } else {
           response = await api.courses.createCourse(formData)
         }
+
+        // Якщо є обкладинка і курс успішно створено/оновлено
+        if (courseData.coverFile && response.data && response.data.id) {
+          try {
+            await api.courses.uploadCourseCover(response.data.id, courseData.coverFile)
+          } catch (coverError) {
+            console.error('Помилка при завантаженні обкладинки:', coverError)
+            // Продовжуємо, навіть якщо обкладинка не завантажилась
+          }
+        }
+
         if (this.$refs.coursesList && this.$refs.coursesList.fetchCourses) {
           await this.$refs.coursesList.fetchCourses()
         }
@@ -238,6 +258,7 @@ export default {
         this.closeCourseModal()
       } catch (error) {
         console.error('Помилка при збереженні курсу:', error)
+        alert('Помилка при збереженні курсу. Спробуйте пізніше.')
       }
     },
 
