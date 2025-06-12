@@ -396,6 +396,8 @@ export default {
           // Якщо це нове створення, викликаємо метод створення
           await this.createNewCourse()
         }
+        await this.$emit('save', this.form)
+        this.$emit('close') // Автоматично закриваємо модалку після збереження
       } catch (error) {
         console.error('Помилка при збереженні курсу:', error)
         this.handleError(error)
@@ -438,7 +440,6 @@ export default {
       }
 
       alert('Курс успішно створено!')
-      this.$emit('save', response.data)
     },
 
     // Метод для оновлення існуючого курсу

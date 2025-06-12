@@ -48,40 +48,26 @@ export default {
       immediate: true,
       handler(newId) {
         if (newId) {
-          this.loadCourseById(newId)
+          this.fetchCourse(newId)
         }
       },
     },
   },
   methods: {
-    async loadCourseById(courseId) {
+    async fetchCourse(courseId) {
       try {
         this.loading = true
         this.error = null
-
-        console.log('Завантаження курсу за ID:', courseId)
         const response = await api.courses.getCourseById(courseId)
-        console.log('Завантажені дані курсу:', response.data)
-
-        // Отримуємо і клонуємо дані курсу
         let courseData
-
-        // Перевіряємо можливі формати відповіді API
         if (response.data && response.data.course) {
           courseData = JSON.parse(JSON.stringify(response.data.course))
         } else {
           courseData = JSON.parse(JSON.stringify(response.data))
         }
-
-        console.log('Дані курсу після клонування:', courseData)
-        console.log('ID курсу:', courseData.id, typeof courseData.id)
-
-        // Переконуємося, що у курсу є поле modules
         if (!courseData.modules) {
           courseData.modules = []
         }
-
-        // Якщо модулі є, переконуємося, що у кожного модуля є поле lessons
         if (Array.isArray(courseData.modules)) {
           courseData.modules.forEach((module) => {
             if (!module.lessons) {
@@ -89,14 +75,17 @@ export default {
             }
           })
         }
-
         this.course = courseData
       } catch (error) {
-        console.error('Помилка завантаження курсу:', error)
-        this.error = 'Помилка завантаження курсу. Спробуйте пізніше.'
+        this.error = 'Не вдалося завантажити дані курсу.'
+        console.error('Помилка при завантаженні курсу:', error)
       } finally {
         this.loading = false
       }
+    },
+    // Для сумісності зі старим кодом
+    loadCourseById(courseId) {
+      return this.fetchCourse(courseId)
     },
 
     // Метод для оновлення даних курсу після змін

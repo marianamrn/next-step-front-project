@@ -106,7 +106,7 @@
 
         <div v-else class="modules-list">
           <module-item
-            v-for="(module, index) in modules"
+            v-for="(module, index) in course.modules"
             :key="module.id"
             :module="module"
             :index="index"
@@ -182,25 +182,16 @@ export default {
   },
   data() {
     return {
-      modules: [],
       loadingModules: false,
-
-      // Для модальних вікон
       showModuleModal: false,
       showLessonModal: false,
       showConfirmModal: false,
-
-      // Тимчасові об'єкти для модальних вікон
       currentModule: null,
       currentLesson: null,
       currentModuleId: null,
-
-      // Для модального вікна підтвердження
       confirmTitle: '',
       confirmMessage: '',
       confirmAction: () => {},
-
-      // Для модального вікна перегляду уроку
       showLessonViewModal: false,
       viewingLesson: null,
     }
@@ -246,18 +237,16 @@ export default {
       return this.course.requirements.split('\n').filter((item) => item.trim().length > 0)
     },
     hasModules() {
-      return this.modules && this.modules.length > 0
+      return this.course.modules && this.course.modules.length > 0
     },
   },
   watch: {
     course: {
       immediate: true,
       handler(newCourse) {
-        if (newCourse && newCourse.id) {
-          this.loadModules()
-        }
-      },
-    },
+        // Якщо потрібно, можна виконати побічні ефекти тут
+      }
+    }
   },
   methods: {
     async loadModules() {
@@ -282,7 +271,6 @@ export default {
         // Спочатку перевіряємо, чи курс уже має модулі у відповіді API
         if (this.course.modules && Array.isArray(this.course.modules)) {
           console.log('Використовуємо модулі з відповіді API курсу:', this.course.modules.length)
-          this.modules = this.course.modules
           return
         }
 
@@ -294,18 +282,17 @@ export default {
 
         if (!response.data) {
           console.error('Відповідь API не містить поля data')
-          this.modules = []
           return
         }
 
         if (!response.data.data && Array.isArray(response.data)) {
           // Якщо API повертає дані безпосередньо в data, а не в data.data
-          this.modules = response.data
+          this.course.modules = response.data
         } else {
-          this.modules = response.data.data || []
+          this.course.modules = response.data.data || []
         }
 
-        console.log('Завантажені модулі:', this.modules)
+        console.log('Завантажені модулі:', this.course.modules)
       } catch (error) {
         console.error('Помилка при завантаженні модулів:', error)
 
@@ -319,7 +306,7 @@ export default {
         }
 
         // Просто ініціалізуємо порожнім масивом у випадку помилки
-        this.modules = []
+        this.course.modules = []
       } finally {
         this.loadingModules = false
       }
@@ -327,11 +314,11 @@ export default {
 
     // Обробка завантажених уроків для конкретного модуля
     handleLessonsLoaded({ moduleId, lessons }) {
-      const moduleIndex = this.modules.findIndex((m) => m.id === moduleId)
+      const moduleIndex = this.course.modules.findIndex((m) => m.id === moduleId)
       if (moduleIndex !== -1) {
-        this.modules[moduleIndex].lessons = lessons
+        this.course.modules[moduleIndex].lessons = lessons
         // Змушуємо Vue перерендерити список модулів
-        this.modules = [...this.modules]
+        this.course.modules = [...this.course.modules]
       }
     },
 
@@ -350,10 +337,10 @@ export default {
       try {
         if (moduleData.id) {
           // Оновлюємо існуючий модуль у списку
-          const index = this.modules.findIndex((m) => m.id === moduleData.id)
+          const index = this.course.modules.findIndex((m) => m.id === moduleData.id)
           if (index !== -1) {
-            this.modules[index] = { ...this.modules[index], ...moduleData }
-            this.modules = [...this.modules]
+            this.course.modules[index] = { ...this.course.modules[index], ...moduleData }
+            this.course.modules = [...this.course.modules]
           }
         } else {
           // Додаємо новий модуль до списку
@@ -378,7 +365,7 @@ export default {
         await api.modules.deleteModule(module.id)
 
         // Видаляємо модуль зі списку
-        this.modules = this.modules.filter((m) => m.id !== module.id)
+        this.course.modules = this.course.modules.filter((m) => m.id !== module.id)
 
         this.closeConfirmModal()
       } catch (error) {
@@ -405,7 +392,7 @@ export default {
       if (!module) {
         if (this.currentModuleId) {
           // Якщо у нас є ID поточного модуля, знайдемо його об'єкт
-          const foundModule = this.modules.find((m) => m.id === this.currentModuleId)
+          const foundModule = this.course.modules.find((m) => m.id === this.currentModuleId)
           if (foundModule) {
             console.log('Використовуємо поточний модуль за ID:', foundModule)
             module = foundModule
@@ -439,7 +426,7 @@ export default {
 
     async saveLesson(lessonData) {
       // Оновлюємо список уроків після успішного збереження
-      this.loadModules() // або інша функція для оновлення списку уроків
+      await this.loadModules() // або інша функція для оновлення списку уроків
       // Закриваємо модальне вікно
       this.showLessonModal = false
     },
@@ -511,7 +498,7 @@ export default {
       this.closeLessonViewModal()
 
       // Знаходимо модуль, якому належить урок
-      const module = this.modules.find(
+      const module = this.course.modules.find(
         (m) => m.lessons && m.lessons.some((l) => l.id === lesson.id),
       )
 
@@ -538,13 +525,13 @@ export default {
         await api.lessons.deleteLesson(lesson.id)
 
         // Видаляємо урок зі списку
-        const moduleIndex = this.modules.findIndex((m) => m.id === module.id)
-        if (moduleIndex !== -1 && this.modules[moduleIndex].lessons) {
-          this.modules[moduleIndex].lessons = this.modules[moduleIndex].lessons.filter(
+        const moduleIndex = this.course.modules.findIndex((m) => m.id === module.id)
+        if (moduleIndex !== -1 && this.course.modules[moduleIndex].lessons) {
+          this.course.modules[moduleIndex].lessons = this.course.modules[moduleIndex].lessons.filter(
             (l) => l.id !== lesson.id,
           )
           // Оновлюємо масив модулів для триггеринга оновлення Vue
-          this.modules = [...this.modules]
+          this.course.modules = [...this.course.modules]
         }
 
         // Закриваємо модальне вікно підтвердження
@@ -845,4 +832,3 @@ export default {
   gap: 16px;
 }
 </style>
-// Завантажуємо уроки знову для оновлення списку

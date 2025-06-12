@@ -423,28 +423,43 @@ export const coursesApi = {
   },
 
   // Опублікувати курс
-  publishCourse(id) {
-    return api.put(`/courses/${id}/publish`)
+  async publishCourse(id) {
+    const response = await api.put(`/courses/manage/${id}/publish`)
+    // Отримуємо оновлений список курсів
+    const coursesResponse = await this.getAllCourses()
+    return { ...response, courses: coursesResponse.data }
   },
 
   // Зняти курс з публікації
-  unpublishCourse(id) {
-    return api.put(`/courses/${id}/unpublish`)
+  async unpublishCourse(id) {
+    const response = await api.put(`/courses/manage/${id}/unpublish`)
+    // Отримуємо оновлений список курсів
+    const coursesResponse = await this.getAllCourses()
+    return { ...response, courses: coursesResponse.data }
   },
 
   // Оновити дані курсу
-  updateCourse(id, courseData) {
-    return api.put(`/courses/${id}`, courseData)
+  async updateCourse(id, courseData) {
+    const response = await api.put(`/courses/manage/${id}`, courseData)
+    // Отримуємо оновлений список курсів
+    const coursesResponse = await this.getAllCourses()
+    return { ...response, courses: coursesResponse.data }
   },
 
   //Видалити курс
-  deleteCourse(id) {
-    return api.delete(`/courses/${id}`)
+  async deleteCourse(id) {
+    const response = await api.delete(`/courses/manage/${id}`)
+    // Отримуємо оновлений список курсів
+    const coursesResponse = await this.getAllCourses()
+    return { ...response, courses: coursesResponse.data }
   },
 
   // Створити новий курс
-  createCourse(courseData) {
-    return api.post('/courses', courseData)
+  async createCourse(courseData) {
+    const response = await api.post('/courses/manage', courseData)
+    // Отримуємо оновлений список курсів
+    const coursesResponse = await this.getAllCourses()
+    return { ...response, courses: coursesResponse.data }
   },
 
   // Отримати типи уроків

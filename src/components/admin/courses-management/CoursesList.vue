@@ -21,40 +21,21 @@
               class="dropdown-item category-item"
               v-for="category in categories"
               :key="category.id"
+              @click="setCategory(category)"
             >
-              <!-- Назва категорії (клікабельна область для вибору) -->
-              <div class="category-main" @click="setCategory(category)">
-                <span class="category-name">{{ category.name }}</span>
-              </div>
-
-              <!-- Іконки управління -->
-              <div class="category-actions">
-                <!-- Іконка редагування -->
-                <button
-                  class="action-icon edit-icon"
-                  @click.stop="editCategory(category)"
-                  :title="`Редагувати категорію '${category.name}'`"
-                >
-                  <v-icon size="18" color="#1976d2">mdi-pencil</v-icon>
-                </button>
-
-                <!-- Іконка видалення -->
-                <button
-                  class="action-icon delete-icon"
-                  @click.stop="deleteCategory(category)"
-                  :title="`Видалити категорію '${category.name}'`"
-                >
-                  <v-icon size="18" color="#d32f2f">mdi-delete</v-icon>
-                </button>
-              </div>
-            </div>
-
-            <!-- Опція додавання нової категорії -->
-            <div class="dropdown-item add-category" @click="$emit('open-category-modal')">
-              <v-icon small color="#1976d2">mdi-plus</v-icon>
-              <span class="add-category-text">Додати категорію</span>
+              <span class="category-name">{{ category.name }}</span>
             </div>
           </div>
+        </div>
+
+        <!-- Додаємо фільтр публікації -->
+        <div class="publication-filter">
+          <span class="filter-label">Статус:</span>
+          <select v-model="publicationFilter" class="filter-select">
+            <option value="all">Всі курси</option>
+            <option value="published">Опубліковані</option>
+            <option value="unpublished">Неопубліковані</option>
+          </select>
         </div>
       </div>
 
@@ -62,11 +43,9 @@
         <input
           type="text"
           v-model="searchQuery"
-          placeholder="Пошук курсів"
+          placeholder="Пошук курсів..."
           class="search-input"
-          @input="handleSearch"
         />
-        <v-icon class="search-icon">mdi-magnify</v-icon>
       </div>
 
       <button class="add-button" @click="$emit('open-course-modal')">
@@ -94,7 +73,14 @@
           @publish="$emit('publish-course', course)"
           @unpublish="$emit('unpublish-course', course)"
           @delete="$emit('delete-course', course)"
-        />
+        >
+          <div class="course-category">
+            {{ course.category && course.category.name ? course.category.name : 'Категорія не вказана' }}
+          </div>
+          <div class="course-price">
+            {{ course.price ? course.price + ' грн' : 'Ціна не вказана' }}
+          </div>
+        </course-card>
       </div>
     </div>
 
@@ -145,6 +131,7 @@ export default {
       categories: [],
       searchQuery: '',
       selectedCategory: null,
+      publicationFilter: 'all',
       error: null,
       showDropdown: false,
 
@@ -163,6 +150,17 @@ export default {
       // Фільтр за категорією
       if (this.selectedCategory) {
         filtered = filtered.filter((course) => course.category_id === this.selectedCategory.id)
+      }
+
+      // Фільтр за публікацією
+      if (this.publicationFilter !== 'all') {
+        filtered = filtered.filter((course) => {
+          if (this.publicationFilter === 'published') {
+            return course.is_published === true
+          } else {
+            return course.is_published === false
+          }
+        })
       }
 
       // Фільтр за пошуковим запитом
@@ -585,5 +583,24 @@ export default {
   .dropdown-menu {
     min-width: 100%;
   }
+}
+
+.publication-filter {
+  margin-left: 15px;
+  display: flex;
+  align-items: center;
+}
+
+.filter-select {
+  padding: 8px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  background-color: white;
+  min-width: 150px;
+}
+
+.filter-select:focus {
+  outline: none;
+  border-color: #443bc9;
 }
 </style>

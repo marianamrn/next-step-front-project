@@ -3,6 +3,7 @@
   <div class="courses-management">
     <!-- Відображення списку курсів, коли не вибрано конкретний курс -->
     <courses-list
+      ref="coursesList"
       v-if="!selectedCourseId"
       :loading="loading"
       @select-course="selectCourse"
@@ -17,8 +18,9 @@
 
     <!-- Відображення деталей курсу, коли вибрано конкретний курс -->
     <course-details-container
-      v-else
       ref="courseDetailsContainer"
+      v-else
+      :key="selectedCourseId + '-' + courseDetailsVersion"
       :course-id="selectedCourseId"
       @back="backToCoursesList"
       @edit-course="openCourseModal"
@@ -93,6 +95,7 @@ export default {
       confirmTitle: '',
       confirmMessage: '',
       confirmAction: () => {},
+      courseDetailsVersion: 0, // для форсованого оновлення
     }
   },
   watch: {
@@ -122,14 +125,16 @@ export default {
     },
 
     async selectCourse(course) {
+      if (!course || !course.id) {
+        console.error('Некоректний курс для вибору:', course)
+        return
+      }
       try {
         this.loading = true
         this.selectedCourseId = course.id
-
-        // Оновлюємо URL з використанням name замість path
-        this.router.push({
+        await this.router.push({
           name: 'AdminCourseDetail',
-          params: { id: course.id },
+          params: { id: course.id.toString() }
         })
       } catch (error) {
         console.error('Помилка при завантаженні деталей курсу:', error)
@@ -204,9 +209,6 @@ export default {
     // ЗБЕРЕЖЕННЯ ДАНИХ КУРСІВ
     async saveCourse(courseData) {
       try {
-        console.log('Дані курсу для збереження:', JSON.stringify(courseData, null, 2))
-
-        // Переконуємося, що числові поля дійсно є числами
         const numericFields = [
           'price',
           'discount_price',
@@ -215,223 +217,87 @@ export default {
           'instructor_id',
         ]
         const formData = { ...courseData }
-
         numericFields.forEach((field) => {
           if (formData[field] !== null && formData[field] !== undefined) {
             formData[field] = Number(formData[field])
           }
         })
-
+        let response
         if (formData.id) {
-          // Редагування існуючого курсу
-          console.log(`Оновлення курсу з ID: ${formData.id}`)
-
-          // Виконуємо запит до API
-          const response = await api.courses.updateCourse(formData.id, formData)
-          console.log('Відповідь сервера при оновленні:', response.data)
-
-          // Оновлюємо деталі курсу, якщо він відкритий
-          if (this.selectedCourseId === formData.id) {
-            const courseDetailsContainer = this.$refs.courseDetailsContainer
-            if (courseDetailsContainer) {
-              courseDetailsContainer.refreshCourse()
-            }
-          }
-
-          // Показуємо повідомлення про успішне оновлення
-          alert('Курс успішно оновлено')
+          response = await api.courses.updateCourse(formData.id, formData)
         } else {
-          // Створення нового курсу
-          console.log('Створення нового курсу')
-
-          // Перевіряємо наявність обов'язкових полів
-          const requiredFields = ['title', 'category_id', 'price', 'level_id']
-          let missingFields = []
-
-          for (const field of requiredFields) {
-            if (!formData[field]) {
-              missingFields.push(field)
-            }
-          }
-
-          if (missingFields.length > 0) {
-            alert(`Відсутні обов'язкові поля: ${missingFields.join(', ')}`)
-            return
-          }
-
-          // Виконуємо запит до API
-          const response = await api.courses.createCourse(formData)
-          console.log('Відповідь сервера при створенні:', response.data)
-
-          // Показуємо повідомлення про успішне створення
-          alert('Новий курс успішно створено')
+          response = await api.courses.createCourse(formData)
         }
-
-        // Закриваємо модальне вікно
+        if (this.$refs.coursesList && this.$refs.coursesList.fetchCourses) {
+          await this.$refs.coursesList.fetchCourses()
+        }
+        if (formData.id && this.selectedCourseId === formData.id && this.$refs.courseDetailsContainer && this.$refs.courseDetailsContainer.fetchCourse) {
+          await this.$refs.courseDetailsContainer.fetchCourse(formData.id)
+          this.courseDetailsVersion++
+        }
         this.closeCourseModal()
       } catch (error) {
         console.error('Помилка при збереженні курсу:', error)
-
-        // Детальне логування помилки
-        if (error.response) {
-          console.error('Статус відповіді:', error.response.status)
-          console.error('Дані відповіді:', error.response.data)
-
-          if (error.response.data && error.response.data.errors) {
-            const validationErrors = error.response.data.errors
-            const errorMessages = Object.keys(validationErrors)
-              .map((field) => `${field}: ${validationErrors[field].join(', ')}`)
-              .join('\n')
-
-            alert(`Помилка валідації даних:\n${errorMessages}`)
-          } else if (error.response.data && error.response.data.message) {
-            alert(`Помилка: ${error.response.data.message}`)
-          } else {
-            alert(`Помилка при збереженні курсу: ${error.response.status}`)
-          }
-        } else if (error.request) {
-          console.error('Запит був зроблений, але відповідь не отримана:', error.request)
-          alert('Сервер не відповідає. Перевірте підключення до мережі.')
-        } else {
-          console.error('Помилка при налаштуванні запиту:', error.message)
-          alert(`Помилка: ${error.message}`)
-        }
       }
     },
 
     // ПУБЛІКАЦІЯ КУРСІВ
     async publishCourse(course) {
       try {
-        console.log(`Публікація курсу з ID: ${course.id}`)
-
-        // Запит на публікацію курсу
-        const response = await api.courses.publishCourse(course.id)
-        console.log('Відповідь на публікацію:', response.data)
-
-        // Показуємо повідомлення про успіх
-        alert('Курс успішно опубліковано!')
-
-        // Оновлюємо дані, якщо ми знаходимося на сторінці деталей курсу
-        if (this.selectedCourseId === course.id) {
-          const courseDetailsContainer = this.$refs.courseDetailsContainer
-          if (courseDetailsContainer) {
-            courseDetailsContainer.refreshCourse()
-          }
+        await api.courses.publishCourse(course.id)
+        if (this.$refs.coursesList && this.$refs.coursesList.fetchCourses) {
+          await this.$refs.coursesList.fetchCourses()
+        }
+        if (this.selectedCourseId === course.id && this.$refs.courseDetailsContainer && this.$refs.courseDetailsContainer.fetchCourse) {
+          await this.$refs.courseDetailsContainer.fetchCourse(course.id)
+          this.courseDetailsVersion++
         }
       } catch (error) {
         console.error('Помилка при публікації курсу:', error)
-
-        // Обробка помилок
-        if (error.response) {
-          console.error('Статус відповіді:', error.response.status)
-          console.error('Дані відповіді:', error.response.data)
-
-          if (error.response.data && error.response.data.message) {
-            alert(`Помилка: ${error.response.data.message}`)
-          } else {
-            alert('Помилка при публікації курсу. Перевірте наявність модулів і спробуйте знову.')
-          }
-        } else {
-          alert('Помилка при публікації курсу. Перевірте підключення до мережі.')
-        }
       }
     },
 
     // Метод для зняття курсу з публікації
     async unpublishCourse(course) {
-      try {
-        console.log(`Зняття з публікації курсу з ID: ${course.id}`)
-
-        // Запит на зняття курсу з публікації
-        const response = await api.courses.unpublishCourse(course.id)
-        console.log('Відповідь на зняття з публікації:', response.data)
-
-        // Показуємо повідомлення про успіх
-        alert('Курс успішно знято з публікації!')
-
-        // Оновлюємо дані, якщо ми знаходимося на сторінці деталей курсу
-        if (this.selectedCourseId === course.id) {
-          const courseDetailsContainer = this.$refs.courseDetailsContainer
-          if (courseDetailsContainer) {
-            courseDetailsContainer.refreshCourse()
+      this.confirmTitle = 'Підтвердження зняття з публікації'
+      this.confirmMessage = `Ви впевнені, що хочете зняти курс "${course.title}" з публікації?`
+      this.confirmAction = async () => {
+        try {
+          await api.courses.unpublishCourse(course.id)
+          if (this.$refs.coursesList && this.$refs.coursesList.fetchCourses) {
+            await this.$refs.coursesList.fetchCourses()
           }
-        }
-      } catch (error) {
-        console.error('Помилка при знятті курсу з публікації:', error)
-
-        // Обробка помилок
-        if (error.response) {
-          console.error('Статус відповіді:', error.response.status)
-          console.error('Дані відповіді:', error.response.data)
-
-          if (error.response.data && error.response.data.message) {
-            alert(`Помилка: ${error.response.data.message}`)
-          } else {
-            alert('Помилка при знятті курсу з публікації.')
+          if (this.selectedCourseId === course.id && this.$refs.courseDetailsContainer && this.$refs.courseDetailsContainer.fetchCourse) {
+            await this.$refs.courseDetailsContainer.fetchCourse(course.id)
+            this.courseDetailsVersion++
           }
-        } else {
-          alert('Помилка при знятті курсу з публікації. Перевірте підключення до мережі.')
+          this.closeConfirmModal()
+        } catch (error) {
+          console.error('Помилка при знятті курсу з публікації:', error)
         }
       }
-    },
-
-    // ВИДАЛЕННЯ КУРСІВ
-    confirmDeleteCourse(course) {
-      this.confirmTitle = 'Видалити курс'
-      this.confirmMessage = `Ви впевнені, що хочете видалити курс "${course.title}"? Ця дія є незворотною.`
-      this.confirmAction = () => this.deleteCourse(course)
       this.showConfirmModal = true
     },
 
-    async deleteCourse(course) {
-      try {
-        console.log(`Видалення курсу з ID: ${course.id}`)
-
-        // Показуємо індикатор завантаження
-        this.loading = true
-
-        // Виконуємо запит до API для видалення курсу
-        const response = await api.courses.deleteCourse(course.id)
-
-        console.log('Відповідь сервера:', response.data)
-
-        // Якщо курс був відкритий у детальному перегляді, повертаємось до списку
-        if (this.selectedCourseId === course.id) {
-          this.backToCoursesList()
-        }
-
-        // Закриваємо модальне вікно підтвердження
-        this.closeConfirmModal()
-
-        // Показуємо повідомлення про успішне видалення
-        alert('Курс успішно видалено')
-      } catch (error) {
-        console.error('Помилка при видаленні курсу:', error)
-
-        // Детальне логування помилки
-        if (error.response) {
-          console.error('Статус відповіді:', error.response.status)
-          console.error('Дані відповіді:', error.response.data)
-
-          if (error.response.data && error.response.data.message) {
-            alert(`Помилка: ${error.response.data.message}`)
-          } else {
-            alert(`Помилка при видаленні курсу: ${error.response.status}`)
+    // ВИДАЛЕННЯ КУРСІВ
+    async confirmDeleteCourse(course) {
+      this.confirmTitle = 'Підтвердження видалення'
+      this.confirmMessage = `Ви впевнені, що хочете видалити курс "${course.title}"?`
+      this.confirmAction = async () => {
+        try {
+          await api.courses.deleteCourse(course.id)
+          if (this.$refs.coursesList && this.$refs.coursesList.fetchCourses) {
+            await this.$refs.coursesList.fetchCourses()
           }
-        } else if (error.request) {
-          console.error('Запит був зроблений, але відповідь не отримана:', error.request)
-          alert('Сервер не відповідає. Перевірте підключення до мережі.')
-        } else {
-          console.error('Помилка при налаштуванні запиту:', error.message)
-          alert(`Помилка: ${error.message}`)
+          if (this.selectedCourseId === course.id) {
+            this.backToCoursesList()
+          }
+          this.closeConfirmModal()
+        } catch (error) {
+          console.error('Помилка при видаленні курсу:', error)
         }
-      } finally {
-        // Прибираємо індикатор завантаження
-        this.loading = false
-
-        // Закриваємо модальне вікно підтвердження незалежно від результату
-        this.closeConfirmModal()
       }
+      this.showConfirmModal = true
     },
 
     closeConfirmModal() {
@@ -440,7 +306,7 @@ export default {
       this.confirmMessage = ''
       this.confirmAction = () => {}
     },
-  },
+  }
 }
 </script>
 
@@ -449,5 +315,24 @@ export default {
   padding: 20px;
   background-color: #f9fafb;
   min-height: calc(100vh - 70px);
+}
+
+.publication-filter {
+  margin-left: 15px;
+  display: flex;
+  align-items: center;
+}
+
+.filter-select {
+  padding: 8px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  background-color: white;
+  min-width: 150px;
+}
+
+.filter-select:focus {
+  outline: none;
+  border-color: #443bc9;
 }
 </style>
