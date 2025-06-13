@@ -71,12 +71,11 @@ export default {
       loading: true,
       searchQuery: '',
       filters: {
-        categories: [],
-        levels: [],
-        priceRange: {
-          min: null,
-          max: null,
-        },
+        category: null,
+        level: null,
+        duration: null,
+        language: null,
+        priceRange: [0, 10000],
         showOnlyDiscounted: false,
       },
     }
@@ -95,7 +94,7 @@ export default {
       immediate: true,
       handler(newVal) {
         if (newVal) {
-          this.filters.categories = [parseInt(newVal)]
+          this.filters.category = parseInt(newVal)
         }
       },
     },
@@ -103,7 +102,7 @@ export default {
       immediate: true,
       handler(newVal) {
         if (newVal) {
-          this.filters.levels = [parseInt(newVal)]
+          this.filters.level = parseInt(newVal)
         }
       },
     },
@@ -146,54 +145,76 @@ export default {
       this.applyFilters()
     },
     handleFiltersChange(filters) {
-      this.filters = filters
+      console.log('Отримані фільтри у CoursesList:', filters)
+      this.filters = { ...filters }
       this.applyFilters()
+    },
+    clearFilters() {
+      this.filters = {
+        category: null,
+        level: null,
+        duration: null,
+        language: null,
+        priceRange: [0, 10000],
+      }
+      this.filteredCourses = [...this.courses]
     },
     applyFilters() {
       let filtered = [...this.courses]
+      console.log('Кількість курсів до фільтрації:', filtered.length)
+      console.log('Поточні фільтри:', this.filters)
 
-      // Пошук за запитом
-      if (this.searchQuery) {
-        const query = this.searchQuery.toLowerCase()
-        filtered = filtered.filter(
-          (course) =>
-            course.title.toLowerCase().includes(query) ||
-            course.description.toLowerCase().includes(query)
-        )
+      // Фільтрація за категорією
+      if (this.filters.category) {
+        console.log('Фільтрація по категорії:', this.filters.category)
+        filtered = filtered.filter((course) => {
+          console.log('Курс:', course.title, 'Категорія курсу:', course.category_id, 'Очікувана категорія:', this.filters.category)
+          return Number(course.category_id) === Number(this.filters.category)
+        })
+        console.log('Кількість курсів після фільтрації по категорії:', filtered.length)
       }
 
-      // Фільтрація за категоріями
-      if (this.filters.categories.length > 0) {
-        filtered = filtered.filter((course) =>
-          this.filters.categories.includes(course.category_id)
-        )
+      // Фільтрація за рівнем
+      if (this.filters.level) {
+        filtered = filtered.filter((course) => Number(course.level_id) === Number(this.filters.level))
+        console.log('Кількість курсів після фільтрації по рівню:', filtered.length)
       }
 
-      // Фільтрація за рівнями
-      if (this.filters.levels.length > 0) {
-        filtered = filtered.filter((course) =>
-          this.filters.levels.includes(course.level_id)
-        )
+      // Фільтрація за тривалістю
+      if (this.filters.duration) {
+        const [min, max] = this.filters.duration.split('-').map(v => v === '+' ? Infinity : parseInt(v))
+        filtered = filtered.filter((course) => {
+          if (!course.duration_minutes) return false
+          const duration = parseInt(course.duration_minutes)
+          return duration >= min && (max === Infinity ? true : duration <= max)
+        })
+        console.log('Кількість курсів після фільтрації по тривалості:', filtered.length)
+      }
+
+      // Фільтрація за мовою
+      if (this.filters.language) {
+        filtered = filtered.filter((course) => {
+          const courseLanguage = course.language?.toLowerCase() || ''
+          const filterLanguage = this.filters.language.toLowerCase()
+          console.log('Мова курсу:', courseLanguage, 'Фільтр мови:', filterLanguage)
+          return courseLanguage === filterLanguage
+        })
+        console.log('Кількість курсів після фільтрації по мові:', filtered.length)
       }
 
       // Фільтрація за ціною
-      if (this.filters.priceRange.min !== null) {
-        filtered = filtered.filter(
-          (course) => course.current_price >= this.filters.priceRange.min
-        )
-      }
-      if (this.filters.priceRange.max !== null) {
-        filtered = filtered.filter(
-          (course) => course.current_price <= this.filters.priceRange.max
-        )
-      }
-
-      // Фільтрація за знижками
-      if (this.filters.showOnlyDiscounted) {
-        filtered = filtered.filter((course) => course.is_on_discount)
+      if (this.filters.priceRange && this.filters.priceRange.length === 2) {
+        const [min, max] = this.filters.priceRange
+        filtered = filtered.filter((course) => {
+          const price = Number(course.current_price || course.discount_price || course.price || 0)
+          console.log('Ціна курсу:', price, 'Діапазон цін:', min, '-', max)
+          return price >= min && price <= max
+        })
+        console.log('Кількість курсів після фільтрації по ціні:', filtered.length)
       }
 
       this.filteredCourses = filtered
+      console.log('Кількість курсів після всіх фільтрів:', filtered.length)
     },
   },
   created() {

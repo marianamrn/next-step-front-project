@@ -34,21 +34,7 @@
       </v-card-title>
 
       <v-card-text class="filters-content">
-        <!-- Пошук -->
-        <div class="filter-section">
-          <v-label class="filter-label">Пошук</v-label>
-          <v-text-field
-            v-model="localFilters.search"
-            placeholder="Введіть назву курсу..."
-            clearable
-            variant="outlined"
-            density="compact"
-            prepend-inner-icon="mdi-magnify"
-            @update:model-value="debounceSearch"
-          />
-        </div>
-
-        <!-- Категорії -->
+        <!-- Категорія -->
         <div class="filter-section">
           <v-label class="filter-label">Категорія</v-label>
           <v-select
@@ -82,54 +68,7 @@
           />
         </div>
 
-        <!-- Інструктор -->
-        <div class="filter-section">
-          <v-label class="filter-label">Інструктор</v-label>
-          <v-select
-            v-model="localFilters.instructor"
-            :items="instructorsOptions"
-            item-title="full_name"
-            item-value="id"
-            placeholder="Всі інструктори"
-            clearable
-            variant="outlined"
-            density="compact"
-            :loading="loadingInstructors"
-            prepend-inner-icon="mdi-account-outline"
-          />
-        </div>
-
-        <!-- Ціновий діапазон -->
-        <div class="filter-section">
-          <v-label class="filter-label">
-            Ціна (₴): {{ localFilters.priceRange[0] }} - {{ localFilters.priceRange[1] }}
-          </v-label>
-          <v-range-slider
-            v-model="localFilters.priceRange"
-            :min="0"
-            :max="5000"
-            :step="50"
-            thumb-label
-            color="primary"
-            @end="applyFilters"
-          />
-        </div>
-
-        <!-- Мова курсу -->
-        <div class="filter-section">
-          <v-label class="filter-label">Мова</v-label>
-          <v-select
-            v-model="localFilters.language"
-            :items="languageOptions"
-            placeholder="Всі мови"
-            clearable
-            variant="outlined"
-            density="compact"
-            prepend-inner-icon="mdi-translate"
-          />
-        </div>
-
-        <!-- Тривалість курсу -->
+        <!-- Тривалість -->
         <div class="filter-section">
           <v-label class="filter-label">Тривалість</v-label>
           <v-select
@@ -145,49 +84,36 @@
           />
         </div>
 
-        <!-- Рейтинг -->
+        <!-- Мова -->
         <div class="filter-section">
-          <v-label class="filter-label">Мінімальний рейтинг</v-label>
+          <v-label class="filter-label">Мова</v-label>
           <v-select
-            v-model="localFilters.rating"
-            :items="ratingOptions"
-            item-title="text"
-            item-value="value"
-            placeholder="Будь-який рейтинг"
+            v-model="localFilters.language"
+            :items="languageOptions"
+            placeholder="Всі мови"
             clearable
             variant="outlined"
             density="compact"
-            prepend-inner-icon="mdi-star"
+            prepend-inner-icon="mdi-translate"
           />
         </div>
 
-        <!-- Сортування -->
+        <!-- Ціна -->
         <div class="filter-section">
-          <v-label class="filter-label">Сортування</v-label>
-          <v-select
-            v-model="localFilters.sortBy"
-            :items="sortOptions"
-            item-title="text"
-            item-value="value"
-            placeholder="За популярністю"
-            variant="outlined"
-            density="compact"
-            prepend-inner-icon="mdi-sort"
+          <v-label class="filter-label">
+            Ціна (₴): {{ localFilters.priceRange[0] }} - {{ localFilters.priceRange[1] }}
+          </v-label>
+          <v-range-slider
+            v-model="localFilters.priceRange"
+            :min="0"
+            :max="10000"
+            :step="50"
+            thumb-label
+            color="primary"
           />
         </div>
 
-        <!-- Мобільні кнопки дій -->
-        <div class="mobile-actions d-md-none">
-          <v-btn
-            variant="outlined"
-            color="secondary"
-            @click="showMobileFilters = false"
-            block
-            class="mb-3"
-          >
-            Застосувати фільтри
-          </v-btn>
-        </div>
+        <v-btn color="primary" block class="mt-4" @click="applyFilters">Застосувати фільтри</v-btn>
       </v-card-text>
     </v-card>
   </div>
@@ -204,7 +130,7 @@ export default {
       default: () => ({}),
     },
   },
-  emits: ['update:modelValue', 'apply-filters'],
+  emits: ['update:modelValue', 'filters-changed'],
   data() {
     return {
       showMobileFilters: false,
@@ -214,22 +140,23 @@ export default {
       searchTimeout: null,
 
       localFilters: {
-        search: '',
         category: null,
         level: null,
-        instructor: null,
-        priceRange: [0, 5000],
-        language: null,
         duration: null,
-        rating: null,
-        sortBy: 'popular',
+        language: null,
+        priceRange: [0, 10000],
       },
 
       categories: [],
       levels: [],
       instructors: [],
 
-      languageOptions: ['Українська', 'Англійська', 'Польська', 'Російська'],
+      languageOptions: [
+        { value: 'ukrainian', text: 'Українська' },
+        { value: 'english', text: 'Англійська' },
+        { value: 'polish', text: 'Польська' },
+        { value: 'german', text: 'Німецька' }
+      ],
 
       durationOptions: [
         { text: 'До 1 години', value: '0-60' },
@@ -254,19 +181,25 @@ export default {
         { text: 'За ціною (спадання)', value: 'price_desc' },
         { text: 'За алфавітом', value: 'title_asc' },
       ],
+
+      selectedCategories: [],
+      selectedLevels: [],
+      selectedDurations: [],
+      selectedLanguages: [],
+      priceRange: {
+        min: null,
+        max: null,
+      },
     }
   },
   computed: {
     activeFiltersCount() {
       let count = 0
-      if (this.localFilters.search) count++
       if (this.localFilters.category) count++
       if (this.localFilters.level) count++
-      if (this.localFilters.instructor) count++
-      if (this.localFilters.language) count++
       if (this.localFilters.duration) count++
-      if (this.localFilters.rating) count++
-      if (this.localFilters.priceRange[0] > 0 || this.localFilters.priceRange[1] < 5000) count++
+      if (this.localFilters.language) count++
+      if (this.localFilters.priceRange[0] > 0 || this.localFilters.priceRange[1] < 10000) count++
       return count
     },
 
@@ -289,17 +222,7 @@ export default {
       },
       deep: true,
       immediate: true,
-    },
-
-    localFilters: {
-      handler(newValue) {
-        // Віддаємо фільтри вгору не для пошуку
-        if (!this.searchTimeout) {
-          this.applyFilters()
-        }
-      },
-      deep: true,
-    },
+    }
   },
   async mounted() {
     await Promise.all([this.loadCategories(), this.loadLevels(), this.loadInstructors()])
@@ -354,23 +277,26 @@ export default {
     },
 
     applyFilters() {
-      this.$emit('update:modelValue', { ...this.localFilters })
-      this.$emit('apply-filters', { ...this.localFilters })
+      const filters = {
+        category: this.localFilters.category ? Number(this.localFilters.category) : null,
+        level: this.localFilters.level ? Number(this.localFilters.level) : null,
+        duration: this.localFilters.duration,
+        language: this.localFilters.language,
+        priceRange: [this.localFilters.priceRange[0], this.localFilters.priceRange[1]]
+      }
+      console.log('Застосовані фільтри:', filters)
+      this.$emit('filters-changed', filters)
     },
 
     clearAllFilters() {
       this.localFilters = {
-        search: '',
         category: null,
         level: null,
-        instructor: null,
-        priceRange: [0, 5000],
-        language: null,
         duration: null,
-        rating: null,
-        sortBy: 'popular',
+        language: null,
+        priceRange: [0, 10000],
       }
-      this.applyFilters()
+      this.$emit('filters-changed', this.localFilters)
     },
   },
 }
@@ -414,17 +340,46 @@ export default {
   padding: 1.5rem;
 }
 
-.filter-section {
+.filters-section {
   margin-bottom: 1.5rem;
 }
 
-.filter-label {
-  font-family: 'VinnytsiaSansBold', sans-serif;
-  font-size: 0.9rem;
-  font-weight: bold;
-  color: var(--text-color);
-  margin-bottom: 0.5rem;
-  display: block;
+.filters-section h3 {
+  font-size: 1.1rem;
+  color: #2c3e50;
+  margin-bottom: 1rem;
+}
+
+.filter-options {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.filter-option {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  cursor: pointer;
+}
+
+.filter-option input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  cursor: pointer;
+}
+
+.price-range {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.price-range input {
+  width: 100px;
+  padding: 0.5rem;
+  border: 1px solid #ddd;
+  border-radius: 4px;
 }
 
 .mobile-actions {
