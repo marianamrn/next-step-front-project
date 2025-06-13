@@ -50,6 +50,7 @@
 <script>
 import { getImageUrl } from '@/services/api.js'
 import placeholderImage from '@/assets/img/course-placeholder.jpg'
+import { getLessonsCount } from '@/utils/lessonUtils.js'
 
 export default {
   name: 'CourseCard',
@@ -57,6 +58,10 @@ export default {
     course: {
       type: Object,
       required: true,
+    },
+    categories: {
+      type: Array,
+      default: () => [],
     },
   },
   computed: {
@@ -67,7 +72,14 @@ export default {
       return placeholderImage
     },
     categoryName() {
-      return this.course.category ? this.course.category.name : 'Категорія не вказана'
+      if (this.course.category && this.course.category.name) {
+        return this.course.category.name
+      }
+      if (this.categories && this.categories.length && this.course.category_id) {
+        const cat = this.categories.find(c => c.id === this.course.category_id)
+        return cat ? cat.name : 'Категорія не вказана'
+      }
+      return 'Категорія не вказана'
     },
     formattedPrice() {
       if (this.course.is_on_discount && this.course.discount_price) {
@@ -76,7 +88,7 @@ export default {
       return `${this.course.price} грн`
     },
     lessonsCount() {
-      return this.course.lessons ? this.course.lessons.length : 0
+      return getLessonsCount(this.course)
     },
     hasLessons() {
       return this.lessonsCount > 0

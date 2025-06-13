@@ -63,7 +63,7 @@
       <div class="course-stats">
         <div class="stat-item">
           <v-icon size="16" color="#666">mdi-play-circle</v-icon>
-          <span>{{ course.lessons_count || '0' }} уроків</span>
+          <span>{{ lessonsCount }} уроків</span>
         </div>
         <div class="stat-item">
           <v-icon size="16" color="#666">mdi-account-group</v-icon>
@@ -116,6 +116,8 @@
 <script>
 // Імпортуємо placeholder зображення
 import coursePlaceholder from '@/assets/img/course-placeholder.jpg'
+import { getLessonsCount } from '@/utils/lessonUtils.js'
+import { getImageUrl } from '@/services/api.js'
 
 export default {
   name: 'CourseCard',
@@ -131,6 +133,11 @@ export default {
       addingToCart: false,
     }
   },
+  computed: {
+    lessonsCount() {
+      return getLessonsCount(this.course)
+    },
+  },
   methods: {
     goToCourse() {
       this.$router.push(`/courses/${this.course.id}`)
@@ -139,7 +146,7 @@ export default {
     getCourseImage(course) {
       // Використовуємо cover_image з API відповіді
       if (course && course.cover_image) {
-        return course.cover_image
+        return getImageUrl(course.cover_image)
       }
       // Fallback на імпортований placeholder
       return coursePlaceholder

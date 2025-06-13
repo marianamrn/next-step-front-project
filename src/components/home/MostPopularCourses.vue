@@ -149,6 +149,7 @@
 
 <script>
 import { categoriesApi, coursesApi } from '@/services/api'
+import { getImageUrl } from '@/services/api.js'
 // Імпортуємо placeholder зображення
 import coursePlaceholder from '@/assets/img/course-placeholder.jpg'
 
@@ -326,8 +327,7 @@ export default {
     getCourseImage(course) {
       // Використовуємо cover_image з API відповіді
       if (course && course.cover_image) {
-        // API повертає повний URL до зображення
-        return course.cover_image
+        return getImageUrl(course.cover_image)
       }
 
       // Fallback на імпортований placeholder
@@ -873,4 +873,3 @@ export default {
   }
 }
 </style>
-пш

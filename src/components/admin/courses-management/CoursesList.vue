@@ -68,6 +68,7 @@
           v-for="course in filteredCourses"
           :key="course.id"
           :course="course"
+          :categories="categories"
           @click="$emit('select-course', course)"
           @edit="$emit('edit-course', course)"
           @publish="$emit('publish-course', course)"

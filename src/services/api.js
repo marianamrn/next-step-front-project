@@ -494,6 +494,11 @@ export const coursesApi = {
 export const getImageUrl = (imagePath) => {
   if (!imagePath) return 'https://via.placeholder.com/150'
 
+  // Якщо шлях містить localhost, замінюємо на домен API
+  if (imagePath.startsWith('http://localhost')) {
+    return imagePath.replace('http://localhost', 'https://nextsteap.api-dev.bmax-edu.website')
+  }
+
   if (imagePath.startsWith('http')) {
     return imagePath
   } else {
