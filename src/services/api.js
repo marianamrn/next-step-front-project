@@ -746,6 +746,20 @@ export const lessonsApi = {
   },
 }
 
+// Для адмінки: отримати всі курси по категорії (без фільтрації по is_published)
+export const adminCoursesApi = {
+  getAllCoursesByCategory(categoryId, page = 1, perPage = 15) {
+    return api.get(`/courses/category/${categoryId}`, {
+      params: { page, per_page: perPage },
+    })
+  },
+  getAllCourses(page = 1, perPage = 15) {
+    return api.get('/courses', {
+      params: { page, per_page: perPage },
+    })
+  },
+}
+
 // Оновимо експорт, щоб включити нові API
 export default {
   auth: authAPI,
@@ -757,4 +771,5 @@ export default {
   lessons: lessonsApi,
   modules: modulesApi,
   getImageUrl,
+  adminCourses: adminCoursesApi,
 }

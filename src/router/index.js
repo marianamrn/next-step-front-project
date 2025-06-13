@@ -12,6 +12,7 @@ import AboutUs from '@/components/pages/AboutUs.vue'
 import CoursesPage from '@/components/pages/CoursesPage.vue'
 import MyCoursesPage from '@/components/pages/MyCoursesPage.vue'
 import CourseDetails from '@/components/courses/CourseDetails.vue'
+import CoursesList from '@/components/courses/CoursesList.vue'
 
 // Перевірка авторизації
 const checkAuth = (to, from, next) => {
@@ -57,7 +58,37 @@ const routes = [
   {
     path: '/courses',
     name: 'Courses',
-    component: CoursesPage,
+    component: CoursesList,
+  },
+  {
+    path: '/courses/category/:categoryId',
+    name: 'CoursesByCategory',
+    component: CoursesList,
+    props: true,
+  },
+  {
+    path: '/courses/level/:levelId',
+    name: 'CoursesByLevel',
+    component: CoursesList,
+    props: true,
+  },
+  {
+    path: '/courses/instructor/:instructorId',
+    name: 'CoursesByInstructor',
+    component: CoursesList,
+    props: true,
+  },
+  {
+    path: '/courses/search',
+    name: 'CoursesSearch',
+    component: CoursesList,
+    props: (route) => ({ query: route.query.q }),
+  },
+  {
+    path: '/courses/:id',
+    name: 'CourseDetails',
+    component: CourseDetails,
+    props: true,
   },
   {
     path: '/about',
@@ -69,13 +100,6 @@ const routes = [
     name: 'MyCourses',
     component: MyCoursesPage,
     meta: { requiresAuth: true },
-  },
-  {
-    path: '/courses/:id',
-    name: 'CourseDetails',
-    component: CourseDetails,
-    props: true,
-    meta: { requiresAuth: false },
   },
 
   // Адміністративна панель

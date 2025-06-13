@@ -308,19 +308,10 @@ export default {
     async loadCategories() {
       this.loadingCategories = true
       try {
-        const response = await categoriesApi.getAllCategories()
-
-        let categoriesData = []
-        if (response.data?.success && response.data?.data) {
-          categoriesData = response.data.data
-        } else if (response.data && Array.isArray(response.data)) {
-          categoriesData = response.data
-        }
-
-        this.categories = categoriesData.filter((cat) => cat.status !== 'inactive')
+        const response = await categoriesApi.getActiveCategories()
+        this.categories = response.data.data
       } catch (error) {
         console.error('Помилка завантаження категорій:', error)
-        this.categories = []
       } finally {
         this.loadingCategories = false
       }
@@ -329,17 +320,10 @@ export default {
     async loadLevels() {
       this.loadingLevels = true
       try {
-        // Якщо API рівнів недоступний, використовуємо статичні дані
         const response = await coursesApi.getAllLevels()
-        this.levels = response.data || []
+        this.levels = response.data.data
       } catch (error) {
         console.error('Помилка завантаження рівнів:', error)
-        // Fallback дані
-        this.levels = [
-          { id: 1, name: 'Початковий', code: 'beginner' },
-          { id: 2, name: 'Середній', code: 'intermediate' },
-          { id: 3, name: 'Просунутий', code: 'advanced' },
-        ]
       } finally {
         this.loadingLevels = false
       }

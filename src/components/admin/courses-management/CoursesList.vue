@@ -148,9 +148,9 @@ export default {
 
       let filtered = this.courses
 
-      // Фільтр за категорією
+      // Фільтр за категорією (фронтовий)
       if (this.selectedCategory) {
-        filtered = filtered.filter((course) => course.category_id === this.selectedCategory.id)
+        filtered = filtered.filter((course) => Number(course.category_id) === Number(this.selectedCategory.id))
       }
 
       // Фільтр за публікацією
@@ -215,13 +215,9 @@ export default {
     async fetchCourses() {
       this.$emit('update:loading', true)
       try {
-        if (this.selectedCategory) {
-          const response = await api.courses.getCoursesByCategory(this.selectedCategory.id)
-          this.courses = response.data.data
-        } else {
-          const response = await api.courses.getAllCourses()
-          this.courses = response.data.data
-        }
+        // Завжди підвантажуємо всі курси для адмінки
+        const response = await api.adminCourses.getAllCourses()
+        this.courses = response.data.data
       } catch (error) {
         console.error('Помилка при завантаженні курсів:', error)
         this.error = 'Не вдалося завантажити курси'
