@@ -138,17 +138,17 @@ export default {
     },
   },
   computed: {
-    // Обчислювані властивості для вилучення даних із різних можливих структур відповіді API
     lessonType() {
+      return this.lesson.type || (this.lesson.lesson_type && this.lesson.lesson_type.name) || 'lecture'
+    },
+    // Лекція
+    lessonContent() {
       return (
-        this.lesson.type || (this.lesson.lesson_type && this.lesson.lesson_type.name) || 'lecture'
+        this.lesson.content ||
+        (this.lesson.lecture && this.lesson.lecture.content) ||
+        ''
       )
     },
-
-    lessonContent() {
-      return this.lesson.content || (this.lesson.lecture && this.lesson.lecture.content) || ''
-    },
-
     lessonDuration() {
       return (
         this.lesson.duration_minutes ||
@@ -156,25 +156,36 @@ export default {
         null
       )
     },
-
     lessonFile() {
-      if (this.lesson.file) {
-        return this.getFileUrl(this.lesson.file)
-      } else if (this.lesson.lecture && this.lesson.lecture.file_path) {
-        return this.getFileUrl(this.lesson.lecture.file_path)
-      }
-      return null
+      return (
+        this.lesson.file ||
+        (this.lesson.lecture && (this.lesson.lecture.file || this.lesson.lecture.file_path)) ||
+        null
+      )
     },
-
     lessonVideoUrl() {
-      return this.lesson.video_url || ''
+      return (
+        this.lesson.video_url ||
+        (this.lesson.lecture && this.lesson.lecture.video_url) ||
+        this.lesson.promo_video_url ||
+        ''
+      )
     },
-
-    // Властивості для тесту
+    // Тест
+    testSourceType() {
+      return (
+        this.lesson.source_type ||
+        (this.lesson.test && this.lesson.test.source_type) ||
+        ''
+      )
+    },
     testExternalUrl() {
-      return this.lesson.external_url || (this.lesson.test && this.lesson.test.external_url) || ''
+      return (
+        this.lesson.external_url ||
+        (this.lesson.test && this.lesson.test.external_url) ||
+        ''
+      )
     },
-
     testTimeLimit() {
       return (
         this.lesson.time_limit_minutes ||
@@ -182,14 +193,14 @@ export default {
         null
       )
     },
-
     testPassingScore() {
       return (
-        this.lesson.passing_score || (this.lesson.test && this.lesson.test.passing_score) || null
+        this.lesson.passing_score ||
+        (this.lesson.test && this.lesson.test.passing_score) ||
+        null
       )
     },
-
-    // Властивості для додаткового матеріалу
+    // Додатковий матеріал
     materialType() {
       return (
         this.lesson.material_type ||
@@ -197,7 +208,6 @@ export default {
         'text'
       )
     },
-
     materialContent() {
       return (
         this.lesson.material_content ||
@@ -205,7 +215,6 @@ export default {
         ''
       )
     },
-
     materialUrl() {
       return (
         this.lesson.material_url ||
@@ -213,15 +222,13 @@ export default {
         ''
       )
     },
-
     materialFile() {
-      if (this.lesson.material_file) {
-        return this.getFileUrl(this.lesson.material_file)
-      } else if (this.lesson.extra_material && this.lesson.extra_material.file_path) {
-        return this.getFileUrl(this.lesson.extra_material.file_path)
-      }
-      return null
-    },
+      return (
+        this.lesson.material_file ||
+        (this.lesson.extra_material && (this.lesson.extra_material.file || this.lesson.extra_material.file_path)) ||
+        null
+      )
+    }
   },
   methods: {
     getLessonType(type) {

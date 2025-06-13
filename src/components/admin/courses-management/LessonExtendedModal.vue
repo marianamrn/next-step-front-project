@@ -237,7 +237,7 @@
 </template>
 
 <script>
-import api from '@/services/api.js'
+import { lessonsApi } from '@/services/api.js'
 import axios from 'axios' // Імпортуємо axios для роботи з FormData
 
 export default {
@@ -569,136 +569,41 @@ export default {
       this.loading = true
 
       try {
-        // Створюємо FormData вручну для дотримання точного формату
-        const formData = new FormData()
-
-        // Додаємо базові поля для всіх типів уроків
-        formData.append('title', this.form.title)
-        formData.append('description', this.form.description || '')
-        formData.append('module_id', this.moduleId.toString())
-        formData.append('status', 'active')
-
-        // Додаємо тип уроку
-        formData.append('type', this.form.type)
-
-        // Додаємо позицію, якщо вказана
+        // Готуємо дані для API
+        const lessonData = {
+          title: this.form.title,
+          description: this.form.description || '',
+          module_id: this.moduleId.toString(),
+          status: 'active',
+          type: this.form.type,
+        }
         if (this.form.position !== null && this.form.position !== undefined) {
-          formData.append('position', this.form.position.toString())
+          lessonData.position = this.form.position.toString()
         }
-
-        // Додаємо специфічні поля в залежності від типу уроку
         if (this.form.type === 'lecture') {
-          // Для лекції
-          if (this.form.content) {
-            formData.append('content', this.form.content)
-          }
-
-          if (this.fileData) {
-            formData.append('file', this.fileData)
-          }
-
-          formData.append('duration_minutes', (this.form.duration_minutes || 30).toString())
+          if (this.form.content) lessonData.content = this.form.content
+          if (this.fileData) lessonData.file = this.fileData
+          lessonData.duration_minutes = (this.form.duration_minutes || 30).toString()
         } else if (this.form.type === 'test') {
-          // Для тесту
-          formData.append('source_type', this.form.source_type || 'url')
-
-          if (this.form.source_type === 'url') {
-            let externalUrl = this.form.external_url || ''
-            if (
-              externalUrl &&
-              !externalUrl.startsWith('http://') &&
-              !externalUrl.startsWith('https://')
-            ) {
-              externalUrl = 'https://' + externalUrl
-            }
-            formData.append('external_url', externalUrl)
-          }
-
-          formData.append('time_limit_minutes', (this.form.time_limit_minutes || 20).toString())
-          formData.append('passing_score', (this.form.passing_score || 70).toString())
+          lessonData.source_type = this.form.source_type
+          lessonData.external_url = this.form.external_url
+          lessonData.time_limit_minutes = this.form.time_limit_minutes
+          lessonData.passing_score = this.form.passing_score
         } else if (this.form.type === 'extra_material') {
-          // Для додаткового матеріалу
-          formData.append('material_type', this.form.material_type || 'text')
-
-          if (this.form.material_type === 'text') {
-            formData.append('material_content', this.form.material_content || '')
-          } else if (this.form.material_type === 'url') {
-            let materialUrl = this.form.material_url || ''
-            if (
-              materialUrl &&
-              !materialUrl.startsWith('http://') &&
-              !materialUrl.startsWith('https://')
-            ) {
-              materialUrl = 'https://' + materialUrl
-            }
-            formData.append('material_url', materialUrl)
-          } else if (['file', 'video', 'image'].includes(this.form.material_type)) {
-            if (this.materialFileData) {
-              formData.append('material_file', this.materialFileData)
-            }
-          }
+          lessonData.material_type = this.form.material_type
+          lessonData.material_content = this.form.material_content
+          lessonData.material_url = this.form.material_url
+          if (this.materialFileData) lessonData.material_file = this.materialFileData
         }
 
-        // Логуємо всі поля для відлагодження
-        console.log('FormData для створення уроку:')
-        for (const pair of formData.entries()) {
-          if (pair[1] instanceof File) {
-            console.log(
-              `${pair[0]}: File (${pair[1].name}, ${pair[1].size} bytes, ${pair[1].type})`,
-            )
-          } else {
-            console.log(`${pair[0]}: ${pair[1]}`)
-          }
-        }
-
-        // Відправляємо запит безпосередньо через API
-        const response = await api.post('/lessons/manage', formData, {
-          headers: {
-            'Content-Type': 'multipart/form-data',
-          },
-        })
-
+        // Викликаємо API для створення уроку
+        const response = await lessonsApi.createLesson(lessonData)
         console.log('Відповідь API:', response.data)
-
-        // Отримуємо дані створеного уроку
-        const lessonData = response.data.data || response.data
-
-        // Емітуємо подію збереження
-        this.$emit('save', lessonData)
+        const lessonDataResp = response.data.data || response.data
+        this.$emit('save', lessonDataResp)
       } catch (error) {
-        console.error('Повна помилка при збереженні уроку:', error)
-
-        if (error.response) {
-          console.error('Статус помилки:', error.response.status)
-          console.error('Дані помилки:', error.response.data)
-
-          if (error.response.data && error.response.data.errors) {
-            const errors = error.response.data.errors
-            console.error('Помилки валідації:', JSON.stringify(errors, null, 2))
-
-            // Оновлюємо помилки в UI
-            for (const field in errors) {
-              if (this.errors.hasOwnProperty(field)) {
-                this.errors[field] = Array.isArray(errors[field]) ? errors[field][0] : errors[field]
-              }
-            }
-
-            // Формуємо повідомлення для користувача
-            const errorMessages = []
-            for (const field in errors) {
-              const fieldMessages = Array.isArray(errors[field]) ? errors[field] : [errors[field]]
-              errorMessages.push(`${field}: ${fieldMessages.join(', ')}`)
-            }
-
-            alert(`Помилки валідації:\n${errorMessages.join('\n')}`)
-          } else if (error.response.data && error.response.data.message) {
-            alert(`Помилка: ${error.response.data.message}`)
-          } else {
-            alert(`Помилка сервера: ${error.response.status}`)
-          }
-        } else {
-          alert('Помилка при збереженні уроку. Спробуйте пізніше.')
-        }
+        console.error('Помилка при збереженні уроку:', error)
+        // Тут можна додати обробку помилок для користувача
       } finally {
         this.loading = false
       }
