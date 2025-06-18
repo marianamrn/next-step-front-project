@@ -19,6 +19,7 @@
   <script>
   import AdminSidePanel from './AdminSidePanel.vue';
   import AdminHeader from './AdminHeader.vue';
+  import AdministratorsManage from './admins-manage/AdministratorsManage.vue';
   
   export default {
     name: 'AdminPanel',

@@ -5,6 +5,7 @@ import RegisterPage from '@/components/login-components/registration.vue'
 import AdminPanel from '@/components/admin/AdminPanel.vue'
 import StudentManagement from '@/components/admin/StudentManagement.vue'
 import CoursesManagement from '@/components/admin/courses-management'
+import AdministratorsManage from '@/components/admin/admins-manage/AdministratorsManage.vue'
 
 // Публічні сторінки для користувачів
 import HomePage from '@/components/pages/HomePage.vue'
@@ -147,8 +148,16 @@ const routes = [
       {
         path: 'administrators',
         name: 'AdminAdministrators',
-        component: () => import('@/components/admin/ComingSoon.vue'),
+        component: AdministratorsManage,
         props: { feature: 'Адміністратори' },
+        meta: { roles: ['super_admin'] },
+        beforeEnter: checkRoleAccess(['super_admin'])
+      },
+      {
+        path: 'administrators/:id',
+        name: 'AdminAdministratorDetail',
+        component: () => import('@/components/admin/admins-manage/AdminDetailPage.vue'),
+        props: true,
         meta: { roles: ['super_admin'] },
         beforeEnter: checkRoleAccess(['super_admin'])
       },

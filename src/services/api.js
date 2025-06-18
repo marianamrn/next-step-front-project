@@ -98,21 +98,21 @@ export const authAPI = {
       if (response.data && response.data.token) {
         localStorage.setItem('token', response.data.token)
 
-        let user = response.data.user;
+        let user = response.data.user
         // Якщо role немає — робимо додатковий запит
         if (!user || !user.role) {
-          const profileResp = await this.getProfile();
-          user = profileResp.data;
+          const profileResp = await this.getProfile()
+          user = profileResp.data
         }
-        localStorage.setItem('user', JSON.stringify(user));
+        localStorage.setItem('user', JSON.stringify(user))
 
-        const role = user.role?.name;
+        const role = user.role?.name
         if (role === 'super_admin' || role === 'admin' || role === 'teacher') {
-          if (router) router.push('/admin');
-          return { success: true, role };
+          if (router) router.push('/admin')
+          return { success: true, role }
         } else {
-          if (router) router.push('/home');
-          return { success: true, role };
+          if (router) router.push('/home')
+          return { success: true, role }
         }
       } else {
         throw new Error('Не вдалося увійти: відсутній токен у відповіді')
@@ -191,7 +191,7 @@ export const studentsApi = {
 
   // Деактивація студента
   deactivateStudent(id) {
-    return api.post(`/users/${id}/deactivate`)
+    return api.delete(`/users/${id}`)
   },
 }
 
@@ -237,6 +237,17 @@ export const adminsApi = {
   },
   create(data) {
     return api.post('/users/admins', data)
+  },
+  // Зміна ролі користувача
+  changeRole(userId, roleName) {
+    return api.put(`/users/${userId}/change-role`, { role_name: roleName })
+  },
+}
+
+// API для користувачів (загальний список)
+export const usersApi = {
+  getAll(params) {
+    return api.get('/users', { params })
   },
 }
 
@@ -771,4 +782,5 @@ export default {
   modules: modulesApi,
   getImageUrl,
   adminCourses: adminCoursesApi,
+  users: usersApi,
 }
