@@ -15,7 +15,6 @@
         <div class="header-cell col-email">Email</div>
         <div class="header-cell col-country text-right">Код країни</div>
         <div class="header-cell col-phone">Номер телефону</div>
-        <div class="header-cell col-avatar">Аватар</div>
         <div class="header-cell col-actions text-left">Дії</div>
       </div>
       <div class="table-body" v-if="teachers.length > 0">
@@ -25,16 +24,6 @@
           <div class="cell col-email">{{ teacher.email }}</div>
           <div class="cell col-country text-right">{{ teacher.country_code || '+380' }}</div>
           <div class="cell col-phone">{{ teacher.phone_number || '' }}</div>
-          <div class="cell col-avatar">
-            <div class="avatar-circle">
-              <template v-if="getInitials(teacher)">
-                {{ getInitials(teacher) }}
-              </template>
-              <template v-else>
-                <v-icon color="#443bc9">mdi-account</v-icon>
-              </template>
-            </div>
-          </div>
           <div class="cell col-actions">
             <button class="action-button view" @click="goToTeacherDetail(teacher)">
               <v-icon color="white">mdi-eye</v-icon>
@@ -318,10 +307,6 @@ export default {
 }
 .col-phone {
   width: 150px;
-  flex-shrink: 0;
-}
-.col-avatar {
-  width: 120px;
   flex-shrink: 0;
 }
 .col-actions {
