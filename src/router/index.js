@@ -6,6 +6,7 @@ import AdminPanel from '@/components/admin/AdminPanel.vue'
 import StudentManagement from '@/components/admin/StudentManagement.vue'
 import CoursesManagement from '@/components/admin/courses-management'
 import AdministratorsManage from '@/components/admin/admins-manage/AdministratorsManage.vue'
+import TeachersManage from '@/components/admin/teachers-manage/TeachersManage.vue'
 
 // Публічні сторінки для користувачів
 import HomePage from '@/components/pages/HomePage.vue'
@@ -140,8 +141,15 @@ const routes = [
       {
         path: 'teachers',
         name: 'AdminTeachers',
-        component: () => import('@/components/admin/ComingSoon.vue'),
-        props: { feature: 'Викладачі' },
+        component: TeachersManage,
+        meta: { roles: ['super_admin', 'admin'] },
+        beforeEnter: checkRoleAccess(['super_admin', 'admin'])
+      },
+      {
+        path: 'teachers/:id',
+        name: 'AdminTeacherDetail',
+        component: () => import('@/components/admin/teachers-manage/TeacherDetailPage.vue'),
+        props: true,
         meta: { roles: ['super_admin', 'admin'] },
         beforeEnter: checkRoleAccess(['super_admin', 'admin'])
       },
