@@ -61,16 +61,16 @@
             hide-default-footer
             show-select
           >
-            <template #item.avatar="{ item }">
+            <template v-slot:[`item.avatar`]="{ item }">
               <div class="avatar-circle">{{ getInitials(item) }}</div>
             </template>
-            <template #item.last_name="{ item }">
+            <template v-slot:[`item.last_name`]="{ item }">
               {{ item.last_name || '' }}
             </template>
-            <template #item.name="{ item }">
+            <template v-slot:[`item.name`]="{ item }">
               {{ item.name || '' }}
             </template>
-            <template #item.role="{ item }">
+            <template v-slot:[`item.role`]="{ item }">
               {{ getRoleLabel(item.role) }}
             </template>
           </v-data-table>
