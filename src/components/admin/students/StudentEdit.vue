@@ -1,138 +1,102 @@
 <!-- src/components/admin/students/StudentEdit.vue -->
 <template>
-  <div v-if="isEditModalOpen" class="modal-overlay">
-    <div class="modal-container">
-      <div class="modal-header">
-        <h2>Редагування студента</h2>
-        <button class="close-button" @click="closeModal">×</button>
-      </div>
-      <div class="modal-body">
-        <div v-if="!loading">
-          <div class="form-group">
-            <label>Ім'я</label>
-            <input type="text" v-model="studentData.first_name" />
-          </div>
-          <div class="form-group">
-            <label>Прізвище</label>
-            <input type="text" v-model="studentData.last_name" />
-          </div>
-          <div class="form-group">
-            <label>Email</label>
-            <input type="email" v-model="studentData.email" />
-          </div>
-          <div class="form-group">
-            <label>Номер телефону</label>
-            <div class="phone-container">
-              <div class="phone-code-wrapper">
-                <input type="text" v-model="phoneCountryCode" class="phone-code" disabled />
-              </div>
-              <input
-                type="text"
-                v-model="phoneNumber"
-                class="phone-number"
-                @input="updateFullPhoneNumber"
-              />
-            </div>
-          </div>
-        </div>
-        <div v-else class="modal-loading">
-          <div class="spinner"></div>
-          <p>Завантаження даних...</p>
-        </div>
-        <div v-if="errorMessage" class="error-message">
-          {{ errorMessage }}
-        </div>
-      </div>
-      <div class="modal-footer">
-        <button class="button cancel-btn" @click="closeModal">Скасувати</button>
-        <button class="button save-btn" @click="saveStudent" :disabled="loading">Змінити</button>
-      </div>
-    </div>
-  </div>
+  <v-dialog
+    :model-value="isEditModalOpen"
+    @update:model-value="val => { if (!val) $emit('close') }"
+    max-width="500px"
+  >
+    <v-card>
+      <v-card-title>Редагування студента</v-card-title>
+      <v-card-text>
+        <v-form ref="form" v-model="valid">
+          <v-text-field
+            v-model="formData.name"
+            label="Ім'я"
+            :rules="[v => !!v || 'Введіть ім\'я']"
+            required
+          />
+          <v-text-field
+            v-model="formData.last_name"
+            label="Прізвище"
+            :rules="[v => !!v || 'Введіть прізвище']"
+            required
+          />
+          <v-text-field
+            v-model="formData.email"
+            label="Email"
+            :rules="[v => !!v || 'Введіть email']"
+            required
+          />
+          <v-text-field
+            v-model="formData.country_code"
+            label="Код країни"
+            :rules="[v => !!v || 'Введіть код країни']"
+            required
+          />
+          <v-text-field
+            v-model="formData.phone_number"
+            label="Номер телефону"
+          />
+        </v-form>
+      </v-card-text>
+      <v-card-actions>
+        <v-spacer />
+        <v-btn text @click="$emit('close')">Скасувати</v-btn>
+        <v-btn color="primary" @click="save" :disabled="!valid">Зберегти</v-btn>
+      </v-card-actions>
+    </v-card>
+  </v-dialog>
 </template>
 
 <script>
 export default {
   name: 'StudentEdit',
   props: {
-    isEditModalOpen: {
-      type: Boolean,
-      required: true,
-    },
-    student: {
-      type: Object,
-      required: true,
-    },
-    loading: {
-      type: Boolean,
-      default: false,
-    },
-    errorMessage: {
-      type: String,
-      default: '',
-    },
+    isEditModalOpen: Boolean,
+    student: Object,
+    loading: Boolean,
+    errorMessage: String,
   },
   data() {
     return {
-      studentData: {},
-      phoneCountryCode: '+380',
-      phoneNumber: '',
-    }
+      valid: false,
+      formData: {
+        id: null,
+        name: '',
+        last_name: '',
+        email: '',
+        country_code: '',
+        phone_number: '',
+      },
+    };
   },
   watch: {
     student: {
-      handler(newVal) {
-        this.studentData = { ...newVal }
-        this.initializePhoneData()
-      },
       immediate: true,
-      deep: true,
+      handler(val) {
+        if (val) {
+          this.formData = {
+            id: val.id || null,
+            name: val.name || '',
+            last_name: val.last_name || '',
+            email: val.email || '',
+            country_code: val.country_code || (val.country?.phone_code || '+380'),
+            phone_number: val.phone_number || '',
+          };
+        }
+      },
+    },
+    isEditModalOpen(val) {
+      if (!val) this.$refs.form && this.$refs.form.resetValidation();
     },
   },
   methods: {
-    initializePhoneData() {
-      // Встановлення коду країни
-      if (this.student.country && this.student.country.phone_code) {
-        this.phoneCountryCode = this.student.country.phone_code
-      } else {
-        this.phoneCountryCode = '+380' // Значення за замовчуванням
-      }
-
-      // Парсинг номера телефону
-      const fullPhone = this.student.phone_number || this.student.phone || ''
-
-      if (fullPhone.startsWith('+' + this.phoneCountryCode.substring(1))) {
-        this.phoneNumber = fullPhone.substring(this.phoneCountryCode.length)
-      } else if (fullPhone.startsWith(this.phoneCountryCode)) {
-        this.phoneNumber = fullPhone.substring(this.phoneCountryCode.length)
-      } else if (fullPhone.startsWith('380')) {
-        this.phoneNumber = fullPhone.substring(3)
-      } else if (fullPhone.startsWith('+380')) {
-        this.phoneNumber = fullPhone.substring(4)
-      } else {
-        this.phoneNumber = fullPhone
-      }
-    },
-    updateFullPhoneNumber() {
-      this.studentData.phone_number = this.phoneNumber
-    },
-    closeModal() {
-      this.$emit('close')
-    },
-    saveStudent() {
-      const updatedData = {
-        ...this.studentData,
-        phone_number: this.phoneNumber,
-        // Додаємо інформацію про код країни окремо, якщо це необхідно
-        country: {
-          ...this.studentData.country,
-          phone_code: this.phoneCountryCode,
-        },
-      }
-      this.$emit('save', updatedData)
+    save() {
+      if (!this.valid) return;
+      this.$emit('save', { ...this.formData });
     },
   },
-}
+};
 </script>
 
 <style scoped>

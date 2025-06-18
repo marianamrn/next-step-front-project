@@ -15,6 +15,7 @@
         <div class="header-cell col-email">Email</div>
         <div class="header-cell col-country text-right">Код країни</div>
         <div class="header-cell col-phone">Номер телефону</div>
+        <div class="header-cell col-avatar">Аватар</div>
         <div class="header-cell col-actions text-left">Дії</div>
       </div>
       <div class="table-body" v-if="admins.length > 0">
@@ -24,16 +25,26 @@
           <div class="cell col-email">{{ admin.email }}</div>
           <div class="cell col-country text-right">+380</div>
           <div class="cell col-phone">{{ admin.phone_number || '' }}</div>
+          <div class="cell col-avatar">
+            <div class="avatar-circle">
+              <template v-if="getInitials(admin)">
+                {{ getInitials(admin) }}
+              </template>
+              <template v-else>
+                <v-icon color="#443bc9">mdi-account</v-icon>
+              </template>
+            </div>
+          </div>
           <div class="cell col-actions">
             <button class="action-button view" @click="goToAdminDetail(admin)">
-              <v-icon>mdi-eye</v-icon>
+              <v-icon color="white">mdi-eye</v-icon>
             </button>
             <button class="action-button edit" @click="editAdmin(admin)">
-              <v-icon>mdi-pencil</v-icon>
+              <v-icon color="white">mdi-pencil</v-icon>
             </button>
             <button
               v-if="admin.role?.name !== 'super_admin'"
-              class="action-button remove-black"
+              class="action-button remove-red"
               @click="confirmRemoveAdmin(admin)"
             >
               <v-icon color="white">mdi-account-remove</v-icon>
@@ -307,6 +318,10 @@ export default {
   width: 150px;
   flex-shrink: 0;
 }
+.col-avatar {
+  width: 120px;
+  flex-shrink: 0;
+}
 .col-actions {
   width: 180px;
   flex-shrink: 0;
@@ -325,11 +340,14 @@ export default {
   margin-left: 5px;
   cursor: pointer;
 }
-.action-button.remove-black {
-  background: #222;
+.action-button.remove-red {
+  background: #e53935;
 }
-.action-button.remove-black v-icon {
-  color: #fff !important;
+.action-button.view {
+  background: #443bc9;
+}
+.action-button.edit {
+  background: #43b26b;
 }
 .no-data {
   padding: 24px;
@@ -372,15 +390,15 @@ export default {
   margin-top: 8px;
 }
 .avatar-circle {
-  width: 36px;
-  height: 36px;
+  width: 44px;
+  height: 44px;
   border-radius: 50%;
-  background: #e0e7ff;
+  background: #e6eaff;
   display: flex;
   align-items: center;
   justify-content: center;
   font-weight: bold;
   color: #443bc9;
-  font-size: 16px;
+  font-size: 20px;
 }
 </style>

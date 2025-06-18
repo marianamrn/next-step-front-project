@@ -10,7 +10,6 @@
     <!-- Таблиця студентів -->
     <div v-else class="data-table">
       <div class="table-header">
-        <div class="header-cell col-id">ID</div>
         <div class="header-cell col-name">Ім'я</div>
         <div class="header-cell col-surname">Прізвище</div>
         <div class="header-cell col-email">Email</div>
@@ -20,18 +19,17 @@
       </div>
       <div class="table-body" v-if="students.length > 0">
         <div v-for="student in students" :key="student.id" class="table-row">
-          <div class="cell col-id">{{ student.id }}</div>
-          <div class="cell col-name">{{ student.first_name }}</div>
+          <div class="cell col-name">{{ student.name }}</div>
           <div class="cell col-surname">{{ student.last_name }}</div>
           <div class="cell col-email">{{ student.email }}</div>
           <div class="cell col-country text-right">{{ getPhoneCode(student) }}</div>
           <div class="cell col-phone">{{ getPhoneNumber(student) }}</div>
           <div class="cell col-actions">
             <button class="action-button view" @click="viewStudent(student)">
-              <v-icon>mdi-eye</v-icon>
+              <v-icon color="white">mdi-eye</v-icon>
             </button>
             <button class="action-button edit" @click="editStudent(student)">
-              <v-icon>mdi-pencil</v-icon>
+              <v-icon color="white">mdi-pencil</v-icon>
             </button>
           </div>
         </div>
@@ -91,6 +89,11 @@ export default {
       }
 
       return phoneNumber
+    },
+    getInitials(student) {
+      const n = (student.name || '').charAt(0)
+      const l = (student.last_name || '').charAt(0)
+      return `${n}${l}`.toUpperCase()
     },
   },
 }
@@ -152,11 +155,6 @@ export default {
   text-align: left;
 }
 
-.col-id {
-  width: 50px;
-  flex-shrink: 0;
-}
-
 .col-name,
 .col-surname {
   width: 120px;
@@ -202,14 +200,12 @@ export default {
   margin-left: 0;
 }
 
-.view {
-  background-color: #443bc9;
-  color: white;
+.action-button.view {
+  background: #443bc9;
 }
 
-.edit {
-  background-color: #4caf50;
-  color: white;
+.action-button.edit {
+  background: #43b26b;
 }
 
 /* Індикатор завантаження */
@@ -218,12 +214,12 @@ export default {
   flex-direction: column;
   justify-content: center;
   align-items: center;
-  padding: 30px;
+  padding: 40px;
 }
 
 .spinner {
-  width: 40px;
-  height: 40px;
+  width: 32px;
+  height: 32px;
   border: 4px solid #f3f3f3;
   border-top: 4px solid #443bc9;
   border-radius: 50%;
@@ -241,10 +237,8 @@ export default {
 }
 
 .no-data {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  padding: 30px;
-  color: #666;
+  padding: 24px;
+  text-align: center;
+  color: #888;
 }
 </style>

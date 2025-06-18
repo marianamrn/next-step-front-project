@@ -1,6 +1,6 @@
 <!-- src/components/admin/StudentManagement.vue -->
 <template>
-  <div class="student-management">
+  <div class="student-management-root">
     <!-- Вкладки навігації -->
     <div class="tab-navigation">
       <div
@@ -161,7 +161,8 @@ export default {
   },
   computed: {
     filteredStudents() {
-      return this.students
+      // Показувати лише користувачів з роллю student
+      return this.students.filter(s => s.role?.name === 'student');
     },
     filteredRequests() {
       let filtered = this.requests
@@ -458,10 +459,8 @@ export default {
   font-family: 'VinnytsiaSansReg', sans-serif;
 }
 
-.student-management {
-  padding: 20px;
-  background-color: #f9fafb;
-  min-height: calc(100vh - 70px);
+.student-management-root {
+  padding: 32px 24px 0 24px;
 }
 
 .tab-navigation {
