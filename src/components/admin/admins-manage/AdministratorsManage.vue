@@ -1,7 +1,7 @@
 <template>
   <div class="admin-manage-root">
     <div class="header-row">
-      <h2>Адміністратори</h2>
+      <h2></h2>
       <v-btn color="primary" @click="openAddDialog">Додати адміністратора</v-btn>
     </div>
     <div v-if="loading" class="loading-indicator">
@@ -31,8 +31,12 @@
             <button class="action-button edit" @click="editAdmin(admin)">
               <v-icon>mdi-pencil</v-icon>
             </button>
-            <button v-if="admin.role?.name !== 'super_admin'" class="action-button remove" @click="confirmRemoveAdmin(admin)">
-              <v-icon color="error">mdi-account-remove</v-icon>
+            <button
+              v-if="admin.role?.name !== 'super_admin'"
+              class="action-button remove-black"
+              @click="confirmRemoveAdmin(admin)"
+            >
+              <v-icon color="white">mdi-account-remove</v-icon>
             </button>
           </div>
         </div>
@@ -98,9 +102,9 @@
 </template>
 
 <script>
-import { adminsApi, studentsApi } from '@/services/api.js';
-import ViewAdminModal from './ViewAdminModal.vue';
-import AdminEditModal from './AdminEditModal.vue';
+import { adminsApi, studentsApi } from '@/services/api.js'
+import ViewAdminModal from './ViewAdminModal.vue'
+import AdminEditModal from './AdminEditModal.vue'
 
 export default {
   name: 'AdministratorsManage',
@@ -118,144 +122,250 @@ export default {
       addUserHeaders: [
         { text: '', value: 'avatar', sortable: false },
         { text: 'Прізвище', value: 'last_name' },
-        { text: 'Ім\'я', value: 'name' },
+        { text: "Ім'я", value: 'name' },
         { text: 'Роль', value: 'role' },
       ],
-    };
+    }
   },
   computed: {
     usersForSelect() {
-      const usersArr = Array.isArray(this.users) ? this.users : [];
+      const usersArr = Array.isArray(this.users) ? this.users : []
       return usersArr
-        .filter(u => u.role?.name !== 'admin' && u.role?.name !== 'super_admin')
-        .map(u => ({
+        .filter((u) => u.role?.name !== 'admin' && u.role?.name !== 'super_admin')
+        .map((u) => ({
           id: u.id,
           name: u.name || '',
           last_name: u.last_name || '',
           role: u.role?.name || '',
-        }));
-    }
+        }))
+    },
   },
   methods: {
     getInitials(user) {
-      const n = (user.name || '').charAt(0);
-      const l = (user.last_name || '').charAt(0);
-      return `${n}${l}`.toUpperCase();
+      const n = (user.name || '').charAt(0)
+      const l = (user.last_name || '').charAt(0)
+      return `${n}${l}`.toUpperCase()
     },
     getRoleLabel(role) {
       switch (role) {
-        case 'teacher': return 'Викладач';
-        case 'student': return 'Студент';
-        default: return role;
+        case 'teacher':
+          return 'Викладач'
+        case 'student':
+          return 'Студент'
+        default:
+          return role
       }
     },
     onSelectUser(selected) {
       if (Array.isArray(selected) && selected.length > 0) {
         if (typeof selected[0] === 'object' && selected[0] !== null) {
-          this.selectedUserId = selected[0].id;
+          this.selectedUserId = selected[0].id
         } else {
-          this.selectedUserId = selected[0];
+          this.selectedUserId = selected[0]
         }
       } else if (selected && selected.id) {
-        this.selectedUserId = selected.id;
+        this.selectedUserId = selected.id
       } else {
-        this.selectedUserId = selected;
+        this.selectedUserId = selected
       }
     },
     async fetchAllUsers() {
-      this.loading = true;
+      this.loading = true
       try {
-        const res = await studentsApi.getStudents(1, 1000);
-        const usersArr = Array.isArray(res.data?.users) ? res.data.users : [];
-        this.users = usersArr;
-        this.admins = usersArr.filter(u => u.role?.name === 'admin' || u.role?.name === 'super_admin');
+        const res = await studentsApi.getStudents(1, 1000)
+        const usersArr = Array.isArray(res.data?.users) ? res.data.users : []
+        this.users = usersArr
+        this.admins = usersArr.filter(
+          (u) => u.role?.name === 'admin' || u.role?.name === 'super_admin',
+        )
       } finally {
-        this.loading = false;
+        this.loading = false
       }
     },
     openAddDialog() {
-      this.selectedUserId = null;
-      this.addDialog = true;
+      this.selectedUserId = null
+      this.addDialog = true
     },
     async addAdmin() {
-      if (!this.selectedUserId) return;
+      if (!this.selectedUserId) return
       try {
-        await adminsApi.changeRole(this.selectedUserId, 'admin');
-        this.addDialog = false;
-        this.fetchAllUsers();
+        await adminsApi.changeRole(this.selectedUserId, 'admin')
+        this.addDialog = false
+        this.fetchAllUsers()
       } catch (e) {
-        alert('Помилка при додаванні адміністратора');
+        alert('Помилка при додаванні адміністратора')
       }
     },
     confirmRemoveAdmin(admin) {
-      if (admin.role?.name === 'super_admin') return;
-      if (confirm(`Ви впевнені, що хочете забрати роль адміністратора у ${admin.name} ${admin.last_name}?`)) {
-        this.removeAdmin(admin);
+      if (admin.role?.name === 'super_admin') return
+      if (
+        confirm(
+          `Ви впевнені, що хочете забрати роль адміністратора у ${admin.name} ${admin.last_name}?`,
+        )
+      ) {
+        this.removeAdmin(admin)
       }
     },
     async removeAdmin(admin) {
       try {
-        await adminsApi.changeRole(admin.id, 'student');
-        this.fetchAllUsers();
+        await adminsApi.changeRole(admin.id, 'student')
+        this.fetchAllUsers()
       } catch (e) {
         console.error('Помилка при зміні ролі', e?.response?.data || e)
-        alert('Помилка при зміні ролі');
+        alert('Помилка при зміні ролі')
       }
     },
     viewAdmin(admin) {
-      this.selectedAdmin = admin;
-      this.isViewModalOpen = true;
+      this.selectedAdmin = admin
+      this.isViewModalOpen = true
     },
     editAdmin(admin) {
-      this.selectedAdmin = admin;
-      this.isEditModalOpen = true;
+      this.selectedAdmin = admin
+      this.isEditModalOpen = true
     },
     async saveAdmin(updatedData) {
       try {
-        await studentsApi.updateStudent(updatedData.id, updatedData);
-        this.isEditModalOpen = false;
-        this.fetchAllUsers();
+        await studentsApi.updateStudent(updatedData.id, updatedData)
+        this.isEditModalOpen = false
+        this.fetchAllUsers()
       } catch (e) {
-        alert('Помилка при збереженні даних користувача');
+        alert('Помилка при збереженні даних користувача')
       }
     },
     goToAdminDetail(admin) {
-      this.$router.push(`/admin/administrators/${admin.id}`);
+      this.$router.push(`/admin/administrators/${admin.id}`)
     },
   },
   mounted() {
-    this.fetchAllUsers();
-  }
-};
+    this.fetchAllUsers()
+  },
+}
 </script>
 
 <style scoped>
 @import url('https://fonts.googleapis.com/css2?family=VinnytsiaSansReg&display=swap');
-* { font-family: 'VinnytsiaSansReg', sans-serif; }
+* {
+  font-family: 'VinnytsiaSansReg', sans-serif;
+}
 .admin-manage-root {
   padding: 32px 24px 0 24px;
 }
-.data-table { background-color: white; border-radius: 8px; overflow: hidden; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1); }
-.table-header { display: flex; background-color: #f0f2f5; padding: 12px 0; font-weight: bold; }
-.header-cell { padding: 0 15px; }
-.table-body { max-height: calc(100vh - 250px); overflow-y: auto; }
-.table-row { display: flex; border-bottom: 1px solid #e1e1e1; padding: 12px 0; }
-.table-row:last-child { border-bottom: none; }
-.cell { padding: 0 15px; display: flex; align-items: center; }
-.text-right { justify-content: flex-end; text-align: right; }
-.text-left { justify-content: flex-start; text-align: left; }
-.col-name, .col-surname { width: 120px; flex-shrink: 0; }
-.col-email { width: 300px; flex-shrink: 0; }
-.col-country { width: 120px; flex-shrink: 0; }
-.col-phone { width: 150px; flex-shrink: 0; }
-.col-actions { width: 180px; flex-shrink: 0; margin-left: auto; display: flex; justify-content: flex-start; }
-.action-button { width: 36px; height: 36px; border-radius: 5px; border: none; display: flex; align-items: center; justify-content: center; margin-left: 5px; cursor: pointer; }
-.action-button.remove { background: #fee2e2; }
-.no-data { padding: 24px; text-align: center; color: #888; }
-.header-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; }
-.loading-indicator { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 40px; }
-.spinner { border: 4px solid #f3f3f3; border-top: 4px solid #443bc9; border-radius: 50%; width: 32px; height: 32px; animation: spin 1s linear infinite; margin-bottom: 10px; }
-@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+.data-table {
+  background-color: white;
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+.table-header {
+  display: flex;
+  background-color: #f0f2f5;
+  padding: 12px 0;
+  font-weight: bold;
+}
+.header-cell {
+  padding: 0 15px;
+}
+.table-body {
+  max-height: calc(100vh - 250px);
+  overflow-y: auto;
+}
+.table-row {
+  display: flex;
+  border-bottom: 1px solid #e1e1e1;
+  padding: 12px 0;
+}
+.table-row:last-child {
+  border-bottom: none;
+}
+.cell {
+  padding: 0 15px;
+  display: flex;
+  align-items: center;
+}
+.text-right {
+  justify-content: flex-end;
+  text-align: right;
+}
+.text-left {
+  justify-content: flex-start;
+  text-align: left;
+}
+.col-name,
+.col-surname {
+  width: 120px;
+  flex-shrink: 0;
+}
+.col-email {
+  width: 300px;
+  flex-shrink: 0;
+}
+.col-country {
+  width: 120px;
+  flex-shrink: 0;
+}
+.col-phone {
+  width: 150px;
+  flex-shrink: 0;
+}
+.col-actions {
+  width: 180px;
+  flex-shrink: 0;
+  margin-left: auto;
+  display: flex;
+  justify-content: flex-start;
+}
+.action-button {
+  width: 36px;
+  height: 36px;
+  border-radius: 5px;
+  border: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-left: 5px;
+  cursor: pointer;
+}
+.action-button.remove-black {
+  background: #222;
+}
+.action-button.remove-black v-icon {
+  color: #fff !important;
+}
+.no-data {
+  padding: 24px;
+  text-align: center;
+  color: #888;
+}
+.header-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+}
+.loading-indicator {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px;
+}
+.spinner {
+  border: 4px solid #f3f3f3;
+  border-top: 4px solid #443bc9;
+  border-radius: 50%;
+  width: 32px;
+  height: 32px;
+  animation: spin 1s linear infinite;
+  margin-bottom: 10px;
+}
+@keyframes spin {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
 .add-user-table {
   background: #f6f7fa;
   border-radius: 8px;
