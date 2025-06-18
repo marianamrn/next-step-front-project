@@ -19,32 +19,37 @@
       pageTitle: {
         type: String,
         default: 'Студенти'
-      },
-      userName: {
-        type: String,
-        default: 'Михайлюк Ольга' // Тимчасово
-      },
-      userRole: {
-        type: String,
-        default: 'Super admin' // Тимчасово
       }
     },
     computed: {
+      user() {
+        return JSON.parse(localStorage.getItem('user') || '{}')
+      },
+      userName() {
+        if (this.user.first_name && this.user.last_name) {
+          return `${this.user.first_name} ${this.user.last_name}`
+        }
+        if (this.user.name && this.user.last_name) {
+          return `${this.user.name} ${this.user.last_name}`
+        }
+        return this.user.email || ''
+      },
+      userRole() {
+        switch (this.user.role?.name) {
+          case 'super_admin': return 'Суперадміністратор';
+          case 'admin': return 'Адміністратор';
+          case 'teacher': return 'Викладач';
+          case 'student': return 'Студент';
+          default: return '';
+        }
+      },
       userInitials() {
-        // Отримуємо ініціали користувача з імені
         if (!this.userName) return '';
-        
         const parts = this.userName.split(' ');
         if (parts.length >= 2) {
           return parts[0].charAt(0) + parts[1].charAt(0);
         }
         return this.userName.charAt(0);
-        
-        /* Логіка для майбутньої інтеграції з API
-        Після інтеграції з API можна отримувати дані користувача:
-        const user = JSON.parse(localStorage.getItem('user'));
-        return user ? (user.firstName.charAt(0) + user.lastName.charAt(0)) : '';
-        */
       }
     }
   };

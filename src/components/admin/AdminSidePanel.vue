@@ -10,7 +10,7 @@
     <div class="sidebar-section">
       <h3 class="section-title">Управління</h3>
       <ul class="nav-list">
-        <li
+        <li v-if="isSuperAdmin"
           class="nav-item"
           @click="navigateTo('administrators')"
           :class="{ active: activeRoute === 'administrators' }"
@@ -20,7 +20,7 @@
           </span>
           <span class="nav-text">Адміністратори</span>
         </li>
-        <li
+        <li v-if="isSuperAdmin || isAdmin"
           class="nav-item"
           @click="navigateTo('teachers')"
           :class="{ active: activeRoute === 'teachers' }"
@@ -30,7 +30,7 @@
           </span>
           <span class="nav-text">Викладачі</span>
         </li>
-        <li
+        <li v-if="isSuperAdmin || isAdmin || isTeacher"
           class="nav-item"
           @click="navigateTo('students')"
           :class="{ active: activeRoute === 'students' }"
@@ -47,7 +47,7 @@
     <div class="sidebar-section">
       <h3 class="section-title">Контент</h3>
       <ul class="nav-list">
-        <li
+        <li v-if="isSuperAdmin || isAdmin || isTeacher"
           class="nav-item"
           @click="navigateTo('comments')"
           :class="{ active: activeRoute === 'comments' }"
@@ -57,7 +57,7 @@
           </span>
           <span class="nav-text">Коментарі та відгуки</span>
         </li>
-        <li
+        <li v-if="isSuperAdmin || isAdmin || isTeacher"
           class="nav-item"
           @click="navigateTo('courses')"
           :class="{ active: activeRoute === 'courses' }"
@@ -74,7 +74,7 @@
     <div class="sidebar-section">
       <h3 class="section-title">Дані та параметри</h3>
       <ul class="nav-list">
-        <li
+        <li v-if="isSuperAdmin || isAdmin || isTeacher"
           class="nav-item"
           @click="navigateTo('statistics')"
           :class="{ active: activeRoute === 'statistics' }"
@@ -84,7 +84,7 @@
           </span>
           <span class="nav-text">Статистика</span>
         </li>
-        <li
+        <li v-if="isSuperAdmin || isAdmin"
           class="nav-item"
           @click="navigateTo('financial')"
           :class="{ active: activeRoute === 'financial' }"
@@ -94,7 +94,7 @@
           </span>
           <span class="nav-text">Фінансовий модуль</span>
         </li>
-        <li
+        <li v-if="isSuperAdmin"
           class="nav-item"
           @click="navigateTo('settings')"
           :class="{ active: activeRoute === 'settings' }"
@@ -128,9 +128,24 @@ export default {
       default: 'students',
     },
   },
+  data() {
+    return {
+      userRole: JSON.parse(localStorage.getItem('user') || '{}').role?.name || '',
+    }
+  },
+  computed: {
+    isSuperAdmin() {
+      return this.userRole === 'super_admin';
+    },
+    isAdmin() {
+      return this.userRole === 'admin';
+    },
+    isTeacher() {
+      return this.userRole === 'teacher';
+    }
+  },
   methods: {
     navigateTo(route) {
-      // Використовуємо Vue Router для навігації
       this.$router.push(`/admin/${route}`)
     },
     logout() {

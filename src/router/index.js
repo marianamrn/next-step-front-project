@@ -26,18 +26,14 @@ const checkAuth = (to, from, next) => {
   }
 }
 
-// Перевірка адміністратора
-const checkAdmin = (to, from, next) => {
-  const user = JSON.parse(localStorage.getItem('user') || '{}')
-  const adminEmails = ['admin@example.com', 'super_admin@example.com', 'petropetrenko@gmail.com']
-
-  const isAdmin =
-    adminEmails.includes(user.email?.toLowerCase()) || user.email?.toLowerCase().includes('admin')
-
-  if (!isAdmin) {
-    next('/home')
+// Перевірка ролі для доступу до адмін-маршрутів
+const checkRoleAccess = (roles) => (to, from, next) => {
+  const user = JSON.parse(localStorage.getItem('user') || '{}');
+  const role = user.role?.name;
+  if (!role || !roles.includes(role)) {
+    next('/home');
   } else {
-    next()
+    next();
   }
 }
 
@@ -106,68 +102,87 @@ const routes = [
   {
     path: '/admin',
     component: AdminPanel,
-    meta: { requiresAuth: true },
-    beforeEnter: [checkAuth, checkAdmin],
+    meta: { requiresAuth: true, roles: ['super_admin', 'admin', 'teacher'] },
+    beforeEnter: [checkAuth, checkRoleAccess(['super_admin', 'admin', 'teacher'])],
     children: [
       { path: '', redirect: '/admin/students' },
       {
         path: 'students',
         name: 'AdminStudents',
         component: StudentManagement,
+        meta: { roles: ['super_admin', 'admin', 'teacher'] },
+        beforeEnter: checkRoleAccess(['super_admin', 'admin', 'teacher'])
       },
       {
         path: 'students/:id',
         name: 'AdminStudentDetail',
         component: StudentManagement,
         props: true,
+        meta: { roles: ['super_admin', 'admin', 'teacher'] },
+        beforeEnter: checkRoleAccess(['super_admin', 'admin', 'teacher'])
       },
       {
         path: 'courses',
         name: 'AdminCourses',
         component: CoursesManagement,
+        meta: { roles: ['super_admin', 'admin', 'teacher'] },
+        beforeEnter: checkRoleAccess(['super_admin', 'admin', 'teacher'])
       },
       {
         path: 'courses/:id',
         name: 'AdminCourseDetail',
         component: CoursesManagement,
         props: (route) => ({ id: route.params.id }),
+        meta: { roles: ['super_admin', 'admin', 'teacher'] },
+        beforeEnter: checkRoleAccess(['super_admin', 'admin', 'teacher'])
       },
-      // Інші розділи, які будуть реалізовані пізніше
       {
         path: 'teachers',
         name: 'AdminTeachers',
         component: () => import('@/components/admin/ComingSoon.vue'),
         props: { feature: 'Викладачі' },
+        meta: { roles: ['super_admin', 'admin'] },
+        beforeEnter: checkRoleAccess(['super_admin', 'admin'])
       },
       {
         path: 'administrators',
         name: 'AdminAdministrators',
         component: () => import('@/components/admin/ComingSoon.vue'),
         props: { feature: 'Адміністратори' },
+        meta: { roles: ['super_admin'] },
+        beforeEnter: checkRoleAccess(['super_admin'])
       },
       {
         path: 'comments',
         name: 'AdminComments',
         component: () => import('@/components/admin/ComingSoon.vue'),
         props: { feature: 'Коментарі та відгуки' },
+        meta: { roles: ['super_admin', 'admin', 'teacher'] },
+        beforeEnter: checkRoleAccess(['super_admin', 'admin', 'teacher'])
       },
       {
         path: 'statistics',
         name: 'AdminStatistics',
         component: () => import('@/components/admin/ComingSoon.vue'),
         props: { feature: 'Статистика' },
+        meta: { roles: ['super_admin', 'admin', 'teacher'] },
+        beforeEnter: checkRoleAccess(['super_admin', 'admin', 'teacher'])
       },
       {
         path: 'financial',
         name: 'AdminFinancial',
         component: () => import('@/components/admin/ComingSoon.vue'),
         props: { feature: 'Фінансовий модуль' },
+        meta: { roles: ['super_admin', 'admin'] },
+        beforeEnter: checkRoleAccess(['super_admin', 'admin'])
       },
       {
         path: 'settings',
         name: 'AdminSettings',
         component: () => import('@/components/admin/ComingSoon.vue'),
         props: { feature: 'Налаштування системи' },
+        meta: { roles: ['super_admin'] },
+        beforeEnter: checkRoleAccess(['super_admin'])
       },
     ],
   },

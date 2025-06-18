@@ -98,22 +98,21 @@ export const authAPI = {
       if (response.data && response.data.token) {
         localStorage.setItem('token', response.data.token)
 
-        if (response.data.user) {
-          localStorage.setItem('user', JSON.stringify(response.data.user))
-        } else {
-          localStorage.setItem('user', JSON.stringify({ email: credentials.email }))
+        let user = response.data.user;
+        // Якщо role немає — робимо додатковий запит
+        if (!user || !user.role) {
+          const profileResp = await this.getProfile();
+          user = profileResp.data;
         }
+        localStorage.setItem('user', JSON.stringify(user));
 
-        const emailLower = credentials.email.toLowerCase()
-
-        if (adminEmails.includes(emailLower) || emailLower.includes('admin')) {
-          console.log('Це адміністратор, перенаправляємо на адмін-панель')
-          if (router) router.push('/admin')
-          return { success: true, isAdmin: true }
+        const role = user.role?.name;
+        if (role === 'super_admin' || role === 'admin' || role === 'teacher') {
+          if (router) router.push('/admin');
+          return { success: true, role };
         } else {
-          console.log('Це звичайний користувач, перенаправляємо на домашню сторінку')
-          if (router) router.push('/home')
-          return { success: true, isAdmin: false }
+          if (router) router.push('/home');
+          return { success: true, role };
         }
       } else {
         throw new Error('Не вдалося увійти: відсутній токен у відповіді')
