@@ -5,7 +5,6 @@
     <courses-list
       ref="coursesList"
       v-if="!selectedCourseId"
-      :loading="loading"
       @select-course="selectCourse"
       @open-course-modal="openCourseModal"
       @open-category-modal="openCategoryModal"
@@ -245,8 +244,8 @@ export default {
         }
 
         // Оновлюємо списки після успішного збереження
-        if (this.$refs.coursesList && this.$refs.coursesList.fetchCourses) {
-          await this.$refs.coursesList.fetchCourses();
+        if (this.$refs.coursesList && this.$refs.coursesList.refreshCurrentPage) {
+          await this.$refs.coursesList.refreshCurrentPage();
         }
         
         if (this.selectedCourseId === courseId && this.$refs.courseDetailsContainer && this.$refs.courseDetailsContainer.fetchCourse) {
@@ -266,8 +265,8 @@ export default {
     async publishCourse(course) {
       try {
         await api.courses.publishCourse(course.id)
-        if (this.$refs.coursesList && this.$refs.coursesList.fetchCourses) {
-          await this.$refs.coursesList.fetchCourses()
+        if (this.$refs.coursesList && this.$refs.coursesList.refreshCurrentPage) {
+          await this.$refs.coursesList.refreshCurrentPage()
         }
         if (this.selectedCourseId === course.id && this.$refs.courseDetailsContainer && this.$refs.courseDetailsContainer.fetchCourse) {
           await this.$refs.courseDetailsContainer.fetchCourse(course.id)
@@ -285,8 +284,8 @@ export default {
       this.confirmAction = async () => {
         try {
           await api.courses.unpublishCourse(course.id)
-          if (this.$refs.coursesList && this.$refs.coursesList.fetchCourses) {
-            await this.$refs.coursesList.fetchCourses()
+          if (this.$refs.coursesList && this.$refs.coursesList.refreshCurrentPage) {
+            await this.$refs.coursesList.refreshCurrentPage()
           }
           if (this.selectedCourseId === course.id && this.$refs.courseDetailsContainer && this.$refs.courseDetailsContainer.fetchCourse) {
             await this.$refs.courseDetailsContainer.fetchCourse(course.id)
@@ -307,8 +306,8 @@ export default {
       this.confirmAction = async () => {
         try {
           await api.courses.deleteCourse(course.id)
-          if (this.$refs.coursesList && this.$refs.coursesList.fetchCourses) {
-            await this.$refs.coursesList.fetchCourses()
+          if (this.$refs.coursesList && this.$refs.coursesList.refreshCurrentPage) {
+            await this.$refs.coursesList.refreshCurrentPage()
           }
           if (this.selectedCourseId === course.id) {
             this.backToCoursesList()

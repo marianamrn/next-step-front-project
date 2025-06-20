@@ -60,29 +60,41 @@
         <div class="spinner"></div>
         <p>Завантаження курсів...</p>
       </div>
-      <div v-else-if="filteredCourses.length === 0" class="no-courses">
+      <div v-else-if="!courses.length" class="no-courses">
         <p>Курсів не знайдено</p>
       </div>
-      <div v-else class="courses-grid">
-        <course-card
-          v-for="course in filteredCourses"
+      <v-row v-else>
+        <v-col
+          v-for="course in courses"
           :key="course.id"
-          :course="course"
-          :categories="categories"
-          @click="$emit('select-course', course)"
-          @edit="$emit('edit-course', course)"
-          @publish="$emit('publish-course', course)"
-          @unpublish="$emit('unpublish-course', course)"
-          @delete="$emit('delete-course', course)"
+          cols="12"
+          sm="6"
+          md="4"
+          lg="3"
+          class="d-flex"
         >
-          <div class="course-category">
-            {{ course.category && course.category.name ? course.category.name : 'Категорія не вказана' }}
-          </div>
-          <div class="course-price">
-            {{ course.price ? course.price + ' грн' : 'Ціна не вказана' }}
-          </div>
-        </course-card>
-      </div>
+          <course-card
+            class="flex-grow-1"
+            :course="course"
+            :categories="categories"
+            @click="$emit('select-course', course)"
+            @edit="$emit('edit-course', course)"
+            @publish="$emit('publish-course', course)"
+            @unpublish="$emit('unpublish-course', course)"
+            @delete="$emit('delete-course', course)"
+          />
+        </v-col>
+      </v-row>
+    </div>
+
+    <!-- Пагінація -->
+    <div v-if="pageCount > 1" class="pagination-container">
+      <v-pagination
+        v-model="page"
+        :length="pageCount"
+        :total-visible="7"
+        @input="onPageChange"
+      ></v-pagination>
     </div>
 
     <!-- Модальне вікно підтвердження видалення -->
@@ -120,14 +132,10 @@ export default {
   components: {
     CourseCard,
   },
-  props: {
-    loading: {
-      type: Boolean,
-      default: false,
-    },
-  },
+  props: {},
   data() {
     return {
+      loading: false,
       courses: [],
       categories: [],
       searchQuery: '',
@@ -135,162 +143,131 @@ export default {
       publicationFilter: 'all',
       error: null,
       showDropdown: false,
-
-      // Для модального вікна видалення
       showDeleteDialog: false,
       categoryToDelete: null,
       deletingCategory: false,
+      searchTimeout: null,
+      // State for server-side pagination
+      page: 1,
+      pageCount: 0,
     }
   },
-  computed: {
-    filteredCourses() {
-      if (!this.courses) return []
-
-      let filtered = this.courses
-
-      // Фільтр за категорією (фронтовий)
-      if (this.selectedCategory) {
-        filtered = filtered.filter((course) => Number(course.category_id) === Number(this.selectedCategory.id))
-      }
-
-      // Фільтр за публікацією
-      if (this.publicationFilter !== 'all') {
-        filtered = filtered.filter((course) => {
-          if (this.publicationFilter === 'published') {
-            return course.is_published === true
-          } else {
-            return course.is_published === false
-          }
-        })
-      }
-
-      // Фільтр за пошуковим запитом
-      if (this.searchQuery) {
-        const query = this.searchQuery.toLowerCase()
-        filtered = filtered.filter(
-          (course) =>
-            course.title.toLowerCase().includes(query) ||
-            (course.description && course.description.toLowerCase().includes(query)) ||
-            (course.category && course.category.name.toLowerCase().includes(query)),
-        )
-      }
-
-      return filtered
+  watch: {
+    selectedCategory() {
+      this.fetchCourses(1);
+    },
+    publicationFilter() {
+      this.fetchCourses(1);
+    },
+    searchQuery() {
+      if (this.searchTimeout) clearTimeout(this.searchTimeout);
+      this.searchTimeout = setTimeout(() => {
+        this.fetchCourses(1);
+      }, 500);
     },
   },
   created() {
-    this.fetchCategories()
-    this.fetchCourses()
+    this.fetchCategories();
+    this.fetchCourses(1);
   },
   mounted() {
-    // Закриваємо dropdown при кліку поза ним
     document.addEventListener('click', this.handleClickOutside)
   },
   beforeUnmount() {
     document.removeEventListener('click', this.handleClickOutside)
   },
   methods: {
+    onPageChange(newPage) {
+      this.fetchCourses(newPage);
+    },
     toggleDropdown() {
       this.showDropdown = !this.showDropdown
-      console.log('Dropdown toggled:', this.showDropdown)
     },
-
     handleClickOutside(event) {
       if (this.$refs.dropdown && !this.$refs.dropdown.contains(event.target)) {
         this.showDropdown = false
       }
     },
-
     async fetchCategories() {
       try {
         const response = await api.categories.getAllCategories()
         this.categories = response.data.data
-        console.log('Завантажені категорії:', this.categories)
       } catch (error) {
         console.error('Помилка при завантаженні категорій:', error)
         this.error = 'Не вдалося завантажити категорії'
       }
     },
-
-    async fetchCourses() {
-      this.$emit('update:loading', true)
+    async fetchCourses(pageToFetch) {
+      this.page = pageToFetch;
+      this.loading = true;
       try {
-        // Завжди підвантажуємо всі курси для адмінки
-        const response = await api.adminCourses.getAllCourses()
-        this.courses = response.data.data
+        const params = {
+          page: pageToFetch,
+          per_page: 15,
+        };
+        
+        if (this.selectedCategory) {
+          params.category_id = this.selectedCategory.id;
+        }
+        if (this.publicationFilter !== 'all') {
+          params.published = this.publicationFilter === 'published' ? 1 : 0;
+        }
+        if (this.searchQuery) {
+          params.q = this.searchQuery;
+        }
+        
+        console.log('Requesting courses with params:', params);
+        
+        const response = await api.adminCourses.getAllCourses(params);
+        
+        console.log('Received API response:', response);
+
+        this.courses = response.data.data;
+        this.pageCount = response.data.meta.last_page;
+
       } catch (error) {
-        console.error('Помилка при завантаженні курсів:', error)
-        this.error = 'Не вдалося завантажити курси'
+        console.error('Помилка при завантаженні курсів:', error);
+        this.error = 'Не вдалося завантажити курси';
       } finally {
-        this.$emit('update:loading', false)
+        this.loading = false;
       }
     },
-
     handleSearch() {
-      // Можна додати debounce для оптимізації
+      // Debounced in watcher
     },
-
     async setCategory(category) {
-      console.log('Встановлення категорії:', category)
       this.selectedCategory = category
       this.showDropdown = false
-      this.fetchCourses()
+      // Watcher will trigger fetchCourses
     },
-
-    // Методи для роботи з категоріями
     editCategory(category) {
-      console.log('Редагування категорії:', category)
       this.showDropdown = false
       this.$emit('edit-category', category)
     },
-
     deleteCategory(category) {
-      console.log('Ініціювання видалення категорії:', category)
       this.showDropdown = false
       this.categoryToDelete = category
       this.showDeleteDialog = true
     },
-
     cancelDelete() {
       this.showDeleteDialog = false
       this.categoryToDelete = null
-      this.deletingCategory = false
     },
-
     async confirmDelete() {
-      if (!this.categoryToDelete) return
-
-      this.deletingCategory = true
-
+      if (!this.categoryToDelete) return;
+      this.deletingCategory = true;
       try {
-        console.log('Видалення категорії:', this.categoryToDelete.id)
         await api.categories.deleteCategory(this.categoryToDelete.id)
-
-        // Оновлюємо список категорій
-        await this.fetchCategories()
-
-        // Якщо видалена категорія була вибрана, скидаємо вибір
-        if (this.selectedCategory && this.selectedCategory.id === this.categoryToDelete.id) {
-          this.selectedCategory = null
-          this.fetchCourses()
-        }
-
-        // Показуємо повідомлення про успіх
-        alert(`Категорію "${this.categoryToDelete.name}" успішно видалено!`)
+        this.fetchCategories() 
+        this.cancelDelete()
       } catch (error) {
         console.error('Помилка при видаленні категорії:', error)
-
-        let errorMessage = 'Помилка при видаленні категорії'
-        if (error.response && error.response.data && error.response.data.message) {
-          errorMessage = error.response.data.message
-        }
-
-        alert(errorMessage)
       } finally {
         this.deletingCategory = false
-        this.showDeleteDialog = false
-        this.categoryToDelete = null
       }
+    },
+    refreshCurrentPage() {
+      this.fetchCourses(this.page);
     },
   },
 }
@@ -298,300 +275,158 @@ export default {
 
 <style scoped>
 .courses-list {
-  width: 100%;
+  padding: 20px;
+  background-color: #f9fafb;
 }
 
 .course-nav {
   display: flex;
-  justify-content: space-between;
-  margin-bottom: 30px;
   align-items: center;
+  justify-content: space-between;
+  margin-bottom: 25px;
+  flex-wrap: wrap;
+  gap: 15px;
 }
 
 .filter-panel {
   display: flex;
   align-items: center;
+  gap: 15px;
+  flex-wrap: wrap;
 }
 
 .filter-label {
-  margin-right: 10px;
   font-weight: 500;
+  color: #333;
 }
 
 .dropdown {
   position: relative;
+  display: inline-block;
 }
 
 .dropdown-toggle {
-  display: flex;
-  align-items: center;
-  background-color: white;
-  border: 1px solid #e1e1e1;
-  border-radius: 5px;
+  background-color: #fff;
+  border: 1px solid #ddd;
+  border-radius: 6px;
   padding: 8px 12px;
   cursor: pointer;
-  min-width: 200px;
+  display: flex;
+  align-items: center;
   justify-content: space-between;
-  transition: border-color 0.2s;
-}
-
-.dropdown-toggle:hover {
-  border-color: #1976d2;
+  min-width: 200px;
 }
 
 .dropdown-menu {
   position: absolute;
   top: 100%;
   left: 0;
-  z-index: 1000;
-  min-width: 350px;
   background-color: white;
-  border: 1px solid #e1e1e1;
-  border-radius: 5px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-  margin-top: 5px;
-  max-height: 400px;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  z-index: 1000;
+  width: 100%;
+  max-height: 300px;
   overflow-y: auto;
+  margin-top: 5px;
 }
 
 .dropdown-item {
+  padding: 10px 15px;
+  cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  transition: background-color 0.2s;
-  border-bottom: 1px solid #f5f5f5;
-}
-
-.dropdown-item:last-child {
-  border-bottom: none;
 }
 
 .dropdown-item:hover {
-  background-color: #f8f9fa;
-}
-
-/* Стилі для опції "Всі категорії" */
-.all-categories {
-  padding: 12px 16px;
-  cursor: pointer;
+  background-color: #f5f5f5;
 }
 
 .category-name-full {
   font-weight: 500;
-  color: #333;
-}
-
-/* Стилі для категорій з іконками */
-.category-item {
-  padding: 8px 12px;
-  min-height: 44px;
-}
-
-.category-main {
-  flex: 1;
-  padding: 4px 8px;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
 }
 
 .category-name {
-  font-weight: 500;
-  color: #333;
+  flex-grow: 1;
 }
 
 .category-actions {
   display: flex;
-  gap: 4px;
   align-items: center;
-  padding-left: 8px;
-}
-
-.action-icon {
-  background: none;
-  border: none;
-  cursor: pointer;
-  padding: 6px;
-  border-radius: 4px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: all 0.2s;
-  min-width: 32px;
-  height: 32px;
-}
-
-.edit-icon:hover {
-  background-color: rgba(25, 118, 210, 0.1);
-  transform: scale(1.1);
-}
-
-.delete-icon:hover {
-  background-color: rgba(211, 47, 47, 0.1);
-  transform: scale(1.1);
-}
-
-/* Стилі для опції додавання */
-.add-category {
-  padding: 12px 16px;
-  display: flex;
-  align-items: center;
-  color: #1976d2;
-  border-top: 2px solid #e1e1e1;
-  margin-top: 5px;
-  font-weight: 500;
-  gap: 8px;
-  cursor: pointer;
-}
-
-.add-category:hover {
-  background-color: rgba(25, 118, 210, 0.05);
-}
-
-.add-category-text {
-  color: #1976d2;
 }
 
 .search-container {
-  position: relative;
-  width: 300px;
+  flex-grow: 1;
+  max-width: 300px;
 }
 
 .search-input {
   width: 100%;
-  padding: 8px 12px 8px 35px;
-  border: 1px solid #e1e1e1;
-  border-radius: 5px;
-  transition: border-color 0.2s;
-}
-
-.search-input:focus {
-  outline: none;
-  border-color: #1976d2;
-}
-
-.search-icon {
-  position: absolute;
-  left: 10px;
-  top: 50%;
-  transform: translateY(-50%);
-  color: #666;
+  padding: 8px 12px;
+  border: 1px solid #ddd;
+  border-radius: 6px;
 }
 
 .add-button {
-  display: flex;
-  align-items: center;
-  background-color: #1976d2;
+  background-color: #443bc9;
   color: white;
   border: none;
-  border-radius: 5px;
+  border-radius: 6px;
   padding: 8px 16px;
   cursor: pointer;
   font-weight: 500;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
   transition: background-color 0.2s;
 }
 
 .add-button:hover {
-  background-color: #1565c0;
+  background-color: #3730a3;
 }
 
 .courses-container {
   width: 100%;
 }
 
-.courses-grid {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 20px;
-  width: 100%;
-}
-
-.courses-grid > * {
-  flex: 1 0 280px;
-  max-width: calc(33.333% - 20px);
-  margin-bottom: 20px;
-}
-
-.loading-container {
+.loading-container, .no-courses {
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   padding: 50px;
   width: 100%;
+  min-height: 300px;
+  color: #666;
 }
 
 .spinner {
   width: 40px;
   height: 40px;
   border: 4px solid #f3f3f3;
-  border-top: 4px solid #1976d2;
+  border-top: 4px solid #443bc9;
   border-radius: 50%;
   animation: spin 1s linear infinite;
   margin-bottom: 10px;
 }
 
 @keyframes spin {
-  0% {
-    transform: rotate(0deg);
-  }
-  100% {
-    transform: rotate(360deg);
-  }
-}
-
-.no-courses {
-  width: 100%;
-  text-align: center;
-  padding: 50px;
-  background-color: #f0f2f5;
-  border-radius: 8px;
-  color: #666;
-}
-
-/* Адаптивність */
-@media screen and (max-width: 1200px) {
-  .courses-grid > * {
-    max-width: calc(50% - 20px);
-  }
-}
-
-@media screen and (max-width: 768px) {
-  .courses-grid > * {
-    max-width: 100%;
-  }
-
-  .course-nav {
-    flex-direction: column;
-    align-items: stretch;
-  }
-
-  .filter-panel,
-  .search-container,
-  .add-button {
-    width: 100%;
-    margin-bottom: 10px;
-  }
-
-  .add-button {
-    justify-content: center;
-  }
-
-  .dropdown-menu {
-    min-width: 100%;
-  }
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
 }
 
 .publication-filter {
-  margin-left: 15px;
   display: flex;
   align-items: center;
+  gap: 10px;
 }
 
 .filter-select {
   padding: 8px;
   border: 1px solid #ddd;
-  border-radius: 4px;
+  border-radius: 6px;
   background-color: white;
   min-width: 150px;
 }
@@ -599,5 +434,17 @@ export default {
 .filter-select:focus {
   outline: none;
   border-color: #443bc9;
+}
+
+.pagination-container {
+  display: flex;
+  justify-content: center;
+  margin-top: 30px;
+}
+.d-flex {
+  display: flex;
+}
+.flex-grow-1 {
+  flex-grow: 1;
 }
 </style>
