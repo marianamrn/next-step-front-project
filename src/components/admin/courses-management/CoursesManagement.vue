@@ -5,6 +5,7 @@
     <courses-list
       ref="coursesList"
       v-if="!selectedCourseId"
+      :loading="loading"
       @select-course="selectCourse"
       @open-course-modal="openCourseModal"
       @open-category-modal="openCategoryModal"
@@ -133,7 +134,7 @@ export default {
         this.selectedCourseId = course.id
         await this.router.push({
           name: 'AdminCourseDetail',
-          params: { id: course.id.toString() }
+          params: { id: course.id.toString() },
         })
       } catch (error) {
         console.error('Помилка при завантаженні деталей курсу:', error)
@@ -208,56 +209,67 @@ export default {
     // ЗБЕРЕЖЕННЯ ДАНИХ КУРСІВ
     async saveCourse({ courseData, coverFile }) {
       try {
-        const dataToSend = { ...courseData };
-        delete dataToSend.cover_image;
+        const dataToSend = { ...courseData }
+        delete dataToSend.cover_image
 
-        const numericFields = ['price', 'discount_price', 'category_id', 'level_id', 'instructor_id'];
-        numericFields.forEach(field => {
+        const numericFields = [
+          'price',
+          'discount_price',
+          'category_id',
+          'level_id',
+          'instructor_id',
+        ]
+        numericFields.forEach((field) => {
           if (dataToSend[field] !== null && dataToSend[field] !== undefined) {
-            dataToSend[field] = Number(dataToSend[field]);
+            dataToSend[field] = Number(dataToSend[field])
           }
-        });
+        })
 
-        let courseId;
+        let courseId
         if (dataToSend.id) {
           // ОНОВЛЕННЯ: використовуємо існуючий ID
-          await api.courses.updateCourse(dataToSend.id, dataToSend);
-          courseId = dataToSend.id;
+          await api.courses.updateCourse(dataToSend.id, dataToSend)
+          courseId = dataToSend.id
         } else {
           // СТВОРЕННЯ: отримуємо ID з відповіді
-          const response = await api.courses.createCourse(dataToSend);
-          const newCourse = response.data.data;
+          const response = await api.courses.createCourse(dataToSend)
+          const newCourse = response.data.data
           if (!newCourse || !newCourse.id) {
-            throw new Error("Не вдалося отримати ID новоствореного курсу.");
+            throw new Error('Не вдалося отримати ID новоствореного курсу.')
           }
-          courseId = newCourse.id;
+          courseId = newCourse.id
         }
 
         // Завантажуємо обкладинку, якщо вона є
         if (coverFile && courseId) {
           try {
-            await api.courses.uploadCourseCover(courseId, coverFile);
+            await api.courses.uploadCourseCover(courseId, coverFile)
           } catch (coverError) {
-            console.error('Помилка при завантаженні обкладинки:', coverError);
-            alert('Дані курсу збережено, але не вдалося завантажити обкладинку.');
+            console.error('Помилка при завантаженні обкладинки:', coverError)
+            alert('Дані курсу збережено, але не вдалося завантажити обкладинку.')
           }
         }
 
         // Оновлюємо списки після успішного збереження
-        if (this.$refs.coursesList && this.$refs.coursesList.refreshCurrentPage) {
-          await this.$refs.coursesList.refreshCurrentPage();
-        }
-        
-        if (this.selectedCourseId === courseId && this.$refs.courseDetailsContainer && this.$refs.courseDetailsContainer.fetchCourse) {
-          await this.$refs.courseDetailsContainer.fetchCourse(courseId);
-          this.courseDetailsVersion++;
+        if (this.$refs.coursesList && this.$refs.coursesList.fetchCourses) {
+          await this.$refs.coursesList.fetchCourses()
         }
 
-        this.closeCourseModal();
+        if (
+          this.selectedCourseId === courseId &&
+          this.$refs.courseDetailsContainer &&
+          this.$refs.courseDetailsContainer.fetchCourse
+        ) {
+          await this.$refs.courseDetailsContainer.fetchCourse(courseId)
+          this.courseDetailsVersion++
+        }
+
+        this.closeCourseModal()
       } catch (error) {
-        console.error('Помилка при збереженні курсу:', error);
-        const errorMessage = error.response?.data?.message || 'Помилка при збереженні курсу. Спробуйте пізніше.';
-        alert(errorMessage);
+        console.error('Помилка при збереженні курсу:', error)
+        const errorMessage =
+          error.response?.data?.message || 'Помилка при збереженні курсу. Спробуйте пізніше.'
+        alert(errorMessage)
       }
     },
 
@@ -265,10 +277,14 @@ export default {
     async publishCourse(course) {
       try {
         await api.courses.publishCourse(course.id)
-        if (this.$refs.coursesList && this.$refs.coursesList.refreshCurrentPage) {
-          await this.$refs.coursesList.refreshCurrentPage()
+        if (this.$refs.coursesList && this.$refs.coursesList.fetchCourses) {
+          await this.$refs.coursesList.fetchCourses()
         }
-        if (this.selectedCourseId === course.id && this.$refs.courseDetailsContainer && this.$refs.courseDetailsContainer.fetchCourse) {
+        if (
+          this.selectedCourseId === course.id &&
+          this.$refs.courseDetailsContainer &&
+          this.$refs.courseDetailsContainer.fetchCourse
+        ) {
           await this.$refs.courseDetailsContainer.fetchCourse(course.id)
           this.courseDetailsVersion++
         }
@@ -284,10 +300,14 @@ export default {
       this.confirmAction = async () => {
         try {
           await api.courses.unpublishCourse(course.id)
-          if (this.$refs.coursesList && this.$refs.coursesList.refreshCurrentPage) {
-            await this.$refs.coursesList.refreshCurrentPage()
+          if (this.$refs.coursesList && this.$refs.coursesList.fetchCourses) {
+            await this.$refs.coursesList.fetchCourses()
           }
-          if (this.selectedCourseId === course.id && this.$refs.courseDetailsContainer && this.$refs.courseDetailsContainer.fetchCourse) {
+          if (
+            this.selectedCourseId === course.id &&
+            this.$refs.courseDetailsContainer &&
+            this.$refs.courseDetailsContainer.fetchCourse
+          ) {
             await this.$refs.courseDetailsContainer.fetchCourse(course.id)
             this.courseDetailsVersion++
           }
@@ -306,8 +326,8 @@ export default {
       this.confirmAction = async () => {
         try {
           await api.courses.deleteCourse(course.id)
-          if (this.$refs.coursesList && this.$refs.coursesList.refreshCurrentPage) {
-            await this.$refs.coursesList.refreshCurrentPage()
+          if (this.$refs.coursesList && this.$refs.coursesList.fetchCourses) {
+            await this.$refs.coursesList.fetchCourses()
           }
           if (this.selectedCourseId === course.id) {
             this.backToCoursesList()
@@ -326,7 +346,7 @@ export default {
       this.confirmMessage = ''
       this.confirmAction = () => {}
     },
-  }
+  },
 }
 </script>
 
