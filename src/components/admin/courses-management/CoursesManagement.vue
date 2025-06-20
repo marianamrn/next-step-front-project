@@ -207,58 +207,58 @@ export default {
     },
 
     // ЗБЕРЕЖЕННЯ ДАНИХ КУРСІВ
-    async saveCourse(courseData) {
+    async saveCourse({ courseData, coverFile }) {
       try {
-        const numericFields = [
-          'price',
-          'discount_price',
-          'category_id',
-          'level_id',
-          'instructor_id',
-        ]
-        const formData = { ...courseData }
-        numericFields.forEach((field) => {
-          if (formData[field] !== null && formData[field] !== undefined) {
-            formData[field] = Number(formData[field])
+        const dataToSend = { ...courseData };
+        delete dataToSend.cover_image;
+
+        const numericFields = ['price', 'discount_price', 'category_id', 'level_id', 'instructor_id'];
+        numericFields.forEach(field => {
+          if (dataToSend[field] !== null && dataToSend[field] !== undefined) {
+            dataToSend[field] = Number(dataToSend[field]);
           }
-        })
+        });
 
-        // Перевіряємо обов'язкові поля
-        const requiredFields = ['title', 'category_id', 'price', 'level_id']
-        const missingFields = requiredFields.filter(field => !formData[field])
-        if (missingFields.length > 0) {
-          alert(`Відсутні обов'язкові поля: ${missingFields.join(', ')}`)
-          return
-        }
-
-        let response
-        if (formData.id) {
-          response = await api.courses.updateCourse(formData.id, formData)
+        let courseId;
+        if (dataToSend.id) {
+          // ОНОВЛЕННЯ: використовуємо існуючий ID
+          await api.courses.updateCourse(dataToSend.id, dataToSend);
+          courseId = dataToSend.id;
         } else {
-          response = await api.courses.createCourse(formData)
+          // СТВОРЕННЯ: отримуємо ID з відповіді
+          const response = await api.courses.createCourse(dataToSend);
+          const newCourse = response.data.data;
+          if (!newCourse || !newCourse.id) {
+            throw new Error("Не вдалося отримати ID новоствореного курсу.");
+          }
+          courseId = newCourse.id;
         }
 
-        // Якщо є обкладинка і курс успішно створено/оновлено
-        if (courseData.coverFile && response.data && response.data.id) {
+        // Завантажуємо обкладинку, якщо вона є
+        if (coverFile && courseId) {
           try {
-            await api.courses.uploadCourseCover(response.data.id, courseData.coverFile)
+            await api.courses.uploadCourseCover(courseId, coverFile);
           } catch (coverError) {
-            console.error('Помилка при завантаженні обкладинки:', coverError)
-            // Продовжуємо, навіть якщо обкладинка не завантажилась
+            console.error('Помилка при завантаженні обкладинки:', coverError);
+            alert('Дані курсу збережено, але не вдалося завантажити обкладинку.');
           }
         }
 
+        // Оновлюємо списки після успішного збереження
         if (this.$refs.coursesList && this.$refs.coursesList.fetchCourses) {
-          await this.$refs.coursesList.fetchCourses()
+          await this.$refs.coursesList.fetchCourses();
         }
-        if (formData.id && this.selectedCourseId === formData.id && this.$refs.courseDetailsContainer && this.$refs.courseDetailsContainer.fetchCourse) {
-          await this.$refs.courseDetailsContainer.fetchCourse(formData.id)
-          this.courseDetailsVersion++
+        
+        if (this.selectedCourseId === courseId && this.$refs.courseDetailsContainer && this.$refs.courseDetailsContainer.fetchCourse) {
+          await this.$refs.courseDetailsContainer.fetchCourse(courseId);
+          this.courseDetailsVersion++;
         }
-        this.closeCourseModal()
+
+        this.closeCourseModal();
       } catch (error) {
-        console.error('Помилка при збереженні курсу:', error)
-        alert('Помилка при збереженні курсу. Спробуйте пізніше.')
+        console.error('Помилка при збереженні курсу:', error);
+        const errorMessage = error.response?.data?.message || 'Помилка при збереженні курсу. Спробуйте пізніше.';
+        alert(errorMessage);
       }
     },
 

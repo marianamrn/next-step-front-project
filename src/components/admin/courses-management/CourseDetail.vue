@@ -1,163 +1,189 @@
-<!-- src\components\admin\courses-management\CourseDetail.vue -->
 <template>
-  <div class="course-detail">
-    <!-- Заголовок і основна інформація -->
-    <div class="course-header" :style="courseHeaderStyle">
-      <div class="course-overlay"></div>
-      <div class="back-button" @click="$emit('back')">
-        <v-icon left>mdi-arrow-left</v-icon>
-        Повернутися до списку курсів
-      </div>
-      <div class="course-info">
-        <div class="course-category">{{ categoryName }}</div>
-        <h1 class="course-title">{{ course.title }}</h1>
-        <div class="course-status" :class="course.is_published ? 'published' : 'draft'">
-          {{ course.is_published ? 'Опубліковано' : 'Чернетка' }}
-        </div>
-        <div class="course-price">{{ formattedPrice }}</div>
-      </div>
-      <div class="course-actions">
-        <button class="edit-button" @click="$emit('edit-course', course)">
-          <v-icon left size="18">mdi-pencil</v-icon>
-          Редагувати курс
-        </button>
-        <button
-          v-if="!course.is_published && hasModules"
-          class="publish-button"
-          @click="$emit('publish-course', course)"
-        >
-          <v-icon left size="18">mdi-bookmark</v-icon>
-          Опублікувати курс
-        </button>
-        <button
-          v-if="course.is_published"
-          class="unpublish-button"
-          @click="$emit('unpublish-course', course)"
-        >
-          <v-icon left size="18">mdi-bookmark-off</v-icon>
-          Скасувати публікацію
-        </button>
-        <button class="delete-button" @click="$emit('delete-course', course)">
-          <v-icon left size="18">mdi-delete</v-icon>
-          Видалити курс
-        </button>
-      </div>
-    </div>
+  <div class="course-detail-view">
+    <v-container fluid>
+      <!-- Основний контент -->
+      <v-row>
+        <!-- Ліва колонка -->
+        <v-col cols="12" md="8">
+          <!-- Промо-відео (тепер завжди під хедером) -->
+          <v-card v-if="youtubeEmbedUrl" class="mb-5" elevation="2">
+            <v-card-title>Промо-відео</v-card-title>
+            <v-responsive :aspect-ratio="16/9">
+              <iframe :src="youtubeEmbedUrl" frameborder="0" allowfullscreen></iframe>
+            </v-responsive>
+          </v-card>
+          
+          <!-- Опис курсу -->
+          <v-card class="mb-5" elevation="2">
+            <v-card-title>Опис курсу</v-card-title>
+            <v-card-text>{{ course.description || 'Опис відсутній.' }}</v-card-text>
+          </v-card>
 
-    <div class="content-wrapper">
-      <!-- Опис курсу -->
-      <div class="course-description">
-        <h2>Опис курсу</h2>
-        <div class="description-text">{{ course.description || 'Опис відсутній' }}</div>
-      </div>
+          <v-row>
+            <v-col cols="12" md="6">
+              <v-card class="fill-height" elevation="2">
+                <v-card-title>Чого ви навчитеся</v-card-title>
+                <v-list dense>
+                  <v-list-item v-for="(item, index) in formattedWhatYouLearn" :key="`learn-${index}`">
+                    <v-list-item-icon>
+                      <v-icon color="primary">mdi-check</v-icon>
+                    </v-list-item-icon>
+                    <v-list-item-content>
+                      <v-list-item-title>{{ item }}</v-list-item-title>
+                    </v-list-item-content>
+                  </v-list-item>
+                   <v-list-item v-if="!formattedWhatYouLearn.length">
+                    <v-list-item-content>Не вказано</v-list-item-content>
+                  </v-list-item>
+                </v-list>
+              </v-card>
+            </v-col>
+            <v-col cols="12" md="6">
+              <v-card class="fill-height" elevation="2">
+                <v-card-title>Вимоги до курсу</v-card-title>
+                 <v-list dense>
+                  <v-list-item v-for="(item, index) in formattedRequirements" :key="`req-${index}`">
+                    <v-list-item-icon>
+                      <v-icon color="primary">mdi-chevron-right</v-icon>
+                    </v-list-item-icon>
+                    <v-list-item-content>
+                      <v-list-item-title>{{ item }}</v-list-item-title>
+                    </v-list-item-content>
+                  </v-list-item>
+                   <v-list-item v-if="!formattedRequirements.length">
+                    <v-list-item-content>Не вказано</v-list-item-content>
+                  </v-list-item>
+                </v-list>
+              </v-card>
+            </v-col>
+          </v-row>
+        </v-col>
 
-      <!-- Додаткова інформація про курс -->
-      <div class="course-details">
-        <div class="detail-item">
-          <div class="detail-label">Рівень складності:</div>
-          <div class="detail-value">{{ levelName }}</div>
-        </div>
-        <div class="detail-item">
-          <div class="detail-label">Мова:</div>
-          <div class="detail-value">{{ course.language || 'Не вказано' }}</div>
-        </div>
-        <div class="detail-item">
-          <div class="detail-label">Інструктор:</div>
-          <div class="detail-value">{{ instructorName }}</div>
-        </div>
-        <div class="detail-item">
-          <div class="detail-label">Що ви вивчите:</div>
-          <div class="detail-value what-you-learn">
-            <ul v-if="formattedWhatYouLearn.length > 0">
-              <li v-for="(item, index) in formattedWhatYouLearn" :key="index">{{ item }}</li>
-            </ul>
-            <span v-else>Не вказано</span>
-          </div>
-        </div>
-        <div class="detail-item">
-          <div class="detail-label">Вимоги:</div>
-          <div class="detail-value requirements">
-            <ul v-if="formattedRequirements.length > 0">
-              <li v-for="(item, index) in formattedRequirements" :key="index">{{ item }}</li>
-            </ul>
-            <span v-else>Не вказано</span>
-          </div>
-        </div>
-      </div>
+        <!-- Права колонка (сайдбар) -->
+        <v-col cols="12" md="4">
+          <!-- Дії з курсом -->
+          <v-card class="mb-5" elevation="2">
+             <v-card-title>Керування курсом</v-card-title>
+             <v-card-text>
+                <v-btn block color="primary" class="mb-2" @click="$emit('edit-course', course)">
+                  <v-icon left>mdi-pencil</v-icon> Редагувати
+                </v-btn>
+                <v-btn block color="success" class="mb-2" v-if="!course.is_published && hasModules" @click="$emit('publish-course', course)">
+                  <v-icon left>mdi-bookmark</v-icon> Опублікувати
+                </v-btn>
+                <v-btn block color="warning" class="mb-2" v-if="course.is_published" @click="$emit('unpublish-course', course)">
+                  <v-icon left>mdi-bookmark-off</v-icon> Зняти з публікації
+                </v-btn>
+                <v-btn block color="error" @click="$emit('delete-course', course)">
+                  <v-icon left>mdi-delete</v-icon> Видалити
+                </v-btn>
+             </v-card-text>
+          </v-card>
+          
+           <!-- Статистика -->
+          <v-card class="mb-5" elevation="2">
+            <v-card-title>Статистика</v-card-title>
+            <v-list dense>
+              <v-list-item v-for="stat in courseStats" :key="stat.label">
+                <v-list-item-icon><v-icon>{{ stat.icon }}</v-icon></v-list-item-icon>
+                <v-list-item-content>
+                  <v-list-item-title>{{ stat.label }}: <strong>{{ stat.value }}</strong></v-list-item-title>
+                </v-list-item-content>
+              </v-list-item>
+            </v-list>
+          </v-card>
+          
+          <!-- Деталі курсу -->
+          <v-card elevation="2">
+            <v-card-title>Деталі курсу</v-card-title>
+             <v-list dense>
+                <v-list-item>
+                    <v-list-item-icon><v-icon>mdi-cash</v-icon></v-list-item-icon>
+                    <v-list-item-content>
+                        <v-list-item-title>Ціна</v-list-item-title>
+                        <v-list-item-subtitle>{{ formattedPrice }}</v-list-item-subtitle>
+                    </v-list-item-content>
+                </v-list-item>
+                 <v-divider></v-divider>
+                 <v-list-item>
+                    <v-list-item-icon><v-icon>mdi-account-tie</v-icon></v-list-item-icon>
+                    <v-list-item-content>
+                        <v-list-item-title>Інструктор</v-list-item-title>
+                        <v-list-item-subtitle>{{ instructorName }}</v-list-item-subtitle>
+                    </v-list-item-content>
+                </v-list-item>
+                 <v-divider></v-divider>
+                <v-list-item>
+                    <v-list-item-icon><v-icon>mdi-layers</v-icon></v-list-item-icon>
+                    <v-list-item-content>
+                        <v-list-item-title>Категорія</v-list-item-title>
+                        <v-list-item-subtitle>{{ categoryName }}</v-list-item-subtitle>
+                    </v-list-item-content>
+                </v-list-item>
+                 <v-divider></v-divider>
+                 <v-list-item>
+                    <v-list-item-icon><v-icon>mdi-signal</v-icon></v-list-item-icon>
+                    <v-list-item-content>
+                        <v-list-item-title>Рівень</v-list-item-title>
+                        <v-list-item-subtitle>{{ levelName }}</v-list-item-subtitle>
+                    </v-list-item-content>
+                </v-list-item>
+                 <v-divider></v-divider>
+                <v-list-item>
+                    <v-list-item-icon><v-icon>mdi-translate</v-icon></v-list-item-icon>
+                    <v-list-item-content>
+                        <v-list-item-title>Мова</v-list-item-title>
+                        <v-list-item-subtitle>{{ course.language || 'Не вказано' }}</v-list-item-subtitle>
+                    </v-list-item-content>
+                </v-list-item>
+             </v-list>
+          </v-card>
+        </v-col>
+      </v-row>
+      
+      <!-- Модулі та уроки -->
+      <v-row>
+        <v-col cols="12">
+            <div class="modules-section">
+                <div class="section-header">
+                    <h2>Модулі курсу</h2>
+                    <v-btn color="primary" @click="openModuleModal()">
+                    <v-icon left>mdi-plus</v-icon>
+                    Додати модуль
+                    </v-btn>
+                </div>
+                <v-progress-circular v-if="loadingModules" indeterminate color="primary"></v-progress-circular>
+                <v-alert v-else-if="!hasModules" type="info" class="mt-4">
+                    У цього курсу ще немає модулів. Додайте перший модуль для можливості публікації курсу.
+                </v-alert>
+                <div v-else class="modules-list">
+                    <module-item
+                        v-for="(module, index) in course.modules"
+                        :key="module.id"
+                        :module="module"
+                        :index="index"
+                        @edit-module="openModuleModal"
+                        @delete-module="confirmDeleteModule"
+                        @add-lesson="openLessonModal"
+                        @edit-lesson="openLessonModal"
+                        @delete-lesson="confirmDeleteLesson"
+                        @view-lesson="viewLesson"
+                        @lessons-loaded="handleLessonsLoaded"
+                    />
+                </div>
+            </div>
+        </v-col>
+      </v-row>
+    </v-container>
 
-      <!-- Список модулів і уроків -->
-      <div class="modules-section">
-        <div class="section-header">
-          <h2>Модулі курсу</h2>
-          <button class="add-module-button" @click="openModuleModal()">
-            <v-icon left size="18">mdi-plus</v-icon>
-            Додати модуль
-          </button>
-        </div>
-
-        <div v-if="loadingModules" class="loading-container">
-          <div class="spinner"></div>
-          <p>Завантаження модулів...</p>
-        </div>
-
-        <div v-else-if="!hasModules" class="no-modules">
-          У цього курсу ще немає модулів. Додайте перший модуль для можливості публікації курсу.
-        </div>
-
-        <div v-else class="modules-list">
-          <module-item
-            v-for="(module, index) in course.modules"
-            :key="module.id"
-            :module="module"
-            :index="index"
-            @edit-module="openModuleModal"
-            @delete-module="confirmDeleteModule"
-            @add-lesson="openLessonModal"
-            @edit-lesson="openLessonModal"
-            @delete-lesson="confirmDeleteLesson"
-            @view-lesson="viewLesson"
-            @lessons-loaded="handleLessonsLoaded"
-          />
-        </div>
-      </div>
-    </div>
-
-    <!-- Модальні вікна -->
-    <module-modal
-      v-if="showModuleModal"
-      :module="currentModule"
-      :course-id="course.id"
-      @close="closeModuleModal"
-      @save="saveModule"
-    />
-
-    <lesson-extended-modal
-      v-if="showLessonModal"
-      :lesson="currentLesson"
-      :module-id="currentModuleId"
-      @close="closeLessonModal"
-      @save="saveLesson"
-    />
-
-    <confirm-modal
-      v-if="showConfirmModal"
-      :title="confirmTitle"
-      :message="confirmMessage"
-      @confirm="confirmAction"
-      @cancel="closeConfirmModal"
-    />
-
-    <lesson-view-modal
-      v-if="showLessonViewModal && viewingLesson"
-      :lesson="viewingLesson"
-      @close="closeLessonViewModal"
-      @edit="editFromView"
-    />
+    <module-modal v-if="showModuleModal" :module="currentModule" :course-id="course.id" @close="closeModuleModal" @save="saveModule" />
+    <lesson-extended-modal v-if="showLessonModal" :lesson="currentLesson" :module-id="currentModuleId" @close="closeLessonModal" @save="saveLesson" />
+    <confirm-modal v-if="showConfirmModal" :title="confirmTitle" :message="confirmMessage" @confirm="confirmAction" @cancel="closeConfirmModal" />
+    <lesson-view-modal v-if="showLessonViewModal && viewingLesson" :lesson="viewingLesson" @close="closeLessonViewModal" @edit="editFromView" />
   </div>
 </template>
 
 <script>
-import { getImageUrl } from '@/services/api.js'
 import api from '@/services/api.js'
 import ModuleItem from './ModuleItem.vue'
 import ModuleModal from './ModuleModal.vue'
@@ -197,28 +223,36 @@ export default {
     }
   },
   computed: {
-    courseHeaderStyle() {
-      if (this.course.cover_image) {
-        return {
-          backgroundImage: `url(${getImageUrl(this.course.cover_image)})`,
+    youtubeEmbedUrl() {
+        if (!this.course.promo_video_url) return null;
+        const url = this.course.promo_video_url;
+        const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
+        const match = url.match(regExp);
+
+        if (match && match[2].length == 11) {
+            return `https://www.youtube.com/embed/${match[2]}`;
         }
-      }
-      return {
-        backgroundColor: '#443BC9',
-      }
+        
+        console.error('Не вдалося витягти ID відео з посилання:', url);
+        return null;
+    },
+    courseStats() {
+        return [
+            { label: 'Модулі', value: this.course.modules_count || (this.course.modules ? this.course.modules.length : 0), icon: 'mdi-view-module' },
+            { label: 'Уроки', value: this.course.lessons_count || 0, icon: 'mdi-school' },
+            { label: 'Студенти', value: this.course.enrollments_count || 0, icon: 'mdi-account-group' },
+            { label: 'Рейтинг', value: `${this.course.average_rating || 0} (${this.course.reviews_count || 0} відгуків)`, icon: 'mdi-star' },
+        ];
     },
     categoryName() {
-      return this.course.category ? this.course.category.name : 'Категорія не вказана'
+      return this.course.category ? this.course.category.name : ''
     },
     levelName() {
       return this.course.level ? this.course.level.name : 'Не вказано'
     },
     instructorName() {
       if (this.course.instructor) {
-        return (
-          this.course.instructor.full_name ||
-          `${this.course.instructor.first_name} ${this.course.instructor.last_name}`
-        )
+        return this.course.instructor.name || 'Не вказано';
       }
       return 'Не вказано'
     },
@@ -244,529 +278,144 @@ export default {
     course: {
       immediate: true,
       handler(newCourse) {
-        // Якщо потрібно, можна виконати побічні ефекти тут
+         if (newCourse && newCourse.id && (!newCourse.modules || newCourse.modules.length === 0)) {
+           this.loadModules();
+         }
       }
     }
   },
   methods: {
     async loadModules() {
-      if (!this.course) {
-        console.error("Об'єкт курсу відсутній")
-        this.loadingModules = false
+      if (!this.course || !this.course.id) {
         return
       }
-
-      if (!this.course.id) {
-        console.error('ID курсу відсутній:', this.course)
-        this.loadingModules = false
-        return
-      }
-
-      console.log('Курс для завантаження модулів:', this.course)
-      console.log('ID курсу для завантаження модулів:', this.course.id, typeof this.course.id)
-
       this.loadingModules = true
-
       try {
-        // Спочатку перевіряємо, чи курс уже має модулі у відповіді API
-        if (this.course.modules && Array.isArray(this.course.modules)) {
-          console.log('Використовуємо модулі з відповіді API курсу:', this.course.modules.length)
-          return
-        }
-
-        // Якщо модулі не включені у курс, робимо окремий запит
-        console.log('Модулі відсутні в даних курсу, завантажуємо окремо')
-
         const response = await api.modules.getModulesByCourse(this.course.id)
-        console.log('Структура відповіді API модулів:', response)
-
-        if (!response.data) {
-          console.error('Відповідь API не містить поля data')
-          return
+        if(response.data && response.data.data) {
+            this.$set(this.course, 'modules', response.data.data);
+        } else if (response.data) {
+            this.$set(this.course, 'modules', response.data);
         }
-
-        if (!response.data.data && Array.isArray(response.data)) {
-          // Якщо API повертає дані безпосередньо в data, а не в data.data
-          this.course.modules = response.data
-        } else {
-          this.course.modules = response.data.data || []
-        }
-
-        console.log('Завантажені модулі:', this.course.modules)
       } catch (error) {
         console.error('Помилка при завантаженні модулів:', error)
-
-        if (error.response) {
-          console.error('Відповідь сервера:', error.response.data)
-          console.error('Статус:', error.response.status)
-        } else if (error.request) {
-          console.error('Запит відправлено, але відповідь не отримано:', error.request)
-        } else {
-          console.error('Помилка запиту:', error.message)
-        }
-
-        // Просто ініціалізуємо порожнім масивом у випадку помилки
-        this.course.modules = []
+        this.$set(this.course, 'modules', []);
       } finally {
         this.loadingModules = false
       }
     },
-
-    // Обробка завантажених уроків для конкретного модуля
-    handleLessonsLoaded({ moduleId, lessons }) {
+     handleLessonsLoaded({ moduleId, lessons }) {
       const moduleIndex = this.course.modules.findIndex((m) => m.id === moduleId)
       if (moduleIndex !== -1) {
-        this.course.modules[moduleIndex].lessons = lessons
-        // Змушуємо Vue перерендерити список модулів
-        this.course.modules = [...this.course.modules]
+        this.$set(this.course.modules[moduleIndex], 'lessons', lessons);
       }
     },
-
-    // Функції для модальних вікон модулів
     openModuleModal(module = null) {
       this.currentModule = module
       this.showModuleModal = true
     },
-
     closeModuleModal() {
       this.showModuleModal = false
       this.currentModule = null
     },
-
-    async saveModule(moduleData) {
-      try {
-        if (moduleData.id) {
-          // Оновлюємо існуючий модуль у списку
-          const index = this.course.modules.findIndex((m) => m.id === moduleData.id)
-          if (index !== -1) {
-            this.course.modules[index] = { ...this.course.modules[index], ...moduleData }
-            this.course.modules = [...this.course.modules]
-          }
-        } else {
-          // Додаємо новий модуль до списку
-          await this.loadModules()
-        }
-
-        this.closeModuleModal()
-      } catch (error) {
-        console.error('Помилка при збереженні модуля:', error)
-      }
+    async saveModule() {
+      this.loadModules();
+      this.closeModuleModal();
     },
-
     confirmDeleteModule(module) {
       this.confirmTitle = 'Видалення модуля'
-      this.confirmMessage = `Ви впевнені, що хочете видалити модуль "${module.title}"? Усі уроки цього модуля також будуть видалені.`
-      this.confirmAction = () => this.deleteModule(module)
+      this.confirmMessage = `Ви впевнені, що хочете видалити модуль "${module.title}"?`
+      this.confirmAction = () => this.deleteModule(module.id)
       this.showConfirmModal = true
     },
-
-    async deleteModule(module) {
+    async deleteModule(moduleId) {
       try {
-        await api.modules.deleteModule(module.id)
-
-        // Видаляємо модуль зі списку
-        this.course.modules = this.course.modules.filter((m) => m.id !== module.id)
-
-        this.closeConfirmModal()
+        await api.modules.deleteModule(moduleId)
+        this.loadModules();
       } catch (error) {
         console.error('Помилка при видаленні модуля:', error)
-        alert('Помилка при видаленні модуля. Спробуйте пізніше.')
+      } finally {
+          this.closeConfirmModal();
       }
     },
-
-    // Функції для модальних вікон уроків
     openLessonModal(lesson = null, module = null) {
-      console.log('openLessonModal викликано з параметрами:', { lesson, module })
-
-      // Перевіримо порядок параметрів, якщо вони переплуталися
-      if (lesson && typeof lesson === 'object' && !lesson.title && module === null) {
-        // Це може бути об'єкт модуля замість уроку
-        if (lesson.lessons !== undefined || lesson.id) {
-          console.log('Перший аргумент більше схожий на модуль, міняємо місцями')
-          module = lesson
-          lesson = null
-        }
+      this.currentLesson = lesson;
+      this.currentModuleId = module ? module.id : null;
+      if (!this.currentModuleId && lesson && lesson.module_id) {
+        this.currentModuleId = lesson.module_id;
       }
-
-      // Якщо досі не знайшли модуль, спробуємо знайти в поточних даних
-      if (!module) {
-        if (this.currentModuleId) {
-          // Якщо у нас є ID поточного модуля, знайдемо його об'єкт
-          const foundModule = this.course.modules.find((m) => m.id === this.currentModuleId)
-          if (foundModule) {
-            console.log('Використовуємо поточний модуль за ID:', foundModule)
-            module = foundModule
-          }
-        } else {
-          console.error('Модуль не передано в openLessonModal')
-          alert('Необхідно вибрати модуль для уроку')
-          return
-        }
+       if (!this.currentModuleId) {
+         const foundModule = this.course.modules.find(m => m.lessons && m.lessons.some(l => l.id === lesson.id));
+         if(foundModule) this.currentModuleId = foundModule.id;
+       }
+       if (!this.currentModuleId) {
+        console.error("Не вдалося визначити модуль для уроку");
+        return;
       }
-
-      // Перевіримо, чи module є об'єктом і має id
-      if (!module || !module.id) {
-        console.error('Переданий модуль не має ID:', module)
-        alert('Неправильний формат модуля')
-        return
-      }
-
-      console.log('Відкриваємо модальне вікно для модуля ID:', module.id)
-
-      this.currentLesson = lesson
-      this.currentModuleId = module.id
-      this.showLessonModal = true
+      this.showLessonModal = true;
     },
-
     closeLessonModal() {
       this.showLessonModal = false
       this.currentLesson = null
       this.currentModuleId = null
     },
-
-    async saveLesson(lessonData) {
-      // Оновлюємо список уроків після успішного збереження
-      await this.loadModules() // або інша функція для оновлення списку уроків
-      // Закриваємо модальне вікно
-      this.showLessonModal = false
+    async saveLesson() {
+      this.loadModules();
+      this.closeLessonModal();
     },
-
-    // Перегляд деталей уроку
-    async viewLesson(lesson, module) {
-      console.log('Перегляд уроку:', lesson)
-      console.log('Модуль:', module)
-
+    async viewLesson(lesson) {
       try {
-        // Спочатку перевіряємо, чи у нас вже є всі потрібні дані в уроці
-        if (
-          lesson.content ||
-          lesson.description ||
-          lesson.video_url ||
-          (lesson.lecture && lesson.lecture.content)
-        ) {
-          // Якщо у нас вже є основні дані, просто використовуємо їх
-          this.viewingLesson = { ...lesson }
-          this.currentModuleId = module.id
-          this.showLessonViewModal = true
-          console.log('Використовуємо існуючі дані уроку:', this.viewingLesson)
-          return
-        }
-
-        // Якщо ми тут, значить нам потрібно отримати деталі уроку
-        console.log('Завантаження деталей уроку:', lesson.id)
         const response = await api.lessons.getLessonById(lesson.id)
-
-        // Обробляємо різні можливі структури відповіді
-        let lessonDetails
-        if (response.data && response.data.data) {
-          lessonDetails = response.data.data
-        } else if (response.data && response.data.lesson) {
-          lessonDetails = response.data.lesson
-        } else {
-          lessonDetails = response.data
-        }
-
-        console.log('Деталі уроку для перегляду:', lessonDetails)
-
-        // Зберігаємо урок для перегляду
+        let lessonDetails = response.data.data || response.data.lesson || response.data;
         this.viewingLesson = { ...lesson, ...lessonDetails }
-        this.currentModuleId = module.id
-
-        // Відкриваємо модальне вікно для перегляду
         this.showLessonViewModal = true
       } catch (error) {
         console.error('Помилка при завантаженні деталей уроку:', error)
-
-        // Навіть при помилці відкриваємо модальне вікно з тими даними, які в нас є
         this.viewingLesson = lesson
-        this.currentModuleId = module.id
         this.showLessonViewModal = true
-
-        console.warn('Відображаємо урок з обмеженими даними через помилку API')
       }
     },
-
-    // Закриття модального вікна перегляду уроку
     closeLessonViewModal() {
       this.showLessonViewModal = false
       this.viewingLesson = null
     },
-
-    // Редагування уроку з вікна перегляду
     editFromView(lesson) {
-      // Закриваємо вікно перегляду
       this.closeLessonViewModal()
-
-      // Знаходимо модуль, якому належить урок
-      const module = this.course.modules.find(
-        (m) => m.lessons && m.lessons.some((l) => l.id === lesson.id),
-      )
-
-      if (module) {
-        // Відкриваємо вікно редагування
-        this.openLessonModal(lesson, module)
-      } else {
-        console.error('Не вдалося знайти модуль для уроку:', lesson.id)
-      }
+      const module = this.course.modules.find(m => m.id === lesson.module_id);
+      this.openLessonModal(lesson, module)
     },
-
-    confirmDeleteLesson(lesson, module) {
-      this.confirmTitle = 'Видалення уроку'
-      this.confirmMessage = `Ви впевнені, що хочете видалити урок "${lesson.title}"?`
-      this.confirmAction = () => this.deleteLesson(lesson, module)
-      this.showConfirmModal = true
+     confirmDeleteLesson(lesson) {
+      this.confirmTitle = 'Видалення уроку';
+      this.confirmMessage = `Ви впевнені, що хочете видалити урок "${lesson.title}"?`;
+      this.confirmAction = () => this.deleteLesson(lesson.id);
+      this.showConfirmModal = true;
     },
-
-    async deleteLesson(lesson, module) {
-      try {
-        console.log('Видалення уроку:', lesson.id)
-
-        // Видаляємо урок через API
-        await api.lessons.deleteLesson(lesson.id)
-
-        // Видаляємо урок зі списку
-        const moduleIndex = this.course.modules.findIndex((m) => m.id === module.id)
-        if (moduleIndex !== -1 && this.course.modules[moduleIndex].lessons) {
-          this.course.modules[moduleIndex].lessons = this.course.modules[moduleIndex].lessons.filter(
-            (l) => l.id !== lesson.id,
-          )
-          // Оновлюємо масив модулів для триггеринга оновлення Vue
-          this.course.modules = [...this.course.modules]
+    async deleteLesson(lessonId) {
+        try {
+            await api.lessons.deleteLesson(lessonId);
+            this.loadModules(); 
+        } catch (error) {
+            console.error('Помилка при видаленні уроку:', error);
+            alert('Не вдалося видалити урок.');
+        } finally {
+            this.closeConfirmModal();
         }
-
-        // Закриваємо модальне вікно підтвердження
-        this.closeConfirmModal()
-
-        alert('Урок успішно видалено')
-      } catch (error) {
-        console.error('Помилка при видаленні уроку:', error)
-
-        // Закриваємо модальне вікно підтвердження, навіть у випадку помилки
-        this.closeConfirmModal()
-
-        alert('Не вдалося видалити урок: ' + (error.response?.data?.message || error.message))
-      }
-    },
-
-    async changePositions(moduleId, lessons) {
-      try {
-        // Формуємо масив з id та позиціями уроків
-        const positions = lessons.map((lesson, index) => ({
-          id: lesson.id,
-          position: index + 1,
-        }))
-
-        console.log('Оновлення позицій уроків:', positions)
-
-        // Відправляємо запит на оновлення позицій
-        await api.lessons.updateLessonsPositions(positions)
-
-        console.log('Позиції уроків успішно оновлено')
-      } catch (error) {
-        console.error('Помилка при оновленні позицій уроків:', error)
-        alert(
-          'Не вдалося оновити позиції уроків: ' + (error.response?.data?.message || error.message),
-        )
-      }
-    },
-
-    closeConfirmModal() {
-      this.showConfirmModal = false
-      this.confirmTitle = ''
-      this.confirmMessage = ''
-      this.confirmAction = () => {}
     },
   },
 }
 </script>
 
 <style scoped>
-.course-detail {
-  display: flex;
-  flex-direction: column;
-  min-height: calc(100vh - 70px);
+/* Remove all banner-related styles */
+.course-detail-view {
+  background-color: #f5f5f5;
 }
 
-.course-header {
-  position: relative;
-  color: white;
-  padding: 40px;
-  background-size: cover;
-  background-position: center;
-  display: flex;
-  flex-direction: column;
-  justify-content: flex-end;
-  min-height: 250px;
-}
-
-.course-overlay {
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: linear-gradient(to bottom, rgba(0, 0, 0, 0.3), rgba(0, 0, 0, 0.7));
-  z-index: 1;
-}
-
-.back-button {
-  position: absolute;
-  top: 20px;
-  left: 20px;
-  color: white;
-  z-index: 2;
-  display: flex;
-  align-items: center;
-  cursor: pointer;
-  padding: 8px 15px;
-  background-color: rgba(0, 0, 0, 0.5);
-  border-radius: 4px;
-  transition: background-color 0.3s;
-}
-
-.back-button:hover {
-  background-color: rgba(0, 0, 0, 0.7);
-}
-
-.course-info {
-  position: relative;
-  z-index: 2;
-  margin-bottom: 20px;
-}
-
-.course-category {
-  background-color: rgba(255, 255, 255, 0.2);
-  display: inline-block;
-  padding: 4px 10px;
-  border-radius: 4px;
-  font-size: 14px;
-  margin-bottom: 10px;
-}
-
-.course-title {
-  font-size: 32px;
-  margin: 0 0 15px 0;
-  font-weight: bold;
-}
-
-.course-status {
-  display: inline-block;
-  padding: 4px 10px;
-  border-radius: 4px;
-  font-size: 14px;
-  font-weight: 500;
-  margin-right: 10px;
-}
-
-.published {
-  background-color: #4caf50;
-  color: white;
-}
-
-.draft {
-  background-color: #ff9800;
-  color: white;
-}
-
-.course-price {
-  font-size: 18px;
-  font-weight: bold;
-  margin-top: 10px;
-}
-
-.course-actions {
-  display: flex;
-  gap: 10px;
-  position: relative;
-  z-index: 2;
-  margin-left: auto;
-}
-
-.edit-button,
-.publish-button,
-.unpublish-button,
-.delete-button {
-  display: flex;
-  align-items: center;
-  padding: 8px 16px;
-  border-radius: 4px;
-  font-weight: 500;
-  cursor: pointer;
-  border: none;
-}
-
-.edit-button {
-  background-color: white;
-  color: #333;
-}
-
-.publish-button {
-  background-color: #4caf50;
-  color: white;
-}
-
-.unpublish-button {
-  background-color: #ff9800;
-  color: white;
-}
-
-.delete-button {
-  background-color: #f44336;
-  color: white;
-}
-
-.content-wrapper {
-  flex: 1;
-  padding: 30px;
-  background-color: #f9fafb;
-  overflow-y: auto;
-}
-
-.course-description,
-.course-details,
 .modules-section {
-  background-color: white;
-  border-radius: 8px;
-  padding: 20px;
-  margin-bottom: 30px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-}
-
-.course-description h2,
-.course-details h2,
-.modules-section h2 {
-  margin-top: 0;
-  margin-bottom: 15px;
-  font-size: 20px;
-}
-
-.description-text {
-  white-space: pre-line;
-  line-height: 1.6;
-}
-
-.detail-item {
-  margin-bottom: 15px;
-}
-
-.detail-label {
-  font-weight: 500;
-  margin-bottom: 5px;
-}
-
-.detail-value {
-  color: #555;
-}
-
-.what-you-learn ul,
-.requirements ul {
-  padding-left: 20px;
-  margin: 0;
-}
-
-.what-you-learn li,
-.requirements li {
-  margin-bottom: 5px;
+    background-color: white;
+    padding: 20px;
+    border-radius: 8px;
+    margin-top: 20px;
 }
 
 .section-header {
@@ -776,59 +425,15 @@ export default {
   margin-bottom: 20px;
 }
 
-.add-module-button {
-  display: flex;
-  align-items: center;
-  background-color: #443bc9;
-  color: white;
-  border: none;
-  border-radius: 4px;
-  padding: 8px 15px;
-  font-weight: 500;
-  cursor: pointer;
-}
-
-.add-module-button:hover {
-  background-color: #3730a3;
-}
-
-.loading-container {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  padding: 30px;
-}
-
-.spinner {
-  width: 40px;
-  height: 40px;
-  border: 4px solid #f3f3f3;
-  border-top: 4px solid #443bc9;
-  border-radius: 50%;
-  animation: spin 1s linear infinite;
-  margin-bottom: 10px;
-}
-
-@keyframes spin {
-  0% {
-    transform: rotate(0deg);
-  }
-  100% {
-    transform: rotate(360deg);
-  }
-}
-
-.no-modules {
-  padding: 30px;
-  text-align: center;
-  background-color: #f0f2f5;
-  border-radius: 5px;
-  color: #666;
-}
-
 .modules-list {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
+    margin-top: 1rem;
 }
-</style>
+
+.fill-height {
+  height: 100%;
+}
+iframe {
+  width: 100%;
+  height: 100%;
+}
+</style> 

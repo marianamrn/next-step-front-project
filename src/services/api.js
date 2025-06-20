@@ -433,43 +433,39 @@ export const coursesApi = {
   },
 
   // Опублікувати курс
-  async publishCourse(id) {
-    const response = await api.put(`/courses/manage/${id}/publish`)
-    // Отримуємо оновлений список курсів
-    const coursesResponse = await this.getAllCourses()
-    return { ...response, courses: coursesResponse.data }
+  publishCourse(id) {
+    return api.put(`/courses/manage/${id}/publish`);
   },
 
   // Зняти курс з публікації
-  async unpublishCourse(id) {
-    const response = await api.put(`/courses/manage/${id}/unpublish`)
-    // Отримуємо оновлений список курсів
-    const coursesResponse = await this.getAllCourses()
-    return { ...response, courses: coursesResponse.data }
+  unpublishCourse(id) {
+    return api.put(`/courses/manage/${id}/unpublish`);
   },
 
   // Оновити дані курсу
-  async updateCourse(id, courseData) {
-    const response = await api.put(`/courses/manage/${id}`, courseData)
-    // Отримуємо оновлений список курсів
-    const coursesResponse = await this.getAllCourses()
-    return { ...response, courses: coursesResponse.data }
+  updateCourse(id, courseData) {
+    return api.put(`/courses/manage/${id}`, courseData);
   },
 
   //Видалити курс
-  async deleteCourse(id) {
-    const response = await api.delete(`/courses/manage/${id}`)
-    // Отримуємо оновлений список курсів
-    const coursesResponse = await this.getAllCourses()
-    return { ...response, courses: coursesResponse.data }
+  deleteCourse(id) {
+    return api.delete(`/courses/manage/${id}`);
   },
 
   // Створити новий курс
-  async createCourse(courseData) {
-    const response = await api.post('/courses/manage', courseData)
-    // Отримуємо оновлений список курсів
-    const coursesResponse = await this.getAllCourses()
-    return { ...response, courses: coursesResponse.data }
+  createCourse(courseData) {
+    return api.post('/courses/manage', courseData);
+  },
+
+  // Завантажити обкладинку курсу
+  uploadCourseCover(courseId, file) {
+    const formData = new FormData();
+    formData.append('cover_image', file);
+    return api.post(`/courses/manage/${courseId}/cover`, formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
   },
 
   // Отримати типи уроків
@@ -485,18 +481,6 @@ export const coursesApi = {
   // Отримати всі провайдери відео
   getVideoProviders() {
     return api.get('/video_poviders')
-  },
-
-  // Завантажити обкладинку курсу
-  uploadCourseCover(courseId, file) {
-    const formData = new FormData()
-    formData.append('cover_image', file) // змінено назву поля з 'cover' на 'cover_image'
-
-    return api.post(`/courses/${courseId}/cover-image`, formData, {
-      headers: {
-        'Content-Type': 'multipart/form-data',
-      },
-    })
   },
 }
 

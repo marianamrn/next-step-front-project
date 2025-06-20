@@ -362,27 +362,6 @@ export default {
       return isValid
     },
 
-    async uploadCover(courseId) {
-      if (!this.coverFile) return
-
-      try {
-        const formData = new FormData()
-        formData.append('cover_image', this.coverFile)
-
-        console.log(`Завантаження обкладинки для курсу з ID: ${courseId}`)
-
-        await api.courses.uploadCourseCover(courseId, this.coverFile)
-        console.log('Обкладинка успішно завантажена')
-      } catch (error) {
-        console.error('Помилка при завантаженні обкладинки:', error)
-        if (error.response && error.response.data) {
-          console.error('Деталі помилки:', error.response.data)
-        }
-        // Не перекидаємо помилку далі, щоб не блокувати збереження курсу
-      }
-    },
-
-    // Метод для обробки збереження курсу (спільний вхідний метод)
     async saveCourse() {
       if (!this.validateForm()) return
 
@@ -390,7 +369,7 @@ export default {
 
       try {
         // Просто передаємо дані форми в батьківський компонент
-        await this.$emit('save', this.form)
+        await this.$emit('save', { courseData: this.form, coverFile: this.coverFile })
         this.$emit('close') // Автоматично закриваємо модалку після збереження
       } catch (error) {
         console.error('Помилка при збереженні курсу:', error)
