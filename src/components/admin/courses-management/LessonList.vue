@@ -15,36 +15,51 @@
     
     <div v-else class="lessons-container">
       <div v-for="(lesson, index) in lessons" :key="lesson.id" class="lesson-item">
-        <div class="lesson-info" @click="$emit('view-lesson', lesson)">
+        <div class="lesson-info" @click="viewLesson(lesson)">
           <div class="lesson-index">{{ index + 1 }}</div>
           <div class="lesson-details">
             <div class="lesson-title">{{ lesson.title }}</div>
-            <div class="lesson-status" :class="lesson.published ? 'published' : 'draft'">
-              {{ lesson.published ? 'Опубліковано' : 'Чернетка' }}
+            <div class="lesson-type">{{ getLessonTypeName(lesson.type) }}</div>
+            <div class="lesson-status" :class="lesson.status === 'active' ? 'published' : 'draft'">
+              {{ lesson.status === 'active' ? 'Активний' : 'Неактивний' }}
             </div>
           </div>
         </div>
         <div class="lesson-actions">
-          <v-btn icon small min-width="32" height="46" class="action-button" color="#2196f3" @click="$emit('view-lesson', lesson)" title="Переглянути урок">
-            <v-icon size="16">mdi-eye</v-icon>
-          </v-btn>
-          <v-btn icon small min-width="32" height="46" class="action-button" color="#443BC9" @click="$emit('edit-lesson', lesson)" title="Редагувати урок">
-            <v-icon size="16">mdi-pencil</v-icon>
-          </v-btn>
           <v-btn 
-            v-if="!lesson.published" 
             icon 
             small 
             min-width="32" 
-            height="46S" 
+            height="46" 
             class="action-button" 
-            color="#4caf50" 
-            @click="$emit('publish-lesson', lesson)" 
-            title="Опублікувати урок"
+            color="#2196f3" 
+            @click="viewLesson(lesson)" 
+            title="Переглянути урок"
           >
-            <v-icon size="16">mdi-bookmark</v-icon>
+            <v-icon size="16">mdi-eye</v-icon>
           </v-btn>
-          <v-btn icon small min-width="32" height="46" class="action-button" color="#f44336" @click="$emit('delete-lesson', lesson)" title="Видалити урок">
+          <v-btn 
+            icon 
+            small 
+            min-width="32" 
+            height="46" 
+            class="action-button" 
+            color="#443BC9" 
+            @click="editLesson(lesson)" 
+            title="Редагувати урок"
+          >
+            <v-icon size="16">mdi-pencil</v-icon>
+          </v-btn>
+          <v-btn 
+            icon 
+            small 
+            min-width="32" 
+            height="46" 
+            class="action-button" 
+            color="#f44336" 
+            @click="$emit('delete-lesson', lesson)" 
+            title="Видалити урок"
+          >
             <v-icon size="16">mdi-delete</v-icon>
           </v-btn>
         </div>
@@ -60,6 +75,27 @@ export default {
     lessons: {
       type: Array,
       default: () => []
+    },
+    courseId: {
+      type: [String, Number],
+      required: true
+    }
+  },
+  methods: {
+    viewLesson(lesson) {
+      // Навігація до сторінки перегляду уроку
+      this.$router.push(`/admin/courses/${this.courseId}/lesson/${lesson.id}`)
+    },
+    editLesson(lesson) {
+      this.$router.push(`/admin/courses/${this.courseId}/lesson/${lesson.id}/edit`)
+    },
+    getLessonTypeName(type) {
+      const types = {
+        lecture: 'Лекція',
+        test: 'Тест',
+        extra_material: 'Додатковий матеріал'
+      }
+      return types[type] || type
     }
   }
 };
@@ -142,6 +178,12 @@ export default {
 
 .lesson-title {
   font-weight: 500;
+  margin-bottom: 5px;
+}
+
+.lesson-type {
+  font-size: 12px;
+  color: #666;
   margin-bottom: 5px;
 }
 

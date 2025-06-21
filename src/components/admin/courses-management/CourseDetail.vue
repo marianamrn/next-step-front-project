@@ -25,15 +25,13 @@
                 <v-card-title>Чого ви навчитеся</v-card-title>
                 <v-list dense>
                   <v-list-item v-for="(item, index) in formattedWhatYouLearn" :key="`learn-${index}`">
-                    <v-list-item-icon>
+                    <template v-slot:prepend>
                       <v-icon color="primary">mdi-check</v-icon>
-                    </v-list-item-icon>
-                    <v-list-item-content>
-                      <v-list-item-title>{{ item }}</v-list-item-title>
-                    </v-list-item-content>
+                    </template>
+                    <v-list-item-title>{{ item }}</v-list-item-title>
                   </v-list-item>
                    <v-list-item v-if="!formattedWhatYouLearn.length">
-                    <v-list-item-content>Не вказано</v-list-item-content>
+                    <v-list-item-title>Не вказано</v-list-item-title>
                   </v-list-item>
                 </v-list>
               </v-card>
@@ -43,15 +41,13 @@
                 <v-card-title>Вимоги до курсу</v-card-title>
                  <v-list dense>
                   <v-list-item v-for="(item, index) in formattedRequirements" :key="`req-${index}`">
-                    <v-list-item-icon>
+                    <template v-slot:prepend>
                       <v-icon color="primary">mdi-chevron-right</v-icon>
-                    </v-list-item-icon>
-                    <v-list-item-content>
-                      <v-list-item-title>{{ item }}</v-list-item-title>
-                    </v-list-item-content>
+                    </template>
+                    <v-list-item-title>{{ item }}</v-list-item-title>
                   </v-list-item>
                    <v-list-item v-if="!formattedRequirements.length">
-                    <v-list-item-content>Не вказано</v-list-item-content>
+                    <v-list-item-title>Не вказано</v-list-item-title>
                   </v-list-item>
                 </v-list>
               </v-card>
@@ -85,10 +81,10 @@
             <v-card-title>Статистика</v-card-title>
             <v-list dense>
               <v-list-item v-for="stat in courseStats" :key="stat.label">
-                <v-list-item-icon><v-icon>{{ stat.icon }}</v-icon></v-list-item-icon>
-                <v-list-item-content>
-                  <v-list-item-title>{{ stat.label }}: <strong>{{ stat.value }}</strong></v-list-item-title>
-                </v-list-item-content>
+                <template v-slot:prepend>
+                  <v-icon>{{ stat.icon }}</v-icon>
+                </template>
+                <v-list-item-title>{{ stat.label }}: <strong>{{ stat.value }}</strong></v-list-item-title>
               </v-list-item>
             </v-list>
           </v-card>
@@ -98,43 +94,43 @@
             <v-card-title>Деталі курсу</v-card-title>
              <v-list dense>
                 <v-list-item>
-                    <v-list-item-icon><v-icon>mdi-cash</v-icon></v-list-item-icon>
-                    <v-list-item-content>
-                        <v-list-item-title>Ціна</v-list-item-title>
-                        <v-list-item-subtitle>{{ formattedPrice }}</v-list-item-subtitle>
-                    </v-list-item-content>
+                    <template v-slot:prepend>
+                      <v-icon>mdi-cash</v-icon>
+                    </template>
+                    <v-list-item-title>Ціна</v-list-item-title>
+                    <v-list-item-subtitle>{{ formattedPrice }}</v-list-item-subtitle>
                 </v-list-item>
                  <v-divider></v-divider>
                  <v-list-item>
-                    <v-list-item-icon><v-icon>mdi-account-tie</v-icon></v-list-item-icon>
-                    <v-list-item-content>
-                        <v-list-item-title>Інструктор</v-list-item-title>
-                        <v-list-item-subtitle>{{ instructorName }}</v-list-item-subtitle>
-                    </v-list-item-content>
+                    <template v-slot:prepend>
+                      <v-icon>mdi-account-tie</v-icon>
+                    </template>
+                    <v-list-item-title>Інструктор</v-list-item-title>
+                    <v-list-item-subtitle>{{ instructorName }}</v-list-item-subtitle>
                 </v-list-item>
                  <v-divider></v-divider>
                 <v-list-item>
-                    <v-list-item-icon><v-icon>mdi-layers</v-icon></v-list-item-icon>
-                    <v-list-item-content>
-                        <v-list-item-title>Категорія</v-list-item-title>
-                        <v-list-item-subtitle>{{ categoryName }}</v-list-item-subtitle>
-                    </v-list-item-content>
+                    <template v-slot:prepend>
+                      <v-icon>mdi-layers</v-icon>
+                    </template>
+                    <v-list-item-title>Категорія</v-list-item-title>
+                    <v-list-item-subtitle>{{ categoryName }}</v-list-item-subtitle>
                 </v-list-item>
                  <v-divider></v-divider>
                  <v-list-item>
-                    <v-list-item-icon><v-icon>mdi-signal</v-icon></v-list-item-icon>
-                    <v-list-item-content>
-                        <v-list-item-title>Рівень</v-list-item-title>
-                        <v-list-item-subtitle>{{ levelName }}</v-list-item-subtitle>
-                    </v-list-item-content>
+                    <template v-slot:prepend>
+                      <v-icon>mdi-signal</v-icon>
+                    </template>
+                    <v-list-item-title>Рівень</v-list-item-title>
+                    <v-list-item-subtitle>{{ levelName }}</v-list-item-subtitle>
                 </v-list-item>
                  <v-divider></v-divider>
                 <v-list-item>
-                    <v-list-item-icon><v-icon>mdi-translate</v-icon></v-list-item-icon>
-                    <v-list-item-content>
-                        <v-list-item-title>Мова</v-list-item-title>
-                        <v-list-item-subtitle>{{ course.language || 'Не вказано' }}</v-list-item-subtitle>
-                    </v-list-item-content>
+                    <template v-slot:prepend>
+                      <v-icon>mdi-translate</v-icon>
+                    </template>
+                    <v-list-item-title>Мова</v-list-item-title>
+                    <v-list-item-subtitle>{{ course.language || 'Не вказано' }}</v-list-item-subtitle>
                 </v-list-item>
              </v-list>
           </v-card>
@@ -162,6 +158,7 @@
                         :key="module.id"
                         :module="module"
                         :index="index"
+                        :course-id="course.id"
                         @edit-module="openModuleModal"
                         @delete-module="confirmDeleteModule"
                         @add-lesson="openLessonModal"
@@ -293,13 +290,13 @@ export default {
       try {
         const response = await api.modules.getModulesByCourse(this.course.id)
         if(response.data && response.data.data) {
-            this.$set(this.course, 'modules', response.data.data);
+            this.course.modules = response.data.data;
         } else if (response.data) {
-            this.$set(this.course, 'modules', response.data);
+            this.course.modules = response.data;
         }
       } catch (error) {
         console.error('Помилка при завантаженні модулів:', error)
-        this.$set(this.course, 'modules', []);
+        this.course.modules = [];
       } finally {
         this.loadingModules = false
       }
@@ -307,7 +304,7 @@ export default {
      handleLessonsLoaded({ moduleId, lessons }) {
       const moduleIndex = this.course.modules.findIndex((m) => m.id === moduleId)
       if (moduleIndex !== -1) {
-        this.$set(this.course.modules[moduleIndex], 'lessons', lessons);
+        this.course.modules[moduleIndex].lessons = lessons;
       }
     },
     openModuleModal(module = null) {

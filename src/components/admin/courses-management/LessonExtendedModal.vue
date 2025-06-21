@@ -573,37 +573,69 @@ export default {
         const lessonData = {
           title: this.form.title,
           description: this.form.description || '',
-          module_id: this.moduleId.toString(),
+          module_id: Number(this.moduleId),
           status: 'active',
           type: this.form.type,
         }
+
         if (this.form.position !== null && this.form.position !== undefined) {
-          lessonData.position = this.form.position.toString()
-        }
-        if (this.form.type === 'lecture') {
-          if (this.form.content) lessonData.content = this.form.content
-          if (this.fileData) lessonData.file = this.fileData
-          lessonData.duration_minutes = (this.form.duration_minutes || 30).toString()
-        } else if (this.form.type === 'test') {
-          lessonData.source_type = this.form.source_type
-          lessonData.external_url = this.form.external_url
-          lessonData.time_limit_minutes = this.form.time_limit_minutes
-          lessonData.passing_score = this.form.passing_score
-        } else if (this.form.type === 'extra_material') {
-          lessonData.material_type = this.form.material_type
-          lessonData.material_content = this.form.material_content
-          lessonData.material_url = this.form.material_url
-          if (this.materialFileData) lessonData.material_file = this.materialFileData
+          lessonData.position = Number(this.form.position)
         }
 
-        // Викликаємо API для створення уроку
-        const response = await lessonsApi.createLesson(lessonData)
+        if (this.form.type === 'lecture') {
+          if (this.fileData) {
+            lessonData.file = this.fileData
+            lessonData.content = '' // Очищуємо контент, якщо є файл
+          } else {
+            lessonData.content = this.form.content
+          }
+          lessonData.duration_minutes = Number(this.form.duration_minutes || 30)
+        } else if (this.form.type === 'test') {
+          lessonData.source_type = this.form.source_type
+          if (this.form.source_type === 'url') {
+            lessonData.external_url = this.form.external_url
+          }
+          lessonData.time_limit_minutes = Number(this.form.time_limit_minutes)
+          lessonData.passing_score = Number(this.form.passing_score)
+        } else if (this.form.type === 'extra_material') {
+          lessonData.material_type = this.form.material_type
+          if (this.materialFileData) {
+            lessonData.material_file = this.materialFileData
+            lessonData.material_content = ''
+            lessonData.material_url = ''
+          } else if (this.form.material_type === 'text') {
+            lessonData.material_content = this.form.material_content
+          } else if (this.form.material_type === 'url') {
+            lessonData.material_url = this.form.material_url
+          }
+        }
+
+        console.log('Дані для відправки:', lessonData)
+
+        let response
+        if (this.isEdit) {
+          // Оновлення існуючого уроку
+          response = await lessonsApi.updateLesson(this.lesson.id, lessonData)
+        } else {
+          // Створення нового уроку
+          response = await lessonsApi.createLesson(lessonData)
+        }
+        
         console.log('Відповідь API:', response.data)
         const lessonDataResp = response.data.data || response.data
         this.$emit('save', lessonDataResp)
+        this.$emit('close')
       } catch (error) {
         console.error('Помилка при збереженні уроку:', error)
-        // Тут можна додати обробку помилок для користувача
+        
+        // Показуємо помилку користувачу
+        let errorMessage = 'Помилка при збереженні уроку'
+        if (error.response && error.response.data && error.response.data.message) {
+          errorMessage = error.response.data.message
+        }
+        
+        // Тут можна додати toast або alert для показу помилки
+        alert(errorMessage)
       } finally {
         this.loading = false
       }

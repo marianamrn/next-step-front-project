@@ -16,6 +16,11 @@ import MyCoursesPage from '@/components/pages/MyCoursesPage.vue'
 import CourseDetails from '@/components/courses/CourseDetails.vue'
 import CoursesList from '@/components/courses/CoursesList.vue'
 
+// Компонент для перегляду уроку
+import LessonView from '@/components/lessons/LessonView.vue'
+// Компонент для редагування уроку
+import LessonEdit from '@/components/lessons/LessonEdit.vue'
+
 // Перевірка авторизації
 const checkAuth = (to, from, next) => {
   const token = localStorage.getItem('token')
@@ -135,6 +140,22 @@ const routes = [
         name: 'AdminCourseDetail',
         component: CoursesManagement,
         props: (route) => ({ id: route.params.id }),
+        meta: { roles: ['super_admin', 'admin', 'teacher'] },
+        beforeEnter: checkRoleAccess(['super_admin', 'admin', 'teacher'])
+      },
+      {
+        path: 'courses/:courseId/lesson/:lessonId',
+        name: 'AdminLessonView',
+        component: LessonView,
+        props: true,
+        meta: { roles: ['super_admin', 'admin', 'teacher'] },
+        beforeEnter: checkRoleAccess(['super_admin', 'admin', 'teacher'])
+      },
+      {
+        path: 'courses/:courseId/lesson/:lessonId/edit',
+        name: 'AdminLessonEdit',
+        component: LessonEdit,
+        props: true,
         meta: { roles: ['super_admin', 'admin', 'teacher'] },
         beforeEnter: checkRoleAccess(['super_admin', 'admin', 'teacher'])
       },

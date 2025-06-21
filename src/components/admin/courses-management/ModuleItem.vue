@@ -80,6 +80,10 @@ export default {
       type: Number,
       required: true,
     },
+    courseId: {
+      type: [String, Number],
+      required: true
+    }
   },
   data() {
     return {
@@ -179,12 +183,13 @@ export default {
     // Методи для взаємодії з уроками
     viewLesson(lesson, module) {
       console.log('Перегляд уроку:', lesson)
-      this.$emit('view-lesson', lesson, module)
+      // Навігація до сторінки перегляду уроку
+      this.$router.push(`/admin/courses/${this.courseId}/lesson/${lesson.id}`)
     },
 
     editLesson(lesson, module) {
       console.log('Редагування уроку:', lesson)
-      this.$emit('edit-lesson', lesson, module)
+      this.$router.push(`/admin/courses/${this.courseId}/lesson/${lesson.id}/edit`)
     },
 
     deleteLesson(lesson, module) {

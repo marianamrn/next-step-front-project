@@ -52,6 +52,20 @@ api.interceptors.request.use(
     if (token) {
       config.headers['Authorization'] = `Bearer ${token}`
     }
+    
+    // Якщо дані є FormData, видаляємо Content-Type щоб браузер сам встановив multipart/form-data
+    if (config.data instanceof FormData) {
+      delete config.headers['Content-Type']
+    }
+    
+    // Додаємо логування запитів
+    console.log('API Request:', {
+      method: config.method,
+      url: config.url,
+      data: config.data instanceof FormData ? 'FormData' : config.data,
+      headers: config.headers
+    })
+    
     return config
   },
   (error) => Promise.reject(error),
@@ -67,6 +81,16 @@ api.interceptors.response.use(
     return response
   },
   (error) => {
+    // Додаємо детальне логування помилок
+    console.error('API Error:', {
+      status: error.response?.status,
+      statusText: error.response?.statusText,
+      url: error.config?.url,
+      method: error.config?.method,
+      data: error.response?.data,
+      headers: error.config?.headers
+    })
+    
     // Якщо помилка 401 (неавторизований), перенаправляємо на сторінку логіну
     if (error.response && error.response.status === 401) {
       localStorage.removeItem('token')
@@ -459,13 +483,10 @@ export const coursesApi = {
 
   // Завантажити обкладинку курсу
   uploadCourseCover(courseId, file) {
-    const formData = new FormData();
-    formData.append('cover_image', file);
-    return api.post(`/courses/manage/${courseId}/cover`, formData, {
-      headers: {
-        'Content-Type': 'multipart/form-data',
-      },
-    });
+    const formData = new FormData()
+    formData.append('cover', file)
+
+    return api.post(`/courses/${courseId}/upload-cover`, formData)
   },
 
   // Отримати типи уроків
@@ -484,20 +505,32 @@ export const coursesApi = {
   },
 }
 
-// Функція для обробки завантаження зображень
+// Функція для отримання повного URL зображення
 export const getImageUrl = (imagePath) => {
-  if (!imagePath) return 'https://via.placeholder.com/150'
-
-  // Якщо шлях містить localhost, замінюємо на домен API
-  if (imagePath.startsWith('http://localhost')) {
-    return imagePath.replace('http://localhost', 'https://nextsteap.api-dev.bmax-edu.website')
-  }
-
-  if (imagePath.startsWith('http')) {
+  if (!imagePath) return ''
+  
+  // Якщо це вже повний URL, повертаємо як є
+  if (imagePath.startsWith('http://') || imagePath.startsWith('https://')) {
     return imagePath
-  } else {
-    return `${API_URL}/storage/${imagePath}`
   }
+  
+  // Якщо це відносний шлях, додаємо базовий URL
+  return `${API_URL}/storage/${imagePath}`
+}
+
+// Функція для отримання повного URL файлу уроку
+export const getLessonFileUrl = (filePath) => {
+  if (!filePath) return ''
+  
+  // Якщо це вже повний URL, повертаємо як є
+  if (filePath.startsWith('http://') || filePath.startsWith('https://')) {
+    return filePath
+  }
+  
+  // Якщо це відносний шлях, додаємо базовий URL
+  // Видаляємо початковий слеш, якщо він є
+  const cleanPath = filePath.startsWith('/') ? filePath.substring(1) : filePath
+  return `${API_URL}/storage/${cleanPath}`
 }
 
 // API для модулів
@@ -614,11 +647,7 @@ export const lessonsApi = {
       }
 
       // Відправляємо запит з FormData
-      return api.post('/lessons/manage', formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-        },
-      })
+      return api.post('/lessons/manage', formData)
     } else {
       // Якщо немає файлів, можна відправляти як звичайний JSON
       return api.post('/lessons/manage', lessonData)
@@ -629,55 +658,29 @@ export const lessonsApi = {
   updateLesson(lessonId, lessonData) {
     console.log(`API: Оновлення уроку з ID ${lessonId} з даними:`, lessonData)
 
-    // Перевіряємо наявність файлів
-    const hasFiles = lessonData.file || lessonData.material_file
+    const formData = new FormData()
 
-    if (hasFiles) {
-      // Якщо є файли, потрібно використовувати FormData з _method: PUT
-      const formData = new FormData()
-
-      // Додаємо метод PUT
-      formData.append('_method', 'PUT')
-
-      // Додаємо всі поля, крім файлів і полів, які не можна оновлювати
-      for (const key in lessonData) {
-        if (key === 'file' || key === 'material_file' || key === 'type' || key === 'module_id')
-          continue
-
-        if (lessonData[key] !== null && lessonData[key] !== undefined) {
-          formData.append(key, lessonData[key])
-        }
-      }
-
-      // Додаємо файли
-      if (lessonData.file) {
-        formData.append('file', lessonData.file)
-      }
-
-      if (lessonData.material_file) {
-        formData.append('material_file', lessonData.material_file)
-      }
-
-      // Логуємо поля FormData для діагностики
-      console.log('FormData fields for update:')
-      for (const [key, value] of formData.entries()) {
+    for (const key in lessonData) {
+      const value = lessonData[key];
+      // Ігноруємо null та undefined значення
+      if (value !== null && value !== undefined) {
+        // Додаємо файл або звичайне значення до FormData
         if (value instanceof File) {
-          console.log(`${key}: File (${value.name}, ${value.type}, ${value.size} bytes)`)
+          formData.append(key, value, value.name);
         } else {
-          console.log(`${key}: ${value}`)
+          formData.append(key, value);
         }
       }
-
-      // Відправляємо запит з FormData через POST з _method: PUT
-      return api.post(`/lessons/manage/${lessonId}`, formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-        },
-      })
-    } else {
-      // Якщо немає файлів, можна використовувати PUT запит
-      return api.put(`/lessons/manage/${lessonId}`, lessonData)
     }
+
+    console.log('Надсилаємо FormData для оновлення уроку (завжди методом POST):');
+    for (const [key, value] of formData.entries()) {
+        console.log(`${key}:`, value instanceof File ? value.name : value);
+    }
+
+    // Згідно з вимогою сервера ("Supported methods: POST, DELETE"),
+    // використовуємо POST для оновлення.
+    return api.post(`/lessons/manage/${lessonId}`, formData)
   },
 
   // Видалення уроку
@@ -767,4 +770,5 @@ export default {
   getImageUrl,
   adminCourses: adminCoursesApi,
   users: usersApi,
+  getLessonFileUrl,
 }
