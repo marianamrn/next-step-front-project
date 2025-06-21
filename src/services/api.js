@@ -633,7 +633,17 @@ export const lessonsApi = {
       }
 
       if (lessonData.material_file) {
-        formData.append('material_file', lessonData.material_file)
+        // Для додаткових матеріалів використовуємо різні назви полів залежно від типу
+        const materialType = lessonData.material_type;
+        if (materialType === 'image' || materialType === 'video') {
+          // Для зображень та відео використовуємо material_file
+          formData.append('material_file', lessonData.material_file)
+          console.log(`Додаємо файл як material_file для типу: ${materialType}`)
+        } else {
+          // Для звичайних файлів використовуємо file_path
+          formData.append('file_path', lessonData.material_file)
+          console.log(`Додаємо файл як file_path для типу: ${materialType}`)
+        }
       }
 
       // Логуємо поля FormData для діагностики
@@ -666,7 +676,19 @@ export const lessonsApi = {
       if (value !== null && value !== undefined) {
         // Додаємо файл або звичайне значення до FormData
         if (value instanceof File) {
-          formData.append(key, value, value.name);
+          // Для додаткових матеріалів використовуємо різні назви полів залежно від типу
+          if (key === 'material_file') {
+            const materialType = lessonData.material_type;
+            if (materialType === 'image' || materialType === 'video') {
+              formData.append('material_file', value, value.name);
+              console.log(`Оновлення: додаємо файл як material_file для типу: ${materialType}`)
+            } else {
+              formData.append('file_path', value, value.name);
+              console.log(`Оновлення: додаємо файл як file_path для типу: ${materialType}`)
+            }
+          } else {
+            formData.append(key, value, value.name);
+          }
         } else {
           formData.append(key, value);
         }

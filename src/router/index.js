@@ -20,6 +20,8 @@ import CoursesList from '@/components/courses/CoursesList.vue'
 import LessonView from '@/components/lessons/LessonView.vue'
 // Компонент для редагування уроку
 import LessonEdit from '@/components/lessons/LessonEdit.vue'
+// Компонент для додавання уроку
+import AddLesson from '@/components/lessons/AddLesson.vue'
 
 // Перевірка авторизації
 const checkAuth = (to, from, next) => {
@@ -155,6 +157,14 @@ const routes = [
         path: 'courses/:courseId/lesson/:lessonId/edit',
         name: 'AdminLessonEdit',
         component: LessonEdit,
+        props: true,
+        meta: { roles: ['super_admin', 'admin', 'teacher'] },
+        beforeEnter: checkRoleAccess(['super_admin', 'admin', 'teacher'])
+      },
+      {
+        path: 'courses/:courseId/module/:moduleId/add-lesson',
+        name: 'AdminAddLesson',
+        component: AddLesson,
         props: true,
         meta: { roles: ['super_admin', 'admin', 'teacher'] },
         beforeEnter: checkRoleAccess(['super_admin', 'admin', 'teacher'])

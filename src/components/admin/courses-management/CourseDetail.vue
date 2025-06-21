@@ -161,7 +161,7 @@
                         :course-id="course.id"
                         @edit-module="openModuleModal"
                         @delete-module="confirmDeleteModule"
-                        @add-lesson="openLessonModal"
+                        @add-lesson="addLesson"
                         @edit-lesson="openLessonModal"
                         @delete-lesson="confirmDeleteLesson"
                         @view-lesson="viewLesson"
@@ -350,6 +350,10 @@ export default {
         return;
       }
       this.showLessonModal = true;
+    },
+    addLesson(lesson = null, module = null) {
+      // Навігація до сторінки додавання уроку
+      this.$router.push(`/admin/courses/${this.course.id}/module/${module.id}/add-lesson`);
     },
     closeLessonModal() {
       this.showLessonModal = false
