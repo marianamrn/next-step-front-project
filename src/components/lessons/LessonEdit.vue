@@ -71,6 +71,7 @@
                 <v-tabs v-model="lectureTab" class="mb-4">
                   <v-tab value="text">Текстовий контент</v-tab>
                   <v-tab value="file">Файл</v-tab>
+                  <v-tab value="mixed">Текст + Файл</v-tab>
                 </v-tabs>
 
                 <v-window v-model="lectureTab">
@@ -89,7 +90,38 @@
                         v-model="formData.file"
                         label="Файл лекції (PDF, DOCX)"
                         accept=".pdf,.docx"
-                        :rules="[v => !v || !Array.isArray(v) || v.length === 0 || (v[0] && v[0].size < 10 * 1024 * 1024) || 'Розмір файлу повинен бути менше 10 MB']"
+                        :rules="[v => !v || !Array.isArray(v) || v.length === 0 || (v[0] && v[0].size < 100 * 1024 * 1024) || 'Розмір файлу повинен бути менше 100 MB']"
+                        prepend-icon="mdi-file-upload"
+                      />
+                      <div v-if="currentFile" class="current-file">
+                        <p><strong>Поточний файл:</strong> {{ getFileName(currentFile) }}</p>
+                        <v-btn
+                          color="primary"
+                          variant="outlined"
+                          size="small"
+                          @click="downloadCurrentFile"
+                        >
+                          <v-icon left>mdi-download</v-icon>
+                          Завантажити
+                        </v-btn>
+                      </div>
+                    </div>
+                  </v-window-item>
+
+                  <v-window-item value="mixed">
+                    <v-textarea
+                      v-model="formData.content"
+                      label="Текстовий контент (Markdown)"
+                      rows="6"
+                      placeholder="# Заголовок 1&#10;&#10;## Заголовок 2&#10;&#10;Текст параграфа..."
+                      class="mb-4"
+                    />
+                    <div class="file-upload-section">
+                      <v-file-input
+                        v-model="formData.file"
+                        label="Додатковий файл (PDF, DOCX)"
+                        accept=".pdf,.docx"
+                        :rules="[v => !v || !Array.isArray(v) || v.length === 0 || (v[0] && v[0].size < 100 * 1024 * 1024) || 'Розмір файлу повинен бути менше 100 MB']"
                         prepend-icon="mdi-file-upload"
                       />
                       <div v-if="currentFile" class="current-file">
@@ -130,7 +162,7 @@
                 />
 
                 <v-text-field
-                  v-if="formData.source_type === 'url'"
+                  v-if="formData.source_type === 'external'"
                   v-model="formData.external_url"
                   label="Посилання на тест"
                   placeholder="https://forms.google.com/..."
@@ -184,7 +216,7 @@
                     v-model="formData.material_file"
                     label="Файл матеріалу"
                     accept=".pdf,.docx,.jpg,.jpeg,.png,.mp4"
-                    :rules="[v => !v || !Array.isArray(v) || v.length === 0 || (v[0] && v[0].size < 50 * 1024 * 1024) || 'Розмір файлу повинен бути менше 50 MB']"
+                    :rules="[v => !v || !Array.isArray(v) || v.length === 0 || (v[0] && v[0].size < 100 * 1024 * 1024) || 'Розмір файлу повинен бути менше 100 MB']"
                     prepend-icon="mdi-file-upload"
                   />
                   <div v-if="currentMaterialFile" class="current-file">
@@ -252,7 +284,7 @@ export default {
         content: '',
         file: null,
         duration_minutes: null,
-        source_type: 'url',
+        source_type: 'external',
         external_url: '',
         time_limit_minutes: null,
         passing_score: null,
@@ -266,7 +298,7 @@ export default {
         { value: 'inactive', text: 'Неактивний' },
       ],
       sourceTypeOptions: [
-        { value: 'url', text: 'Зовнішнє посилання' },
+        { value: 'external', text: 'Зовнішнє посилання' },
         { value: 'internal', text: 'Внутрішній тест' },
       ],
       materialTypeOptions: [
@@ -298,6 +330,15 @@ export default {
           if (newVal.type === 'lecture' && newVal.lecture) {
             this.formData.content = newVal.lecture.content;
             this.formData.duration_minutes = newVal.lecture.duration_minutes;
+            
+            // Визначаємо активну вкладку на основі типу контенту
+            if (newVal.lecture.content && newVal.lecture.file_path) {
+              this.lectureTab = 'mixed';
+            } else if (newVal.lecture.file_path) {
+              this.lectureTab = 'file';
+            } else {
+              this.lectureTab = 'text';
+            }
           } else if (newVal.type === 'test' && newVal.test) {
             this.formData.source_type = newVal.test.source_type;
             this.formData.external_url = newVal.test.external_url;
@@ -346,10 +387,17 @@ export default {
         if (this.lesson.type === 'lecture') {
           lessonData.duration_minutes = Number(this.formData.duration_minutes);
           
-          // Надсилаємо або контент, або файл, залежно від активної вкладки
+          // Залежно від активної вкладки, надсилаємо відповідні дані
           if (this.lectureTab === 'text') {
             lessonData.content = this.formData.content;
-          } else {
+          } else if (this.lectureTab === 'file') {
+            const file = Array.isArray(this.formData.file) ? this.formData.file[0] : this.formData.file;
+            if (file instanceof File) {
+              lessonData.file = file;
+            }
+          } else if (this.lectureTab === 'mixed') {
+            // Для mixed типу надсилаємо і контент, і файл
+            lessonData.content = this.formData.content;
             const file = Array.isArray(this.formData.file) ? this.formData.file[0] : this.formData.file;
             if (file instanceof File) {
               lessonData.file = file;
@@ -357,13 +405,15 @@ export default {
           }
         } else if (this.lesson.type === 'test') {
           lessonData.source_type = this.formData.source_type;
-          lessonData.external_url = this.formData.external_url;
+          if (this.formData.source_type === 'external') {
+            lessonData.external_url = this.formData.external_url;
+          }
           lessonData.time_limit_minutes = Number(this.formData.time_limit_minutes);
           lessonData.passing_score = Number(this.formData.passing_score);
         } else if (this.lesson.type === 'extra_material') {
           lessonData.material_type = this.formData.material_type;
           
-          // Залежно від типу матеріалу, надсилаємо лише відповідне поле
+          // Залежно від типу матеріалу, надсилаємо відповідне поле
           switch(this.formData.material_type) {
             case 'text':
               lessonData.material_content = this.formData.material_content;
@@ -376,24 +426,32 @@ export default {
             case 'image':
               const materialFile = Array.isArray(this.formData.material_file) ? this.formData.material_file[0] : this.formData.material_file;
               if (materialFile instanceof File) {
-                lessonData.material_file = materialFile;
+                console.log('Файл матеріалу для оновлення:', {
+                  name: materialFile.name,
+                  type: materialFile.type,
+                  size: materialFile.size,
+                  materialType: this.formData.material_type
+                });
+                
+                // Спробуємо різні поля залежно від типу
+                if (this.formData.material_type === 'image') {
+                  // Для зображень спробуємо поле 'file'
+                  lessonData.file = materialFile;
+                  // Додаємо додаткові поля для зображень
+                  lessonData.image = materialFile;
+                  lessonData.file_type = 'image';
+                  console.log('Використовуємо поле "file" для зображення');
+                } else {
+                  // Для інших типів використовуємо material_file
+                  lessonData.material_file = materialFile;
+                  console.log('Використовуємо поле "material_file" для', this.formData.material_type);
+                }
               }
               break;
           }
         }
 
         // Очищуємо зайві дані, щоб уникнути конфліктів на бекенді
-        if (this.lesson.type === 'lecture') {
-          if (lessonData.file) lessonData.content = null;
-          if (lessonData.content) lessonData.file = null;
-        } else if (this.lesson.type === 'extra_material') {
-            if (lessonData.material_type !== 'text') lessonData.material_content = null;
-            if (lessonData.material_type !== 'url') lessonData.material_url = null;
-            if (lessonData.material_type !== 'file' && lessonData.material_type !== 'video' && lessonData.material_type !== 'image') {
-                lessonData.material_file = null;
-            }
-        }
-
         Object.keys(lessonData).forEach(key => {
             if (lessonData[key] === null || lessonData[key] === undefined || (typeof lessonData[key] === 'number' && isNaN(lessonData[key]))) {
                 delete lessonData[key];

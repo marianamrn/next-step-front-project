@@ -604,7 +604,20 @@ export const lessonsApi = {
   // Отримання уроку за ID
   getLessonById(lessonId) {
     console.log(`Отримання уроку ${lessonId}`)
-    return api.get(`/lessons/${lessonId}`)
+    // Спробуємо різні варіанти endpoint
+    return api.get(`/lessons/${lessonId}`).catch(error => {
+      if (error.response?.status === 405) {
+        console.log('GET /lessons/{id} не підтримується, спробуємо /lessons/manage/{id}')
+        return api.get(`/lessons/manage/${lessonId}`).catch(error2 => {
+          if (error2.response?.status === 405) {
+            console.log('GET /lessons/manage/{id} не підтримується, спробуємо POST')
+            return api.post(`/lessons/manage/${lessonId}`)
+          }
+          throw error2
+        })
+      }
+      throw error
+    })
   },
 
   // Створення нового уроку
@@ -633,17 +646,9 @@ export const lessonsApi = {
       }
 
       if (lessonData.material_file) {
-        // Для додаткових матеріалів використовуємо різні назви полів залежно від типу
-        const materialType = lessonData.material_type;
-        if (materialType === 'image' || materialType === 'video') {
-          // Для зображень та відео використовуємо material_file
-          formData.append('material_file', lessonData.material_file)
-          console.log(`Додаємо файл як material_file для типу: ${materialType}`)
-        } else {
-          // Для звичайних файлів використовуємо file_path
-          formData.append('file_path', lessonData.material_file)
-          console.log(`Додаємо файл як file_path для типу: ${materialType}`)
-        }
+        // Для додаткових матеріалів завжди використовуємо material_file
+        formData.append('material_file', lessonData.material_file)
+        console.log(`Додаємо файл як material_file для типу: ${lessonData.material_type}`)
       }
 
       // Логуємо поля FormData для діагностики
@@ -668,47 +673,72 @@ export const lessonsApi = {
   updateLesson(lessonId, lessonData) {
     console.log(`API: Оновлення уроку з ID ${lessonId} з даними:`, lessonData)
 
-    const formData = new FormData()
+    // Перевіряємо, чи є файли
+    const hasFiles = Object.values(lessonData).some(value => value instanceof File);
+    
+    if (hasFiles) {
+      const formData = new FormData()
 
-    for (const key in lessonData) {
-      const value = lessonData[key];
-      // Ігноруємо null та undefined значення
-      if (value !== null && value !== undefined) {
-        // Додаємо файл або звичайне значення до FormData
-        if (value instanceof File) {
-          // Для додаткових матеріалів використовуємо різні назви полів залежно від типу
-          if (key === 'material_file') {
-            const materialType = lessonData.material_type;
-            if (materialType === 'image' || materialType === 'video') {
-              formData.append('material_file', value, value.name);
-              console.log(`Оновлення: додаємо файл як material_file для типу: ${materialType}`)
+      for (const key in lessonData) {
+        const value = lessonData[key];
+        // Ігноруємо null та undefined значення
+        if (value !== null && value !== undefined) {
+          // Додаємо файл або звичайне значення до FormData
+          if (value instanceof File) {
+            console.log(`Додаємо файл ${key}:`, value.name, value.type, value.size);
+            
+            // Для зображень в додаткових матеріалах може знадобитися спеціальна обробка
+            if (key === 'file' && lessonData.material_type === 'image') {
+              console.log('Спеціальна обробка для зображення');
+              formData.append('image', value, value.name);
+            } else if (key === 'material_file' && lessonData.material_type === 'image') {
+              console.log('Спеціальна обробка для зображення (material_file)');
+              formData.append('image', value, value.name);
             } else {
-              formData.append('file_path', value, value.name);
-              console.log(`Оновлення: додаємо файл як file_path для типу: ${materialType}`)
+              formData.append(key, value, value.name);
             }
           } else {
-            formData.append(key, value, value.name);
+            console.log(`Додаємо поле ${key}:`, value);
+            formData.append(key, value);
           }
-        } else {
-          formData.append(key, value);
         }
       }
-    }
 
-    console.log('Надсилаємо FormData для оновлення уроку (завжди методом POST):');
-    for (const [key, value] of formData.entries()) {
-        console.log(`${key}:`, value instanceof File ? value.name : value);
-    }
+      console.log('Надсилаємо FormData для оновлення уроку (завжди методом POST):');
+      for (const [key, value] of formData.entries()) {
+          if (value instanceof File) {
+            console.log(`${key}: File (${value.name}, ${value.type}, ${value.size} bytes)`);
+          } else {
+            console.log(`${key}: ${value}`);
+          }
+      }
 
-    // Згідно з вимогою сервера ("Supported methods: POST, DELETE"),
-    // використовуємо POST для оновлення.
-    return api.post(`/lessons/manage/${lessonId}`, formData)
+      // Згідно з вимогою сервера ("Supported methods: POST, DELETE"),
+      // використовуємо POST для оновлення.
+      return api.post(`/lessons/manage/${lessonId}`, formData)
+    } else {
+      // Якщо немає файлів, відправляємо як JSON
+      console.log('Відправляємо дані як JSON (без файлів)');
+      return api.post(`/lessons/manage/${lessonId}`, lessonData)
+    }
   },
 
   // Видалення уроку
   deleteLesson(lessonId) {
     console.log(`Видалення уроку ${lessonId}`)
     return api.delete(`/lessons/manage/${lessonId}`)
+  },
+
+  // Зміна позиції уроку
+  changeLessonPosition(lessonId, position) {
+    console.log(`Зміна позиції уроку ${lessonId} на ${position}`)
+    return api.put(`/lessons/manage/${lessonId}/position`, { position })
+  },
+
+  // Масова зміна позицій уроків
+  updateLessonsPositions(positionsData) {
+    console.log('Масова зміна позицій уроків:', positionsData)
+    return api.post('/lessons/manage/positions', { positions: positionsData })
   },
 
   // Додайте цей метод до api.js

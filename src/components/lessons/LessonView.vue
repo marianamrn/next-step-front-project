@@ -104,7 +104,7 @@
                 <div class="info-item">
                   <div class="info-label">Тип джерела:</div>
                   <div class="info-value">
-                    {{ testSourceType === 'url' ? 'Зовнішнє посилання' : 'Внутрішній тест' }}
+                    {{ testSourceType === 'external' ? 'Зовнішнє посилання' : 'Внутрішній тест' }}
                   </div>
                 </div>
 
@@ -335,46 +335,55 @@ export default {
     },
     // Лекція
     lectureContent() {
-      return this.lesson?.lecture?.content || this.lesson?.content || ''
+      return this.lesson?.lecture?.content || ''
     },
     lectureDuration() {
-      return this.lesson?.lecture?.duration_minutes || this.lesson?.duration_minutes
+      return this.lesson?.lecture?.duration_minutes
     },
     lectureFile() {
-      const filePath = this.lesson?.lecture?.file_path || this.lesson?.lecture?.file || this.lesson?.file
+      const filePath = this.lesson?.lecture?.file_path
       return filePath ? getLessonFileUrl(filePath) : null
     },
     // Тест
     testSourceType() {
-      return this.lesson?.test?.source_type || this.lesson?.source_type
+      return this.lesson?.test?.source_type
     },
     testExternalUrl() {
-      return this.lesson?.test?.external_url || this.lesson?.external_url
+      return this.lesson?.test?.external_url
     },
     testTimeLimit() {
-      return this.lesson?.test?.time_limit_minutes || this.lesson?.time_limit_minutes
+      return this.lesson?.test?.time_limit_minutes
     },
     testPassingScore() {
-      return this.lesson?.test?.passing_score || this.lesson?.passing_score
+      return this.lesson?.test?.passing_score
     },
     // Додатковий матеріал
     materialType() {
-      return this.lesson?.extra_material?.material_type || this.lesson?.material_type
+      return this.lesson?.extra_material?.material_type
     },
     materialContent() {
-      return this.lesson?.extra_material?.content || this.lesson?.content
+      return this.lesson?.extra_material?.content
     },
     materialUrl() {
-      return this.lesson?.extra_material?.url || this.lesson?.url
+      return this.lesson?.extra_material?.url
     },
     materialFile() {
-      const filePath = this.lesson?.extra_material?.file_path || this.lesson?.file_path
+      const filePath = this.lesson?.extra_material?.file_path
       return filePath ? getLessonFileUrl(filePath) : null
     }
   },
   async mounted() {
     await this.loadLesson()
-    await this.loadModuleLessons()
+  },
+  watch: {
+    lesson: {
+      handler(newVal) {
+        if (newVal) {
+          this.loadModuleLessons()
+        }
+      },
+      immediate: true
+    }
   },
   methods: {
     async loadLesson() {
@@ -391,8 +400,10 @@ export default {
     },
     async loadModuleLessons() {
       try {
-        const response = await lessonsApi.getLessonsByModule(this.lesson.module_id)
-        this.moduleLessons = response.data.lessons || []
+        if (this.lesson?.module_id) {
+          const response = await lessonsApi.getLessonsByModule(this.lesson.module_id)
+          this.moduleLessons = response.data.lessons || []
+        }
       } catch (error) {
         console.error('Помилка завантаження уроків модуля:', error)
       }
