@@ -1,9 +1,9 @@
 <template>
   <div class="course-details-page-bg">
     <nav class="breadcrumbs">
-      <router-link to="/">Головна</router-link>
+      <router-link to="/" class="previous">Головна</router-link>
       <span>/</span>
-      <router-link to="/courses">Курси</router-link>
+      <router-link to="/courses" class="previous">Курси</router-link>
       <span>/</span>
       <span class="current">{{ course.title || 'Курс' }}</span>
     </nav>
@@ -65,14 +65,6 @@
         </div>
       </div>
     </section>
-    <!-- Breadcrumbs -->
-    <nav class="breadcrumbs">
-      <router-link to="/">Головна</router-link>
-      <span>/</span>
-      <router-link to="/courses">Курси</router-link>
-      <span>/</span>
-      <span class="current">{{ course.title || 'Курс' }}</span>
-    </nav>
 
     <!-- Другий grid: promo video + Чому ви навчитесь -->
     <div class="second-grid">
@@ -220,7 +212,7 @@ export default {
       return parseFloat(price).toFixed(2)
     },
     formatRating(rating) {
-      if (!rating) return '0.0'
+      if (!rating) return '5.0'
       return parseFloat(rating).toFixed(1)
     },
     parseWhatYouLearn(text) {
@@ -302,7 +294,7 @@ export default {
 .breadcrumbs {
   font-size: 1rem;
   margin-bottom: 1.5rem;
-  margin-top: 1.5rem;
+  padding-top: 1.5rem;
   color: #888;
   display: flex;
   align-items: center;
@@ -316,6 +308,10 @@ export default {
 .breadcrumbs .current {
   color: #4f46e5;
   font-weight: bold;
+}
+.breadcrumbs .previous {
+  color: #888;
+  text-decoration: none;
 }
 .main-section {
   background: #f6f7ff;
@@ -375,12 +371,12 @@ export default {
   display: flex;
   gap: 0.2rem;
   font-size: 1.5rem;
-  color: #fbbf24;
+  color: #ffee00;
   z-index: 2;
   background: rgba(255, 255, 255, 0);
 }
 .cover-rating-stars .star {
-  color: #fbbf24;
+  color: #ffee00;
   font-size: 1.5rem;
   opacity: 1;
 }
@@ -391,13 +387,10 @@ export default {
   position: absolute;
   bottom: 18px;
   right: 16px;
-  background: rgba(255, 255, 255, 0.92);
-  color: #4f46e5;
-  border-radius: 8px;
+  color: #ffffff;
   padding: 0.3rem 1.1rem;
   font-size: 1.1rem;
-  font-weight: 600;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  font-weight: 200;
   display: flex;
   align-items: center;
   gap: 0.3rem;
@@ -512,26 +505,36 @@ export default {
   }
 }
 .second-grid {
+  max-width: 1225px;
+  margin: 0 auto 2rem auto;
+  padding-left: 2.5rem;
+  padding-right: 2.5rem;
   display: grid;
   grid-template-columns: 1.2fr 1fr;
   gap: 2rem;
-  margin-bottom: 2rem;
 }
 .promo-video-card {
   background: #fff;
   border-radius: 18px;
   box-shadow: 0 2px 16px rgba(0, 0, 0, 0.06);
-  padding: 1.2rem;
+  padding: 0;
   display: flex;
   align-items: center;
   justify-content: center;
   min-height: 220px;
+  width: 100%;
+  height: 100%;
 }
 .promo-video-card iframe {
   width: 100%;
-  height: 220px;
-  border-radius: 12px;
+  height: 100%;
+  min-height: 220px;
+  aspect-ratio: 16/9;
+  border-radius: 18px;
   border: none;
+  background: #000;
+  box-shadow: none;
+  display: block;
 }
 .learn-card {
   background: #fff;
@@ -577,6 +580,8 @@ export default {
   grid-template-columns: 1.2fr 1fr;
   gap: 2rem;
   margin-bottom: 2rem;
+  max-width: 1150px;
+  margin: 0 auto 2rem auto;
 }
 .program-block {
   background: #fff;
@@ -658,6 +663,8 @@ export default {
   box-shadow: 0 2px 16px rgba(0, 0, 0, 0.06);
   padding: 2rem 2.5rem;
   margin-bottom: 2rem;
+  max-width: 1150px;
+  margin: 0 auto 2rem auto;
 }
 .reviews-section h2 {
   font-size: 1.3rem;
@@ -726,5 +733,40 @@ export default {
   margin-top: 0.5rem;
   outline: none;
   resize: none;
+}
+@media (max-width: 1200px) {
+  .second-grid {
+    max-width: 100%;
+    padding-left: 1.5rem;
+    padding-right: 1.5rem;
+  }
+}
+@media (max-width: 900px) {
+  .second-grid {
+    padding-left: 0.5rem;
+    padding-right: 0.5rem;
+    grid-template-columns: 1fr;
+    gap: 1.5rem;
+  }
+  .promo-video-card {
+    min-height: 180px;
+    padding: 0;
+  }
+}
+@media (max-width: 700px) {
+  .second-grid {
+    padding-left: 0.2rem;
+    padding-right: 0.2rem;
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+  .promo-video-card {
+    min-height: 120px;
+    padding: 0;
+  }
+  .promo-video-card iframe {
+    min-height: 120px;
+    border-radius: 12px;
+  }
 }
 </style>
