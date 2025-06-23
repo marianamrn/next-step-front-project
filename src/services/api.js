@@ -360,6 +360,11 @@ export const coursesApi = {
     })
   },
 
+  // Отримати курси через новий ендпоінт /courses/only з пагінацією та фільтрами
+  getOnlyCourses(params = {}) {
+    return api.get('/courses/only', { params })
+  },
+
   // Отримати курс за ID
   getCourseById(id) {
     return api.get(`/courses/${id}`)

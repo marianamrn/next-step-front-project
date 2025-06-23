@@ -60,12 +60,12 @@
         <div class="spinner"></div>
         <p>Завантаження курсів...</p>
       </div>
-      <div v-else-if="filteredCourses.length === 0" class="no-courses">
+      <div v-else-if="!courses || courses.length === 0" class="no-courses">
         <p>Курсів не знайдено</p>
       </div>
       <v-row v-else>
         <v-col
-          v-for="course in paginatedCourses"
+          v-for="course in courses"
           :key="course.id"
           cols="12"
           sm="6"
@@ -99,8 +99,13 @@
     </div>
 
     <!-- Пагінація -->
-    <div v-if="pageCount > 1" class="pagination-container">
-      <v-pagination v-model="page" :length="pageCount" :total-visible="7"></v-pagination>
+    <div v-if="totalPages > 1" class="pagination-container">
+      <v-pagination
+        v-model="currentPage"
+        :length="totalPages"
+        :total-visible="7"
+        @update:modelValue="fetchCourses"
+      ></v-pagination>
     </div>
 
     <!-- Модальне вікно підтвердження видалення -->
@@ -139,10 +144,7 @@ export default {
     CourseCard,
   },
   props: {
-    loading: {
-      type: Boolean,
-      default: false,
-    },
+    // loading prop is removed as component handles its own loading state
   },
   data() {
     return {
@@ -153,68 +155,40 @@ export default {
       publicationFilter: 'all',
       error: null,
       showDropdown: false,
+      loading: false,
 
       // Для модального вікна видалення
       showDeleteDialog: false,
       categoryToDelete: null,
       deletingCategory: false,
-      page: 1,
-      itemsPerPage: 8,
+
+      // Пагінація
+      currentPage: 1,
+      totalPages: 1,
+      totalCourses: 0,
+      itemsPerPage: 12, // Можна змінити за потреби
     }
   },
   computed: {
-    pageCount() {
-      return Math.ceil(this.filteredCourses.length / this.itemsPerPage)
-    },
-    paginatedCourses() {
-      const start = (this.page - 1) * this.itemsPerPage
-      const end = start + this.itemsPerPage
-      return this.filteredCourses.slice(start, end)
-    },
-    filteredCourses() {
-      if (!this.courses) return []
-
-      let filtered = this.courses
-
-      // Фільтр за категорією (фронтовий)
-      if (this.selectedCategory) {
-        filtered = filtered.filter(
-          (course) => Number(course.category_id) === Number(this.selectedCategory.id),
-        )
-      }
-
-      // Фільтр за публікацією
-      if (this.publicationFilter !== 'all') {
-        filtered = filtered.filter((course) => {
-          const isPublished = course.is_published === true || course.is_published === 1
-          return this.publicationFilter === 'published' ? isPublished : !isPublished
-        })
-      }
-
-      // Фільтр за пошуковим запитом
-      if (this.searchQuery) {
-        const query = this.searchQuery.toLowerCase()
-        filtered = filtered.filter(
-          (course) =>
-            course.title.toLowerCase().includes(query) ||
-            (course.description && course.description.toLowerCase().includes(query)) ||
-            (course.category && course.category.name.toLowerCase().includes(query)),
-        )
-      }
-
-      return filtered
-    },
+    // Цей computed більше не потрібен, оскільки сервер буде повертати вже відфільтровані та сторінкові дані.
+    // filteredCourses() { ... } 
+    // paginatedCourses() { ... }
   },
   watch: {
-    filteredCourses() {
-      if (this.page > this.pageCount && this.pageCount > 0) {
-        this.page = 1
-      }
+    // При зміні фільтрів викликаємо завантаження даних
+    searchQuery() {
+      this.fetchCourses(1)
+    },
+    selectedCategory() {
+      this.fetchCourses(1)
+    },
+    publicationFilter() {
+      this.fetchCourses(1)
     },
   },
   created() {
     this.fetchCategories()
-    this.fetchCourses()
+    this.fetchCourses(this.currentPage)
   },
   mounted() {
     // Закриваємо dropdown при кліку поза ним
@@ -226,7 +200,6 @@ export default {
   methods: {
     toggleDropdown() {
       this.showDropdown = !this.showDropdown
-      console.log('Dropdown toggled:', this.showDropdown)
     },
 
     handleClickOutside(event) {
@@ -235,93 +208,78 @@ export default {
       }
     },
 
+    setCategory(category) {
+      this.selectedCategory = category
+      this.showDropdown = false
+    },
+
     async fetchCategories() {
       try {
         const response = await api.categories.getAllCategories()
         this.categories = response.data.data
-        console.log('Завантажені категорії:', this.categories)
       } catch (error) {
         console.error('Помилка при завантаженні категорій:', error)
         this.error = 'Не вдалося завантажити категорії'
       }
     },
 
-    async fetchCourses() {
-      this.$emit('update:loading', true)
+    async fetchCourses(page = 1) {
+      this.loading = true
+      this.error = null
       try {
-        // Завжди підвантажуємо всі курси для адмінки
-        const response = await api.adminCourses.getAllCourses()
+        const params = {
+          page: page,
+          per_page: this.itemsPerPage,
+        }
+        if (this.searchQuery) {
+          params.search = this.searchQuery
+        }
+        if (this.selectedCategory) {
+          params.category_id = this.selectedCategory.id
+        }
+        if (this.publicationFilter !== 'all') {
+          params.published = this.publicationFilter === 'published'
+        }
+
+        const response = await api.courses.getOnlyCourses(params)
         this.courses = response.data.data
+        this.totalPages = response.data.meta.last_page
+        this.totalCourses = response.data.meta.total
+        this.currentPage = response.data.meta.current_page
       } catch (error) {
         console.error('Помилка при завантаженні курсів:', error)
         this.error = 'Не вдалося завантажити курси'
+        this.courses = []
+        this.totalPages = 1
+        this.totalCourses = 0
       } finally {
-        this.$emit('update:loading', false)
+        this.loading = false
       }
     },
 
-    handleSearch() {
-      // Можна додати debounce для оптимізації
-    },
-
-    async setCategory(category) {
-      console.log('Встановлення категорії:', category)
-      this.selectedCategory = category
-      this.showDropdown = false
-    },
-
-    // Методи для роботи з категоріями
-    editCategory(category) {
-      console.log('Редагування категорії:', category)
-      this.showDropdown = false
-      this.$emit('edit-category', category)
-    },
-
-    deleteCategory(category) {
-      console.log('Ініціювання видалення категорії:', category)
-      this.showDropdown = false
-      this.categoryToDelete = category
+    // Методи для видалення категорії
+    openDeleteDialog(category) {
       this.showDeleteDialog = true
+      this.categoryToDelete = category
     },
 
     cancelDelete() {
       this.showDeleteDialog = false
       this.categoryToDelete = null
-      this.deletingCategory = false
     },
 
     async confirmDelete() {
       if (!this.categoryToDelete) return
-
       this.deletingCategory = true
-
       try {
-        console.log('Видалення категорії:', this.categoryToDelete.id)
         await api.categories.deleteCategory(this.categoryToDelete.id)
-
-        // Оновлюємо список категорій
-        await this.fetchCategories()
-
-        // Якщо видалена категорія була вибрана, скидаємо вибір
-        if (this.selectedCategory && this.selectedCategory.id === this.categoryToDelete.id) {
-          this.selectedCategory = null
-        }
-
-        // Показуємо повідомлення про успіх
-        alert(`Категорію "${this.categoryToDelete.name}" успішно видалено!`)
+        this.cancelDelete()
+        await this.fetchCategories() // Оновити список категорій
       } catch (error) {
         console.error('Помилка при видаленні категорії:', error)
-
-        let errorMessage = 'Помилка при видаленні категорії'
-        if (error.response && error.response.data && error.response.data.message) {
-          errorMessage = error.response.data.message
-        }
-
-        alert(errorMessage)
+        alert('Не вдалося видалити категорію.')
       } finally {
         this.deletingCategory = false
-        this.showDeleteDialog = false
-        this.categoryToDelete = null
       }
     },
   },
@@ -444,10 +402,10 @@ export default {
   border: none;
   cursor: pointer;
   padding: 6px;
-  border-radius: 4px;
   display: flex;
   align-items: center;
   justify-content: center;
+  border-radius: 50%;
   transition: all 0.2s;
   min-width: 32px;
   height: 32px;
