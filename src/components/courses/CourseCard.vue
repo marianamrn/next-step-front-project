@@ -200,25 +200,15 @@ export default {
     async addToCart() {
       this.addingToCart = true
       try {
-        // Тут буде логіка додавання до корзини
-        console.log('Adding to cart:', this.course.id)
-
-        // Емітуємо подію для батьківського компонента
-        this.$emit('course-added-to-cart', this.course)
-
-        // Показуємо повідомлення про успіх
-        this.$emit('show-message', {
-          type: 'success',
-          text: `Курс "${this.course.title}" додано до корзини`,
-        })
-
-        await new Promise((resolve) => setTimeout(resolve, 500))
+        const token = localStorage.getItem('token')
+        if (!token) {
+          this.$router.push('/login')
+          return
+        }
+        // Перенаправлення на оплату
+        this.$router.push(`/payment/${this.course.id}`)
       } catch (error) {
-        console.error('Error adding to cart:', error)
-        this.$emit('show-message', {
-          type: 'error',
-          text: 'Помилка додавання до корзини',
-        })
+        console.error('Error redirecting to payment:', error)
       } finally {
         this.addingToCart = false
       }

@@ -814,6 +814,110 @@ export const adminCoursesApi = {
   },
 }
 
+// --- LIQPAY & ОПЛАТА ---
+
+/**
+ * Ініціювати оплату курсу через LiqPay
+ * @param {number|string} courseId
+ * @returns {Promise<Object>}
+ */
+export async function initiateCoursePayment(courseId) {
+  const { data } = await api.post(`/payments/course/${courseId}`)
+  return data
+}
+
+/**
+ * Перевірити статус платежу
+ * @param {number|string} paymentId
+ * @returns {Promise<Object>}
+ */
+export async function checkPaymentStatus(paymentId) {
+  const { data } = await api.get(`/payments/${paymentId}/status`)
+  return data
+}
+
+/**
+ * Обробити успішну оплату курсу (після редіректу LiqPay)
+ * @param {number|string} courseId
+ * @returns {Promise<Object>}
+ */
+export async function handlePaymentSuccess(courseId) {
+  const { data } = await api.get(`/payments/course/${courseId}/success`)
+  return data
+}
+
+/**
+ * Отримати історію платежів користувача
+ * @returns {Promise<Object>}
+ */
+export async function getUserPayments() {
+  const { data } = await api.get('/payments')
+  return data
+}
+
+/**
+ * Обробити невдалий платіж
+ * @param {number|string} paymentId
+ * @returns {Promise<Object>}
+ */
+export async function handleFailedPayment(paymentId) {
+  const { data } = await api.get(`/payments/${paymentId}/failed`)
+  return data
+}
+
+/**
+ * Повторити оплату
+ * @param {number|string} paymentId
+ * @returns {Promise<Object>}
+ */
+export async function retryPayment(paymentId) {
+  const { data } = await api.post(`/payments/${paymentId}/retry`)
+  return data
+}
+
+// --- ПІДПИСКИ ТА ДОСТУП ДО КУРСІВ ---
+
+/**
+ * Перевірити доступ до курсу
+ * @param {number|string} courseId
+ * @returns {Promise<Object>}
+ */
+export async function checkCourseAccess(courseId) {
+  const { data } = await api.get(`/enrollments/course/${courseId}`)
+  return data
+}
+
+/**
+ * Отримати всі підписки користувача (Мої курси)
+ * @returns {Promise<Object>}
+ */
+export async function getUserEnrollments() {
+  const { data } = await api.get('/enrollments')
+  return data
+}
+
+/**
+ * Підписатися на безкоштовний курс
+ * @param {number|string} courseId
+ * @returns {Promise<Object>}
+ */
+export async function enrollFreeCourse(courseId) {
+  const { data } = await api.post(`/enrollments/free/${courseId}`)
+  return data
+}
+
+// --- КУРСИ ---
+
+/**
+ * Отримати дані курсу за ID (з already existing функції)
+ * @param {number|string} courseId
+ * @returns {Promise<Object>}
+ */
+export async function getCourseById(courseId) {
+  const { data } = await api.get(`/courses/${courseId}`)
+  return data
+}
+
 // Оновимо експорт, щоб включити нові API
 export default {
   auth: authAPI,
