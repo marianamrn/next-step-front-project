@@ -7,6 +7,7 @@ import StudentManagement from '@/components/admin/StudentManagement.vue'
 import CoursesManagement from '@/components/admin/courses-management'
 import AdministratorsManage from '@/components/admin/admins-manage/AdministratorsManage.vue'
 import TeachersManage from '@/components/admin/teachers-manage/TeachersManage.vue'
+import CommentsFeedbackManage from '@/components/admin/comments-feedback-manage/CommentsFeedbackManage.vue'
 
 // Публічні сторінки для користувачів
 import HomePage from '@/components/pages/HomePage.vue'
@@ -203,8 +204,7 @@ const routes = [
       {
         path: 'comments',
         name: 'AdminComments',
-        component: () => import('@/components/admin/ComingSoon.vue'),
-        props: { feature: 'Коментарі та відгуки' },
+        component: CommentsFeedbackManage,
         meta: { roles: ['super_admin', 'admin', 'teacher'] },
         beforeEnter: checkRoleAccess(['super_admin', 'admin', 'teacher'])
       },

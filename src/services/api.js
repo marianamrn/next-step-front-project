@@ -814,6 +814,168 @@ export const adminCoursesApi = {
   },
 }
 
+// API для коментарів та відгуків
+export const reviewsApi = {
+  // Отримання відгуків для курсу
+  getCourseReviews(courseId, page = 1, perPage = 10) {
+    return api.get(`/courses/${courseId}/reviews`, { 
+      params: { page, per_page: perPage } 
+    })
+  },
+
+  // Отримання всіх відгуків (для адмін панелі) - поки не реалізовано на сервері
+  getAllReviews(page = 1, perPage = 10) {
+    // Повертаємо пустий результат, поки endpoint не реалізовано
+    return Promise.resolve({
+      data: {
+        reviews: {
+          data: [],
+          current_page: 1,
+          total: 0,
+          per_page: perPage
+        }
+      }
+    })
+  },
+
+  // Отримання всіх коментарів (для адмін панелі) - поки не реалізовано на сервері
+  getAllComments(page = 1, perPage = 10) {
+    // Повертаємо пустий результат, поки endpoint не реалізовано
+    return Promise.resolve({
+      data: {
+        comments: {
+          data: [],
+          current_page: 1,
+          total: 0,
+          per_page: perPage
+        }
+      }
+    })
+  },
+
+  // Додавання відгуку до курсу
+  addCourseReview(courseId, reviewData) {
+    return api.post(`/reviews/course/${courseId}`, reviewData)
+  },
+
+  // Додавання коментаря до відгуку
+  addCommentToReview(reviewId, commentData) {
+    return api.post(`/reviews/${reviewId}/comments`, commentData)
+  },
+
+  // Отримання коментарів до відгуку
+  getReviewComments(reviewId, page = 1, perPage = 10) {
+    return api.get(`/reviews/${reviewId}/comments`, { 
+      params: { page, per_page: perPage } 
+    })
+  },
+
+  // Видалення відгуку
+  deleteReview(reviewId) {
+    return api.delete(`/reviews/${reviewId}`)
+  },
+
+  // Видалення коментаря
+  deleteComment(commentId) {
+    return api.delete(`/comments/${commentId}`)
+  },
+
+  // Оновлення відгуку
+  updateReview(reviewId, reviewData) {
+    return api.put(`/reviews/${reviewId}`, reviewData)
+  },
+
+  // Оновлення коментаря
+  updateComment(commentId, commentData) {
+    return api.put(`/comments/${commentId}`, commentData)
+  }
+}
+
+// API для модерації коментарів та відгуків
+export const moderationApi = {
+  // Отримання списку відгуків, які очікують на модерацію
+  getPendingReviews(page = 1, perPage = 10) {
+    return api.get('/moderation/reviews/pending', { 
+      params: { page, per_page: perPage } 
+    }).catch(error => {
+      // Якщо endpoint не існує, повертаємо пустий результат
+      if (error.response?.status === 404) {
+        return Promise.resolve({
+          data: {
+            reviews: {
+              data: [],
+              current_page: 1,
+              total: 0,
+              per_page: perPage
+            }
+          }
+        })
+      }
+      throw error
+    })
+  },
+
+  // Отримання списку коментарів, які очікують на модерацію
+  getPendingComments(page = 1, perPage = 10) {
+    return api.get('/moderation/comments/pending', { 
+      params: { page, per_page: perPage } 
+    }).catch(error => {
+      // Якщо endpoint не існує, повертаємо пустий результат
+      if (error.response?.status === 404) {
+        return Promise.resolve({
+          data: {
+            comments: {
+              data: [],
+              current_page: 1,
+              total: 0,
+              per_page: perPage
+            }
+          }
+        })
+      }
+      throw error
+    })
+  },
+
+  // Схвалення відгуку
+  approveReview(reviewId) {
+    return api.put(`/moderation/reviews/${reviewId}/approve`)
+  },
+
+  // Відхилення відгуку
+  rejectReview(reviewId) {
+    return api.delete(`/moderation/reviews/${reviewId}/reject`)
+  },
+
+  // Схвалення коментаря
+  approveComment(commentId) {
+    return api.put(`/moderation/comments/${commentId}/approve`)
+  },
+
+  // Відхилення коментаря
+  rejectComment(commentId) {
+    return api.delete(`/moderation/comments/${commentId}/reject`)
+  },
+
+  // Отримання статистики модерації
+  getModerationStats() {
+    return api.get('/moderation/stats').catch(error => {
+      // Якщо endpoint не існує, повертаємо пустий результат
+      if (error.response?.status === 404) {
+        return Promise.resolve({
+          data: {
+            pendingReviews: 0,
+            pendingComments: 0,
+            totalReviews: 0,
+            totalComments: 0
+          }
+        })
+      }
+      throw error
+    })
+  }
+}
+
 // Оновимо експорт, щоб включити нові API
 export default {
   auth: authAPI,
@@ -828,4 +990,6 @@ export default {
   adminCourses: adminCoursesApi,
   users: usersApi,
   getLessonFileUrl,
+  reviews: reviewsApi,
+  moderation: moderationApi,
 }
