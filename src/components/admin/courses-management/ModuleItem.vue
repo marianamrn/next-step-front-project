@@ -95,10 +95,23 @@ export default {
     lessonsCount() {
       return this.module.lessons ? this.module.lessons.length : 0
     },
+    moduleExpandedKey() {
+      return `module_${this.module.id}_expanded`
+    }
+  },
+  created() {
+    // Відновлюємо розгорнутий стан з localStorage
+    const savedExpanded = localStorage.getItem(this.moduleExpandedKey)
+    if (savedExpanded === 'true') {
+      this.expanded = true
+    }
   },
   methods: {
     toggleExpanded() {
       this.expanded = !this.expanded
+      
+      // Зберігаємо стан в localStorage
+      localStorage.setItem(this.moduleExpandedKey, this.expanded.toString())
 
       // Якщо розгортаємо модуль і уроки ще не завантажені - завантажуємо їх
       if (this.expanded) {

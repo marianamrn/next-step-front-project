@@ -421,7 +421,13 @@ export default {
         const response = await lessonsApi.createLesson(lessonData);
         
         alert('Урок успішно створено');
-        this.goBack();
+        // Перенаправляємо на сторінку перегляду створеного уроку
+        const createdLesson = response.data.lesson || response.data;
+        if (createdLesson && createdLesson.id) {
+          this.$router.push(`/admin/courses/${this.courseId}/lesson/${createdLesson.id}`);
+        } else {
+          this.goBack();
+        }
       } catch (error) {
         console.error('Помилка створення уроку:', error);
         console.error('Error details:', {

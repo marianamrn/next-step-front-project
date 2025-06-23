@@ -383,6 +383,16 @@ export default {
         }
       },
       immediate: true
+    },
+    // Додаємо watch для зміни lessonId в URL
+    '$route.params.lessonId': {
+      handler(newLessonId) {
+        if (newLessonId && newLessonId !== this.lessonId) {
+          this.lessonId = newLessonId;
+          this.loadLesson();
+        }
+      },
+      immediate: true
     }
   },
   methods: {
@@ -529,7 +539,12 @@ export default {
     },
     navigateToLesson(lessonId) {
       if (this.lessonId == lessonId) return;
-      this.$router.push(`/admin/courses/${this.courseId}/lesson/${lessonId}`)
+      
+      // Оновлюємо URL без перезавантаження сторінки
+      this.$router.push(`/admin/courses/${this.courseId}/lesson/${lessonId}`).then(() => {
+        // Після зміни URL завантажуємо новий урок
+        this.loadLesson();
+      });
     },
     editLesson() {
       this.$router.push(`/admin/courses/${this.courseId}/lesson/${this.lessonId}/edit`)

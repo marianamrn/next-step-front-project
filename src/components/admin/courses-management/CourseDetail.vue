@@ -166,6 +166,7 @@
                         @delete-lesson="confirmDeleteLesson"
                         @view-lesson="viewLesson"
                         @lessons-loaded="handleLessonsLoaded"
+                        @show-message="handleShowMessage"
                     />
                 </div>
             </div>
@@ -385,22 +386,40 @@ export default {
       const module = this.course.modules.find(m => m.id === lesson.module_id);
       this.openLessonModal(lesson, module)
     },
-     confirmDeleteLesson(lesson) {
+     confirmDeleteLesson(lesson, module) {
       this.confirmTitle = 'Видалення уроку';
       this.confirmMessage = `Ви впевнені, що хочете видалити урок "${lesson.title}"?`;
-      this.confirmAction = () => this.deleteLesson(lesson.id);
+      this.confirmAction = () => this.deleteLesson(lesson.id, module.id);
       this.showConfirmModal = true;
     },
-    async deleteLesson(lessonId) {
+    async deleteLesson(lessonId, moduleId) {
         try {
             await api.lessons.deleteLesson(lessonId);
-            this.loadModules(); 
+            
+            const moduleIndex = this.course.modules.findIndex(m => m.id === moduleId);
+            if (moduleIndex !== -1) {
+              const lessonIndex = this.course.modules[moduleIndex].lessons.findIndex(l => l.id === lessonId);
+              if (lessonIndex !== -1) {
+                this.course.modules[moduleIndex].lessons.splice(lessonIndex, 1);
+              }
+            }
+
+            this.$emit('show-message', { type: 'success', text: 'Урок успішно видалено' });
         } catch (error) {
             console.error('Помилка при видаленні уроку:', error);
-            alert('Не вдалося видалити урок.');
+            this.$emit('show-message', { type: 'error', text: 'Помилка при видаленні уроку' });
         } finally {
             this.closeConfirmModal();
         }
+    },
+    handleShowMessage(message) {
+      this.$emit('show-message', message);
+    },
+    closeConfirmModal() {
+      this.showConfirmModal = false;
+      this.confirmTitle = '';
+      this.confirmMessage = '';
+      this.confirmAction = () => {};
     },
   },
 }

@@ -464,7 +464,7 @@ export default {
         await lessonsApi.updateLesson(this.lessonId, lessonData);
 
         alert('Урок успішно оновлено');
-        this.goBackToLessonView();
+        this.$router.push(`/admin/courses/${this.courseId}/lesson/${this.lessonId}`);
       } catch (error) {
         console.error('Помилка збереження уроку:', error);
         console.error('Error details:', {
