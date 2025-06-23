@@ -13,7 +13,7 @@
     </div>
 
     <div class="courses-content">
-      <CoursesFilters @filters-changed="handleFiltersChange" />
+      <CoursesFilters v-if="!publicMode" @filters-changed="handleFiltersChange" />
 
       <div class="courses-grid" v-if="!loading">
         <CourseCard
@@ -30,6 +30,18 @@
 
       <div v-if="!loading && filteredCourses.length === 0" class="no-courses">
         <p>Курси не знайдено</p>
+      </div>
+
+      <div v-if="publicMode && lastPage > 1 && !loading" class="pagination">
+        <button
+          :disabled="currentPage === 1"
+          @click="loadCourses(currentPage - 1)"
+        >Назад</button>
+        <span>Сторінка {{ currentPage }} з {{ lastPage }}</span>
+        <button
+          :disabled="currentPage === lastPage"
+          @click="loadCourses(currentPage + 1)"
+        >Вперед</button>
       </div>
     </div>
   </div>
@@ -63,6 +75,10 @@ export default {
       type: String,
       default: '',
     },
+    publicMode: {
+      type: Boolean,
+      default: false,
+    },
   },
   data() {
     return {
@@ -78,6 +94,10 @@ export default {
         priceRange: [0, 10000],
         showOnlyDiscounted: false,
       },
+      currentPage: 1,
+      lastPage: 1,
+      paginationLinks: [],
+      perPage: 15,
     }
   },
   computed: {
@@ -114,27 +134,51 @@ export default {
         }
       },
     },
+    searchQuery: {
+      handler() {
+        this.applyFilters()
+      },
+    },
+    filters: {
+      handler() {
+        this.applyFilters()
+      },
+      deep: true,
+    },
   },
   methods: {
-    async loadCourses() {
+    async loadCourses(page = 1) {
       this.loading = true
       try {
         let response
-
-        if (this.categoryId) {
-          response = await coursesApi.getCoursesByCategory(this.categoryId)
-        } else if (this.levelId) {
-          response = await coursesApi.getCoursesByLevel(this.levelId)
-        } else if (this.instructorId) {
-          response = await coursesApi.getCoursesByInstructor(this.instructorId)
-        } else if (this.query) {
-          response = await coursesApi.searchCourses(this.query)
+        if (this.publicMode) {
+          response = await coursesApi.getOnlyCourses({ page: page, per_page: this.perPage })
+          const data = response.data.data || []
+          this.courses = data
+          if (this.searchQuery && this.searchQuery.trim() !== '') {
+            const query = this.searchQuery.trim().toLowerCase()
+            this.filteredCourses = data.filter(course => course.title.toLowerCase().includes(query))
+          } else {
+            this.filteredCourses = data
+          }
+          this.currentPage = response.data.meta?.current_page || 1
+          this.lastPage = response.data.meta?.last_page || 1
+          this.paginationLinks = response.data.meta?.links || []
         } else {
-          response = await coursesApi.getAllCourses()
+          if (this.categoryId) {
+            response = await coursesApi.getCoursesByCategory(this.categoryId)
+          } else if (this.levelId) {
+            response = await coursesApi.getCoursesByLevel(this.levelId)
+          } else if (this.instructorId) {
+            response = await coursesApi.getCoursesByInstructor(this.instructorId)
+          } else if (this.query) {
+            response = await coursesApi.searchCourses(this.query)
+          } else {
+            response = await coursesApi.getAllCourses()
+          }
+          this.courses = (response.data.data || []).filter(course => course.is_published)
+          this.applyFilters()
         }
-
-        this.courses = (response.data.data || []).filter(course => course.is_published)
-        this.applyFilters()
       } catch (error) {
         console.error('Помилка завантаження курсів:', error)
       } finally {
@@ -161,25 +205,19 @@ export default {
     },
     applyFilters() {
       let filtered = [...this.courses]
-      console.log('Кількість курсів до фільтрації:', filtered.length)
-      console.log('Поточні фільтри:', this.filters)
-
+      // Пошук по назві
+      if (this.searchQuery && this.searchQuery.trim() !== '') {
+        const query = this.searchQuery.trim().toLowerCase()
+        filtered = filtered.filter(course => course.title.toLowerCase().includes(query))
+      }
       // Фільтрація за категорією
       if (this.filters.category) {
-        console.log('Фільтрація по категорії:', this.filters.category)
-        filtered = filtered.filter((course) => {
-          console.log('Курс:', course.title, 'Категорія курсу:', course.category_id, 'Очікувана категорія:', this.filters.category)
-          return Number(course.category_id) === Number(this.filters.category)
-        })
-        console.log('Кількість курсів після фільтрації по категорії:', filtered.length)
+        filtered = filtered.filter((course) => Number(course.category_id) === Number(this.filters.category))
       }
-
       // Фільтрація за рівнем
       if (this.filters.level) {
         filtered = filtered.filter((course) => Number(course.level_id) === Number(this.filters.level))
-        console.log('Кількість курсів після фільтрації по рівню:', filtered.length)
       }
-
       // Фільтрація за тривалістю
       if (this.filters.duration) {
         const [min, max] = this.filters.duration.split('-').map(v => v === '+' ? Infinity : parseInt(v))
@@ -188,33 +226,24 @@ export default {
           const duration = parseInt(course.duration_minutes)
           return duration >= min && (max === Infinity ? true : duration <= max)
         })
-        console.log('Кількість курсів після фільтрації по тривалості:', filtered.length)
       }
-
       // Фільтрація за мовою
       if (this.filters.language) {
         filtered = filtered.filter((course) => {
           const courseLanguage = course.language?.toLowerCase() || ''
           const filterLanguage = this.filters.language.toLowerCase()
-          console.log('Мова курсу:', courseLanguage, 'Фільтр мови:', filterLanguage)
           return courseLanguage === filterLanguage
         })
-        console.log('Кількість курсів після фільтрації по мові:', filtered.length)
       }
-
       // Фільтрація за ціною
       if (this.filters.priceRange && this.filters.priceRange.length === 2) {
         const [min, max] = this.filters.priceRange
         filtered = filtered.filter((course) => {
           const price = Number(course.current_price || course.discount_price || course.price || 0)
-          console.log('Ціна курсу:', price, 'Діапазон цін:', min, '-', max)
           return price >= min && price <= max
         })
-        console.log('Кількість курсів після фільтрації по ціні:', filtered.length)
       }
-
       this.filteredCourses = filtered
-      console.log('Кількість курсів після всіх фільтрів:', filtered.length)
     },
   },
   created() {
@@ -293,5 +322,27 @@ export default {
   text-align: center;
   padding: 2rem;
   color: #666;
+}
+
+.pagination {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 1rem;
+  margin-top: 2rem;
+}
+.pagination button {
+  padding: 0.5rem 1.5rem;
+  border: none;
+  background: #3498db;
+  color: #fff;
+  border-radius: 4px;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+.pagination button:disabled {
+  background: #ccc;
+  cursor: not-allowed;
 }
 </style>

@@ -90,6 +90,8 @@
           <v-select
             v-model="localFilters.language"
             :items="languageOptions"
+            item-title="text"
+            item-value="text"
             placeholder="Всі мови"
             clearable
             variant="outlined"
@@ -136,7 +138,6 @@ export default {
       showMobileFilters: false,
       loadingCategories: false,
       loadingLevels: false,
-      loadingInstructors: false,
       searchTimeout: null,
 
       localFilters: {
@@ -149,7 +150,6 @@ export default {
 
       categories: [],
       levels: [],
-      instructors: [],
 
       languageOptions: [
         { value: 'ukrainian', text: 'Українська' },
@@ -210,10 +210,6 @@ export default {
     levelsOptions() {
       return [{ id: null, name: 'Всі рівні' }, ...this.levels]
     },
-
-    instructorsOptions() {
-      return [{ id: null, full_name: 'Всі інструктори' }, ...this.instructors]
-    },
   },
   watch: {
     modelValue: {
@@ -225,7 +221,7 @@ export default {
     }
   },
   async mounted() {
-    await Promise.all([this.loadCategories(), this.loadLevels(), this.loadInstructors()])
+    await Promise.all([this.loadCategories(), this.loadLevels()])
   },
   methods: {
     async loadCategories() {
@@ -249,19 +245,6 @@ export default {
         console.error('Помилка завантаження рівнів:', error)
       } finally {
         this.loadingLevels = false
-      }
-    },
-
-    async loadInstructors() {
-      this.loadingInstructors = true
-      try {
-        const response = await coursesApi.getAllInstructors()
-        this.instructors = response.data || []
-      } catch (error) {
-        console.error('Помилка завантаження інструкторів:', error)
-        this.instructors = []
-      } finally {
-        this.loadingInstructors = false
       }
     },
 

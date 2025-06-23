@@ -9,9 +9,9 @@
         @error="onImageError"
       />
       <div class="course-overlay">
-        <div class="course-rating" v-if="course.rating">
+        <div class="course-rating" v-if="course.rating || course.average_rating">
           <v-icon size="14" color="#FFD700">mdi-star</v-icon>
-          <span>{{ formatRating(course.rating) }}</span>
+          <span>{{ formatRating(course.rating ?? course.average_rating) }}</span>
         </div>
         <div class="course-level" v-if="course.level">
           <v-chip size="small" :color="getLevelColor(course.level.code)">
@@ -55,7 +55,7 @@
       <div class="course-instructor" v-if="course.instructor">
         <div class="instructor-info">
           <v-icon size="16" color="#666">mdi-account-circle</v-icon>
-          <span>{{ course.instructor.full_name }}</span>
+          <span>{{ course.instructor.full_name || course.instructor.name }}</span>
         </div>
       </div>
 
@@ -67,7 +67,7 @@
         </div>
         <div class="stat-item">
           <v-icon size="16" color="#666">mdi-account-group</v-icon>
-          <span>{{ course.students_count || '0' }} студентів</span>
+          <span>{{ course.students_count ?? course.enrollments_count ?? '0' }} студентів</span>
         </div>
         <div class="stat-item" v-if="course.duration">
           <v-icon size="16" color="#666">mdi-clock-outline</v-icon>
