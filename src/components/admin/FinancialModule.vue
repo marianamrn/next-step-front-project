@@ -10,36 +10,8 @@
       </div>
     </div>
 
-    <!-- Вкладки -->
-    <div class="tabs-navigation">
-      <div 
-        class="tab" 
-        :class="{ active: activeTab === 'payments' }"
-        @click="setActiveTab('payments')"
-      >
-        <v-icon>mdi-credit-card</v-icon>
-        Управління платежами
-      </div>
-      <div 
-        class="tab" 
-        :class="{ active: activeTab === 'analytics' }"
-        @click="setActiveTab('analytics')"
-      >
-        <v-icon>mdi-chart-line</v-icon>
-        Фінансова аналітика
-      </div>
-      <div 
-        class="tab" 
-        :class="{ active: activeTab === 'reports' }"
-        @click="setActiveTab('reports')"
-      >
-        <v-icon>mdi-file-document</v-icon>
-        Звіти
-      </div>
-    </div>
-
-    <!-- Вкладка Управління платежами -->
-    <div v-if="activeTab === 'payments'" class="tab-content">
+    <!-- Управління платежами -->
+    <div class="payments-content">
       <!-- Фільтри -->
       <div class="filters-section">
         <div class="filter-row">
@@ -70,26 +42,6 @@
               @input="debounceSearch"
             >
           </div>
-        </div>
-      </div>
-
-      <!-- Статистика -->
-      <div class="statistics-section" v-if="statistics">
-        <div class="stat-card">
-          <div class="stat-number">{{ statistics.total_payments }}</div>
-          <div class="stat-label">Всього платежів</div>
-        </div>
-        <div class="stat-card">
-          <div class="stat-number">{{ statistics.pending_payments }}</div>
-          <div class="stat-label">Очікують підтвердження</div>
-        </div>
-        <div class="stat-card">
-          <div class="stat-number">{{ statistics.completed_payments }}</div>
-          <div class="stat-label">Завершено</div>
-        </div>
-        <div class="stat-card">
-          <div class="stat-number">{{ formatCurrency(statistics.total_revenue) }}</div>
-          <div class="stat-label">Загальний дохід</div>
         </div>
       </div>
 
@@ -202,24 +154,6 @@
       </div>
     </div>
 
-    <!-- Вкладка Фінансова аналітика -->
-    <div v-if="activeTab === 'analytics'" class="tab-content">
-      <div class="coming-soon">
-        <v-icon size="64" color="#6b7280">mdi-chart-line</v-icon>
-        <h2>Фінансова аналітика</h2>
-        <p>Цей розділ знаходиться в розробці. Тут буде доступна детальна фінансова аналітика та графіки.</p>
-      </div>
-    </div>
-
-    <!-- Вкладка Звіти -->
-    <div v-if="activeTab === 'reports'" class="tab-content">
-      <div class="coming-soon">
-        <v-icon size="64" color="#6b7280">mdi-file-document</v-icon>
-        <h2>Фінансові звіти</h2>
-        <p>Цей розділ знаходиться в розробці. Тут буде можливість генерувати та завантажувати фінансові звіти.</p>
-      </div>
-    </div>
-
     <!-- Модальне вікно деталей платежу -->
     <div v-if="showPaymentModal" class="modal-overlay" @click="closePaymentModal">
       <div class="modal-content" @click.stop>
@@ -300,19 +234,16 @@ import {
   getAdminPayments, 
   confirmPayment, 
   rejectPayment, 
-  getPaymentDetails, 
-  getPaymentStatistics 
+  getPaymentDetails
 } from '../../services/api'
 
 export default {
   name: 'FinancialModule',
   data() {
     return {
-      activeTab: 'payments',
       loading: false,
       error: null,
       payments: [],
-      statistics: null,
       pagination: null,
       filters: {
         status: '',
@@ -334,18 +265,14 @@ export default {
   },
   async created() {
     await this.loadPayments()
-    await this.loadStatistics()
   },
   methods: {
-    setActiveTab(tab) {
-      this.activeTab = tab
-    },
-
     async loadPayments() {
       this.loading = true
       this.error = null
       try {
         const data = await getAdminPayments(this.filters, this.pagination?.current_page || 1)
+        
         this.payments = data.payments || data.data || []
         this.pagination = data.pagination || data.meta || null
       } catch (error) {
@@ -355,18 +282,8 @@ export default {
       }
     },
 
-    async loadStatistics() {
-      try {
-        const data = await getPaymentStatistics()
-        this.statistics = data.statistics || data
-      } catch (error) {
-        console.error('Помилка завантаження статистики:', error)
-      }
-    },
-
     async refreshPayments() {
       await this.loadPayments()
-      await this.loadStatistics()
     },
 
     applyFilters() {
@@ -524,60 +441,11 @@ export default {
   background-color: #3a32a8;
 }
 
-.tabs-navigation {
-  display: flex;
-  gap: 8px;
-  margin-bottom: 24px;
-  background: white;
-  padding: 8px;
-  border-radius: 8px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-}
-
-.tab {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 12px 16px;
-  border-radius: 6px;
-  cursor: pointer;
-  font-weight: 500;
-  color: #6b7280;
-  transition: all 0.2s;
-}
-
-.tab:hover {
-  background-color: #f3f4f6;
-  color: #374151;
-}
-
-.tab.active {
-  background-color: #443bc9;
-  color: white;
-}
-
-.tab-content {
+.payments-content {
   background: white;
   border-radius: 8px;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
   overflow: hidden;
-}
-
-.coming-soon {
-  padding: 60px 20px;
-  text-align: center;
-  color: #6b7280;
-}
-
-.coming-soon h2 {
-  margin: 16px 0 8px 0;
-  color: #374151;
-}
-
-.coming-soon p {
-  margin: 0;
-  max-width: 400px;
-  margin: 0 auto;
 }
 
 .filters-section {
@@ -613,34 +481,6 @@ export default {
   border: 1px solid #d1d5db;
   border-radius: 6px;
   font-size: 14px;
-}
-
-.statistics-section {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: 16px;
-  margin-bottom: 24px;
-  padding: 0 20px;
-}
-
-.stat-card {
-  background: white;
-  padding: 20px;
-  border-radius: 8px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-  text-align: center;
-}
-
-.stat-number {
-  font-size: 24px;
-  font-weight: 700;
-  color: #443bc9;
-  margin-bottom: 4px;
-}
-
-.stat-label {
-  font-size: 14px;
-  color: #6b7280;
 }
 
 .payments-list {
@@ -954,17 +794,5 @@ export default {
   .filter-group {
     min-width: auto;
   }
-  
-  .statistics-section {
-    grid-template-columns: repeat(2, 1fr);
-  }
-
-  .tabs-navigation {
-    flex-direction: column;
-  }
-
-  .tab {
-    justify-content: center;
-  }
 }
-</style> 
+</style>

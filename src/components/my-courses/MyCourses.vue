@@ -6,7 +6,7 @@
     <div v-else-if="courses.length === 0" class="empty">У вас ще немає курсів.</div>
     <div v-else class="courses-list">
       <div v-for="enrollment in courses" :key="enrollment.id" class="course-card" @click="goToCourse(enrollment.course.id)">
-        <img :src="enrollment.course.cover_url || require('../../assets/img/course-placeholder.jpg')" alt="cover" class="course-cover" />
+        <img :src="enrollment.course.cover_url || coursePlaceholder" alt="cover" class="course-cover" />
         <div class="course-info">
           <h3>{{ enrollment.course.title }}</h3>
           <p>{{ enrollment.course.short_description }}</p>
@@ -18,13 +18,16 @@
 
 <script>
 import { getUserEnrollments } from '../../services/api';
+import coursePlaceholder from '../../assets/img/course-placeholder.jpg';
+
 export default {
   name: 'MyCourses',
   data() {
     return {
       loading: true,
       error: null,
-      courses: []
+      courses: [],
+      coursePlaceholder
     };
   },
   async created() {

@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Тест API Платежів</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .test-section {
+            margin: 20px 0;
+            padding: 20px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+        }
+        .result {
+            background: #f5f5f5;
+            padding: 10px;
+            border-radius: 4px;
+            margin: 10px 0;
+            white-space: pre-wrap;
+            font-family: monospace;
+        }
+        .error {
+            background: #ffebee;
+            color: #c62828;
+        }
+        .success {
+            background: #e8f5e8;
+            color: #2e7d32;
+        }
+        button {
+            background: #1976d2;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            background: #1565c0;
+        }
+        input {
+            padding: 8px;
+            margin: 5px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Тест API Платежів</h1>
+    
+    <div class="test-section">
+        <h2>1. Перевірка токена</h2>
+        <button onclick="checkToken()">Перевірити токен</button>
+        <div id="token-result" class="result"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>2. Тест запиту платежів</h2>
+        <button onclick="testGetPayments()">Отримати платежі</button>
+        <div id="payments-result" class="result"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>3. Тест статистики</h2>
+        <button onclick="testGetStatistics()">Отримати статистику</button>
+        <div id="statistics-result" class="result"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>4. Тест з фільтрами</h2>
+        <input type="text" id="searchFilter" placeholder="Пошук">
+        <select id="statusFilter">
+            <option value="">Всі статуси</option>
+            <option value="pending">Очікує підтвердження</option>
+            <option value="completed">Завершено</option>
+            <option value="failed">Невдалий</option>
+            <option value="rejected">Відхилено</option>
+        </select>
+        <button onclick="testGetPaymentsWithFilters()">Отримати з фільтрами</button>
+        <div id="filtered-result" class="result"></div>
+    </div>
+
+    <script>
+        const API_URL = 'https://nextsteap.api-dev.bmax-edu.website/api';
+
+        function logResult(elementId, data, isError = false) {
+            const element = document.getElementById(elementId);
+            element.textContent = JSON.stringify(data, null, 2);
+            element.className = `result ${isError ? 'error' : 'success'}`;
+        }
+
+        function getAuthHeaders() {
+            const token = localStorage.getItem('token');
+            return {
+                'Content-Type': 'application/json',
+                'Accept': 'application/json',
+                ...(token && { 'Authorization': `Bearer ${token}` })
+            };
+        }
+
+        async function checkToken() {
+            const token = localStorage.getItem('token');
+            const user = localStorage.getItem('user');
+            
+            const result = {
+                hasToken: !!token,
+                tokenLength: token ? token.length : 0,
+                user: user ? JSON.parse(user) : null
+            };
+            
+            logResult('token-result', result);
+        }
+
+        async function testGetPayments() {
+            try {
+                console.log('Тестування запиту платежів...');
+                
+                const response = await fetch(`${API_URL}/payments/all?page=1&per_page=10`, {
+                    method: 'GET',
+                    headers: getAuthHeaders()
+                });
+
+                console.log('Response status:', response.status);
+                console.log('Response headers:', response.headers);
+
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    console.error('Error response:', errorText);
+                    throw new Error(`HTTP ${response.status}: ${errorText}`);
+                }
+
+                const data = await response.json();
+                console.log('Payments data:', data);
+                logResult('payments-result', data);
+            } catch (error) {
+                console.error('Error:', error);
+                logResult('payments-result', {
+                    error: error.message,
+                    stack: error.stack
+                }, true);
+            }
+        }
+
+        async function testGetStatistics() {
+            try {
+                console.log('Тестування запиту статистики...');
+                
+                const response = await fetch(`${API_URL}/payments/statistics`, {
+                    method: 'GET',
+                    headers: getAuthHeaders()
+                });
+
+                console.log('Statistics response status:', response.status);
+
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    throw new Error(`HTTP ${response.status}: ${errorText}`);
+                }
+
+                const data = await response.json();
+                console.log('Statistics data:', data);
+                logResult('statistics-result', data);
+            } catch (error) {
+                console.error('Statistics error:', error);
+                logResult('statistics-result', {
+                    error: error.message,
+                    stack: error.stack
+                }, true);
+            }
+        }
+
+        async function testGetPaymentsWithFilters() {
+            try {
+                const search = document.getElementById('searchFilter').value;
+                const status = document.getElementById('statusFilter').value;
+                
+                const params = new URLSearchParams({
+                    page: 1,
+                    per_page: 10
+                });
+                
+                if (search) params.append('search', search);
+                if (status) params.append('status', status);
+                
+                console.log('Тестування запиту з фільтрами:', params.toString());
+                
+                const response = await fetch(`${API_URL}/payments/all?${params}`, {
+                    method: 'GET',
+                    headers: getAuthHeaders()
+                });
+
+                console.log('Filtered response status:', response.status);
+
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    throw new Error(`HTTP ${response.status}: ${errorText}`);
+                }
+
+                const data = await response.json();
+                console.log('Filtered data:', data);
+                logResult('filtered-result', data);
+            } catch (error) {
+                console.error('Filtered error:', error);
+                logResult('filtered-result', {
+                    error: error.message,
+                    stack: error.stack
+                }, true);
+            }
+        }
+
+        // Автоматично перевіряємо токен при завантаженні
+        window.onload = function() {
+            checkToken();
+        };
+    </script>
+</body>
+</html> 

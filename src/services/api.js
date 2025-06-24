@@ -58,14 +58,6 @@ api.interceptors.request.use(
       delete config.headers['Content-Type']
     }
 
-    // Додаємо логування запитів
-    console.log('API Request:', {
-      method: config.method,
-      url: config.url,
-      data: config.data instanceof FormData ? 'FormData' : config.data,
-      headers: config.headers,
-    })
-
     return config
   },
   (error) => Promise.reject(error),
@@ -81,16 +73,6 @@ api.interceptors.response.use(
     return response
   },
   (error) => {
-    // Додаємо детальне логування помилок
-    console.error('API Error:', {
-      status: error.response?.status,
-      statusText: error.response?.statusText,
-      url: error.config?.url,
-      method: error.config?.method,
-      data: error.response?.data,
-      headers: error.config?.headers,
-    })
-
     // Якщо помилка 401 (неавторизований), перенаправляємо на сторінку логіну
     if (error.response && error.response.status === 401) {
       localStorage.removeItem('token')
@@ -875,10 +857,16 @@ export async function handleFailedPayment(paymentId) {
  * @returns {Promise<Object>}
  */
 export async function getAdminPayments(filters = {}, page = 1, perPage = 15) {
-  const { data } = await api.get('/payments', {
-    params: { ...filters, page, per_page: perPage },
-  })
-  return data
+  const params = { ...filters, page, per_page: perPage }
+  
+  try {
+    const { data } = await api.get('/payments', {
+      params: params,
+    })
+    return data
+  } catch (error) {
+    throw error
+  }
 }
 
 /**
@@ -917,8 +905,12 @@ export async function getPaymentDetails(paymentId) {
  * @returns {Promise<Object>}
  */
 export async function getPaymentStatistics() {
-  const { data } = await api.get('/payments/statistics')
-  return data
+  try {
+    const { data } = await api.get('/payments/statistics')
+    return data
+  } catch (error) {
+    throw error
+  }
 }
 
 // --- ПІДПИСКИ ТА ДОСТУП ДО КУРСІВ ---

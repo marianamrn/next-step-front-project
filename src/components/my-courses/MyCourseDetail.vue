@@ -8,7 +8,7 @@
     </div>
     <div v-else class="course-content">
       <div class="course-header">
-        <img :src="course.cover_url || require('../../assets/img/course-placeholder.jpg')" alt="cover" class="course-cover" />
+        <img :src="course.cover_url || coursePlaceholder" alt="cover" class="course-cover" />
         <div class="course-info">
           <h2>{{ course.title }}</h2>
           <p>{{ course.short_description }}</p>
@@ -33,6 +33,8 @@
 
 <script>
 import { getCourseById, checkCourseAccess } from '../../services/api';
+import coursePlaceholder from '../../assets/img/course-placeholder.jpg';
+
 export default {
   name: 'MyCourseDetail',
   data() {
@@ -42,7 +44,8 @@ export default {
       course: null,
       hasAccess: false,
       lessons: [],
-      progress: 0
+      progress: 0,
+      coursePlaceholder
     };
   },
   async created() {
