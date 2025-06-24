@@ -52,20 +52,12 @@ api.interceptors.request.use(
     if (token) {
       config.headers['Authorization'] = `Bearer ${token}`
     }
-    
+
     // Якщо дані є FormData, видаляємо Content-Type щоб браузер сам встановив multipart/form-data
     if (config.data instanceof FormData) {
       delete config.headers['Content-Type']
     }
-    
-    // Додаємо логування запитів
-    console.log('API Request:', {
-      method: config.method,
-      url: config.url,
-      data: config.data instanceof FormData ? 'FormData' : config.data,
-      headers: config.headers
-    })
-    
+
     return config
   },
   (error) => Promise.reject(error),
@@ -81,16 +73,6 @@ api.interceptors.response.use(
     return response
   },
   (error) => {
-    // Додаємо детальне логування помилок
-    console.error('API Error:', {
-      status: error.response?.status,
-      statusText: error.response?.statusText,
-      url: error.config?.url,
-      method: error.config?.method,
-      data: error.response?.data,
-      headers: error.config?.headers
-    })
-    
     // Якщо помилка 401 (неавторизований), перенаправляємо на сторінку логіну
     if (error.response && error.response.status === 401) {
       localStorage.removeItem('token')
@@ -463,27 +445,27 @@ export const coursesApi = {
 
   // Опублікувати курс
   publishCourse(id) {
-    return api.put(`/courses/manage/${id}/publish`);
+    return api.put(`/courses/manage/${id}/publish`)
   },
 
   // Зняти курс з публікації
   unpublishCourse(id) {
-    return api.put(`/courses/manage/${id}/unpublish`);
+    return api.put(`/courses/manage/${id}/unpublish`)
   },
 
   // Оновити дані курсу
   updateCourse(id, courseData) {
-    return api.put(`/courses/manage/${id}`, courseData);
+    return api.put(`/courses/manage/${id}`, courseData)
   },
 
   //Видалити курс
   deleteCourse(id) {
-    return api.delete(`/courses/manage/${id}`);
+    return api.delete(`/courses/manage/${id}`)
   },
 
   // Створити новий курс
   createCourse(courseData) {
-    return api.post('/courses/manage', courseData);
+    return api.post('/courses/manage', courseData)
   },
 
   // Завантажити обкладинку курсу
@@ -513,12 +495,12 @@ export const coursesApi = {
 // Функція для отримання повного URL зображення
 export const getImageUrl = (imagePath) => {
   if (!imagePath) return ''
-  
+
   // Якщо це вже повний URL, повертаємо як є
   if (imagePath.startsWith('http://') || imagePath.startsWith('https://')) {
     return imagePath
   }
-  
+
   // Якщо це відносний шлях, додаємо базовий URL
   return `${API_URL}/storage/${imagePath}`
 }
@@ -526,12 +508,12 @@ export const getImageUrl = (imagePath) => {
 // Функція для отримання повного URL файлу уроку
 export const getLessonFileUrl = (filePath) => {
   if (!filePath) return ''
-  
+
   // Якщо це вже повний URL, повертаємо як є
   if (filePath.startsWith('http://') || filePath.startsWith('https://')) {
     return filePath
   }
-  
+
   // Якщо це відносний шлях, додаємо базовий URL
   // Видаляємо початковий слеш, якщо він є
   const cleanPath = filePath.startsWith('/') ? filePath.substring(1) : filePath
@@ -610,10 +592,10 @@ export const lessonsApi = {
   getLessonById(lessonId) {
     console.log(`Отримання уроку ${lessonId}`)
     // Спробуємо різні варіанти endpoint
-    return api.get(`/lessons/${lessonId}`).catch(error => {
+    return api.get(`/lessons/${lessonId}`).catch((error) => {
       if (error.response?.status === 405) {
         console.log('GET /lessons/{id} не підтримується, спробуємо /lessons/manage/{id}')
-        return api.get(`/lessons/manage/${lessonId}`).catch(error2 => {
+        return api.get(`/lessons/manage/${lessonId}`).catch((error2) => {
           if (error2.response?.status === 405) {
             console.log('GET /lessons/manage/{id} не підтримується, спробуємо POST')
             return api.post(`/lessons/manage/${lessonId}`)
@@ -679,43 +661,43 @@ export const lessonsApi = {
     console.log(`API: Оновлення уроку з ID ${lessonId} з даними:`, lessonData)
 
     // Перевіряємо, чи є файли
-    const hasFiles = Object.values(lessonData).some(value => value instanceof File);
-    
+    const hasFiles = Object.values(lessonData).some((value) => value instanceof File)
+
     if (hasFiles) {
       const formData = new FormData()
 
       for (const key in lessonData) {
-        const value = lessonData[key];
+        const value = lessonData[key]
         // Ігноруємо null та undefined значення
         if (value !== null && value !== undefined) {
           // Додаємо файл або звичайне значення до FormData
           if (value instanceof File) {
-            console.log(`Додаємо файл ${key}:`, value.name, value.type, value.size);
-            
+            console.log(`Додаємо файл ${key}:`, value.name, value.type, value.size)
+
             // Для зображень в додаткових матеріалах може знадобитися спеціальна обробка
             if (key === 'file' && lessonData.material_type === 'image') {
-              console.log('Спеціальна обробка для зображення');
-              formData.append('image', value, value.name);
+              console.log('Спеціальна обробка для зображення')
+              formData.append('image', value, value.name)
             } else if (key === 'material_file' && lessonData.material_type === 'image') {
-              console.log('Спеціальна обробка для зображення (material_file)');
-              formData.append('image', value, value.name);
+              console.log('Спеціальна обробка для зображення (material_file)')
+              formData.append('image', value, value.name)
             } else {
-              formData.append(key, value, value.name);
+              formData.append(key, value, value.name)
             }
           } else {
-            console.log(`Додаємо поле ${key}:`, value);
-            formData.append(key, value);
+            console.log(`Додаємо поле ${key}:`, value)
+            formData.append(key, value)
           }
         }
       }
 
-      console.log('Надсилаємо FormData для оновлення уроку (завжди методом POST):');
+      console.log('Надсилаємо FormData для оновлення уроку (завжди методом POST):')
       for (const [key, value] of formData.entries()) {
-          if (value instanceof File) {
-            console.log(`${key}: File (${value.name}, ${value.type}, ${value.size} bytes)`);
-          } else {
-            console.log(`${key}: ${value}`);
-          }
+        if (value instanceof File) {
+          console.log(`${key}: File (${value.name}, ${value.type}, ${value.size} bytes)`)
+        } else {
+          console.log(`${key}: ${value}`)
+        }
       }
 
       // Згідно з вимогою сервера ("Supported methods: POST, DELETE"),
@@ -723,7 +705,7 @@ export const lessonsApi = {
       return api.post(`/lessons/manage/${lessonId}`, formData)
     } else {
       // Якщо немає файлів, відправляємо як JSON
-      console.log('Відправляємо дані як JSON (без файлів)');
+      console.log('Відправляємо дані як JSON (без файлів)')
       return api.post(`/lessons/manage/${lessonId}`, lessonData)
     }
   },
@@ -974,6 +956,166 @@ export const moderationApi = {
       throw error
     })
   }
+}
+
+// --- LIQPAY & ОПЛАТА ---
+
+/**
+ * Ініціювати оплату курсу через LiqPay
+ * @param {number|string} courseId
+ * @returns {Promise<Object>}
+ */
+export async function initiateCoursePayment(courseId) {
+  const { data } = await api.post(`/payments/course/${courseId}`)
+  return data
+}
+
+/**
+ * Перевірити статус платежу
+ * @param {number|string} paymentId
+ * @returns {Promise<Object>}
+ */
+export async function checkPaymentStatus(paymentId) {
+  const { data } = await api.get(`/payments/${paymentId}/status`)
+  return data
+}
+
+/**
+ * Обробити успішну оплату курсу (після редіректу LiqPay)
+ * @param {number|string} courseId
+ * @returns {Promise<Object>}
+ */
+export async function handlePaymentSuccess(courseId) {
+  const { data } = await api.get(`/payments/course/${courseId}/success`)
+  return data
+}
+
+/**
+ * Отримати всі платежі користувача
+ * @returns {Promise<Object>}
+ */
+export async function getUserPayments() {
+  const { data } = await api.get('/payments')
+  return data
+}
+
+/**
+ * Обробити невдалий платіж
+ * @param {number|string} paymentId
+ * @returns {Promise<Object>}
+ */
+export async function handleFailedPayment(paymentId) {
+  const { data } = await api.get(`/payments/${paymentId}/failed`)
+  return data
+}
+
+// --- АДМІН УПРАВЛІННЯ ПЛАТЕЖАМИ ---
+
+/**
+ * Отримати всі платежі для адміністратора
+ * @param {Object} filters - Фільтри (статус, дата, користувач, курс)
+ * @param {number} page - Номер сторінки
+ * @param {number} perPage - Кількість на сторінці
+ * @returns {Promise<Object>}
+ */
+export async function getAdminPayments(filters = {}, page = 1, perPage = 15) {
+  const params = { ...filters, page, per_page: perPage }
+  
+  try {
+    const { data } = await api.get('/payments', {
+      params: params,
+    })
+    return data
+  } catch (error) {
+    throw error
+  }
+}
+
+/**
+ * Підтвердити платіж (надати доступ до курсу)
+ * @param {number|string} paymentId
+ * @returns {Promise<Object>}
+ */
+export async function confirmPayment(paymentId) {
+  const { data } = await api.post(`/payments/${paymentId}/confirm`)
+  return data
+}
+
+/**
+ * Відхилити платіж
+ * @param {number|string} paymentId
+ * @param {string} reason - Причина відхилення
+ * @returns {Promise<Object>}
+ */
+export async function rejectPayment(paymentId, reason = '') {
+  const { data } = await api.post(`/payments/${paymentId}/reject`, { reason })
+  return data
+}
+
+/**
+ * Отримати детальну інформацію про платіж
+ * @param {number|string} paymentId
+ * @returns {Promise<Object>}
+ */
+export async function getPaymentDetails(paymentId) {
+  const { data } = await api.get(`/payments/${paymentId}`)
+  return data
+}
+
+/**
+ * Отримати статистику платежів
+ * @returns {Promise<Object>}
+ */
+export async function getPaymentStatistics() {
+  try {
+    const { data } = await api.get('/payments/statistics')
+    return data
+  } catch (error) {
+    throw error
+  }
+}
+
+// --- ПІДПИСКИ ТА ДОСТУП ДО КУРСІВ ---
+
+/**
+ * Перевірити доступ до курсу
+ * @param {number|string} courseId
+ * @returns {Promise<Object>}
+ */
+export async function checkCourseAccess(courseId) {
+  const { data } = await api.get(`/enrollments/course/${courseId}`)
+  return data
+}
+
+/**
+ * Отримати всі підписки користувача (Мої курси)
+ * @returns {Promise<Object>}
+ */
+export async function getUserEnrollments() {
+  const { data } = await api.get('/enrollments')
+  return data
+}
+
+/**
+ * Підписатися на безкоштовний курс
+ * @param {number|string} courseId
+ * @returns {Promise<Object>}
+ */
+export async function enrollFreeCourse(courseId) {
+  const { data } = await api.get(`/enrollments/free/${courseId}`)
+  return data
+}
+
+// --- КУРСИ ---
+
+/**
+ * Отримати дані курсу за ID (з already existing функції)
+ * @param {number|string} courseId
+ * @returns {Promise<Object>}
+ */
+export async function getCourseById(courseId) {
+  const { data } = await api.get(`/courses/${courseId}`)
+  return data
 }
 
 // Оновимо експорт, щоб включити нові API

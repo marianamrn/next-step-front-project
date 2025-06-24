@@ -19,7 +19,7 @@
           </v-chip>
         </div>
       </div>
-      <div class="course-favorite-btn">
+      <div class="course-favorite-btn" v-if="showFavorite">
         <v-btn
           icon
           variant="flat"
@@ -77,7 +77,7 @@
 
       <!-- Ціна та кнопка -->
       <div class="course-footer">
-        <div class="course-price">
+        <div class="course-price" v-if="showPrice">
           <span
             v-if="course.is_on_discount && course.price !== course.current_price"
             class="original-price"
@@ -98,16 +98,26 @@
           </v-chip>
         </div>
 
-        <v-btn
-          variant="flat"
-          color="primary"
-          size="small"
-          prepend-icon="mdi-cart-plus"
-          @click.stop="addToCart"
-          :loading="addingToCart"
-        >
-          В корзину
-        </v-btn>
+        <div class="course-actions">
+          <button 
+            v-if="showBuyButton && course.price > 0" 
+            @click="buyCourse" 
+            class="buy-btn"
+            :disabled="loading"
+          >
+            <v-icon v-if="loading" class="loading-icon">mdi-loading</v-icon>
+            <span v-else>Купити курс</span>
+          </button>
+          <button 
+            v-if="showEnrollButton && course.price == 0" 
+            @click="enrollFreeCourse" 
+            class="enroll-btn"
+            :disabled="loading"
+          >
+            <v-icon v-if="loading" class="loading-icon">mdi-loading</v-icon>
+            <span v-else>Записатися безкоштовно</span>
+          </button>
+        </div>
       </div>
     </div>
   </div>
@@ -118,6 +128,7 @@
 import coursePlaceholder from '@/assets/img/course-placeholder.jpg'
 import { getLessonsCount } from '@/utils/lessonUtils.js'
 import { getImageUrl } from '@/services/api.js'
+import { initiateCoursePayment, enrollFreeCourse } from '../../services/api'
 
 export default {
   name: 'CourseCard',
@@ -126,11 +137,27 @@ export default {
       type: Object,
       required: true,
     },
+    showPrice: {
+      type: Boolean,
+      default: true
+    },
+    showBuyButton: {
+      type: Boolean,
+      default: true
+    },
+    showEnrollButton: {
+      type: Boolean,
+      default: true
+    },
+    showFavorite: {
+      type: Boolean,
+      default: true
+    }
   },
   data() {
     return {
       isFavorite: false,
-      addingToCart: false,
+      loading: false,
     }
   },
   computed: {
@@ -197,32 +224,31 @@ export default {
       console.log('Toggle favorite for course:', this.course.id)
     },
 
-    async addToCart() {
-      this.addingToCart = true
+    async buyCourse() {
+      this.loading = true
       try {
-        // Тут буде логіка додавання до корзини
-        console.log('Adding to cart:', this.course.id)
-
-        // Емітуємо подію для батьківського компонента
-        this.$emit('course-added-to-cart', this.course)
-
-        // Показуємо повідомлення про успіх
-        this.$emit('show-message', {
-          type: 'success',
-          text: `Курс "${this.course.title}" додано до корзини`,
-        })
-
-        await new Promise((resolve) => setTimeout(resolve, 500))
+        await initiateCoursePayment(this.course.id)
+        this.$router.push(`/payment/${this.course.id}`)
+        this.$toast.success('Платіж ініційовано успішно')
       } catch (error) {
-        console.error('Error adding to cart:', error)
-        this.$emit('show-message', {
-          type: 'error',
-          text: 'Помилка додавання до корзини',
-        })
+        this.$toast.error(error?.response?.data?.message || error?.message || 'Помилка ініціалізації платежу')
       } finally {
-        this.addingToCart = false
+        this.loading = false
       }
     },
+
+    async enrollFreeCourse() {
+      this.loading = true
+      try {
+        await enrollFreeCourse(this.course.id)
+        this.$toast.success('Ви успішно записалися на безкоштовний курс!')
+        this.$router.push(`/my-courses/${this.course.id}`)
+      } catch (error) {
+        this.$toast.error(error?.response?.data?.message || error?.message || 'Помилка запису на курс')
+      } finally {
+        this.loading = false
+      }
+    }
   },
 }
 </script>
@@ -397,6 +423,58 @@ export default {
   top: -8px;
   right: -8px;
   font-size: 0.7rem;
+}
+
+.course-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.buy-btn, .enroll-btn {
+  flex: 1;
+  padding: 10px 16px;
+  border: none;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+
+.buy-btn {
+  background: #1db6b8;
+  color: white;
+}
+
+.buy-btn:hover:not(:disabled) {
+  background: #18a0a2;
+}
+
+.enroll-btn {
+  background: #4CAF50;
+  color: white;
+}
+
+.enroll-btn:hover:not(:disabled) {
+  background: #45a049;
+}
+
+.buy-btn:disabled, .enroll-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.loading-icon {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
 }
 
 /* Responsive стилі */

@@ -117,7 +117,7 @@ import { getLessonFileUrl } from '@/services/api.js';
 import { marked } from 'marked';
 
 export default {
-  name: 'LessonViewModal',
+  name: 'UserLessonViewModal',
   props: {
     lesson: {
       type: Object,
@@ -286,4 +286,4 @@ export default {
   width: 100%;
   height: 100%;
 }
-</style>
+</style> 

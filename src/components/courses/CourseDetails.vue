@@ -41,7 +41,7 @@
                 >{{ formatPrice(course.current_price || course.price) }} ₴</span
               >
             </div>
-            <button class="buy-btn" disabled>Придбати курс</button>
+            <button class="buy-btn" @click="buyCourse">Придбати курс</button>
           </div>
         </div>
         <div class="main-section__cover main-section__cover--photo">
@@ -274,6 +274,14 @@ export default {
         this.loading = false
       }
     },
+    buyCourse() {
+      const token = localStorage.getItem('token')
+      if (!token) {
+        this.$router.push('/login')
+        return
+      }
+      this.$router.push(`/payment/${this.course.id}`)
+    },
   },
 }
 </script>
@@ -464,7 +472,7 @@ export default {
   font-size: 1.2rem;
   font-weight: 700;
   margin: 0;
-  cursor: not-allowed;
+  cursor: pointer;
   box-shadow: 0 2px 8px rgba(79, 70, 229, 0.08);
 }
 @media (max-width: 1200px) {

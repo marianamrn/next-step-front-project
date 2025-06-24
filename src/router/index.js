@@ -103,8 +103,29 @@ const routes = [
   },
   {
     path: '/my-courses',
-    name: 'MyCourses',
-    component: MyCoursesPage,
+    name: 'MyCoursesNew',
+    component: () => import('@/components/my-courses/MyCourses.vue'),
+    meta: { requiresAuth: true },
+  },
+  {
+    path: '/my-courses/:id',
+    name: 'MyCourseDetail',
+    component: () => import('@/components/my-courses/MyCourseDetail.vue'),
+    props: true,
+    meta: { requiresAuth: true },
+  },
+  {
+    path: '/payment/:courseId',
+    name: 'LiqPayPayment',
+    component: () => import('@/components/my-courses/LiqPayPayment.vue'),
+    props: true,
+    meta: { requiresAuth: true },
+  },
+  {
+    path: '/payment-status/:paymentId/:courseId',
+    name: 'PaymentStatus',
+    component: () => import('@/components/my-courses/PaymentStatus.vue'),
+    props: true,
     meta: { requiresAuth: true },
   },
 
@@ -219,8 +240,7 @@ const routes = [
       {
         path: 'financial',
         name: 'AdminFinancial',
-        component: () => import('@/components/admin/ComingSoon.vue'),
-        props: { feature: 'Фінансовий модуль' },
+        component: () => import('@/components/admin/FinancialModule.vue'),
         meta: { roles: ['super_admin', 'admin'] },
         beforeEnter: checkRoleAccess(['super_admin', 'admin'])
       },
@@ -231,6 +251,13 @@ const routes = [
         props: { feature: 'Налаштування системи' },
         meta: { roles: ['super_admin'] },
         beforeEnter: checkRoleAccess(['super_admin'])
+      },
+      {
+        path: 'requests',
+        name: 'AdminRequests',
+        component: () => import('@/components/admin/requests-manage/RequestsManage.vue'),
+        meta: { roles: ['super_admin', 'admin', 'teacher'] },
+        beforeEnter: checkRoleAccess(['super_admin', 'admin', 'teacher'])
       },
     ],
   },
