@@ -1,0 +1,510 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Тест API Платежів - NextStep</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+        }
+        .step {
+            margin-bottom: 30px;
+            padding: 20px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            background: #fafafa;
+        }
+        .step.active {
+            border-color: #1db6b8;
+            background: #f0fdfd;
+        }
+        .step.completed {
+            border-color: #4CAF50;
+            background: #f0fdf0;
+        }
+        .step h3 {
+            margin: 0 0 15px 0;
+            color: #333;
+        }
+        .api-info {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 6px;
+            margin: 10px 0;
+            font-family: monospace;
+            font-size: 14px;
+        }
+        .response {
+            background: #f0f0f0;
+            padding: 15px;
+            border-radius: 6px;
+            margin: 10px 0;
+            font-family: monospace;
+            font-size: 12px;
+            max-height: 200px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+        }
+        .success { color: #4CAF50; }
+        .error { color: #f44336; }
+        .warning { color: #ff9800; }
+        .info { color: #2196F3; }
+        button {
+            background: #1db6b8;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            margin: 5px;
+            font-size: 14px;
+        }
+        button:hover {
+            background: #18a0a2;
+        }
+        button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+        input, select {
+            padding: 8px 12px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            margin: 5px;
+            font-size: 14px;
+        }
+        .form-group {
+            margin: 10px 0;
+        }
+        .form-group label {
+            display: inline-block;
+            width: 120px;
+            font-weight: bold;
+        }
+        .status-badge {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: bold;
+            margin-left: 10px;
+        }
+        .status-pending { background: #fff3cd; color: #856404; }
+        .status-completed { background: #d4edda; color: #155724; }
+        .status-failed { background: #f8d7da; color: #721c24; }
+        .status-rejected { background: #f5c6cb; color: #721c24; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🧪 Тест API Платежів NextStep</h1>
+        <p class="info">Цей файл дозволяє протестувати всі API endpoint'и для роботи з платежами та курсами.</p>
+
+        <!-- Крок 1: Ініціалізація платежу -->
+        <div class="step" id="step1">
+            <h3>1️⃣ Ініціалізація платежу</h3>
+            <div class="api-info">
+                <strong>POST</strong> https://nextsteap.api-dev.bmax-edu.website/api/payments/course/{courseId}
+            </div>
+            <div class="form-group">
+                <label>Course ID:</label>
+                <input type="number" id="courseId" value="1" min="1">
+                <button onclick="initiatePayment()">Ініціювати платіж</button>
+            </div>
+            <div id="step1-response" class="response" style="display: none;"></div>
+        </div>
+
+        <!-- Крок 2: Перевірка статусу платежу -->
+        <div class="step" id="step2">
+            <h3>2️⃣ Перевірка статусу платежу</h3>
+            <div class="api-info">
+                <strong>GET</strong> https://nextsteap.api-dev.bmax-edu.website/api/payments/{paymentId}/status
+            </div>
+            <div class="form-group">
+                <label>Payment ID:</label>
+                <input type="number" id="paymentId" placeholder="Введіть ID платежу">
+                <button onclick="checkPaymentStatus()">Перевірити статус</button>
+                <button onclick="autoCheckStatus()">Авто-перевірка (30с)</button>
+            </div>
+            <div id="step2-response" class="response" style="display: none;"></div>
+        </div>
+
+        <!-- Крок 3: Успішна оплата -->
+        <div class="step" id="step3">
+            <h3>3️⃣ Успішна оплата</h3>
+            <div class="api-info">
+                <strong>GET</strong> https://nextsteap.api-dev.bmax-edu.website/api/payments/course/{courseId}/success
+            </div>
+            <div class="form-group">
+                <label>Course ID:</label>
+                <input type="number" id="successCourseId" value="1" min="1">
+                <button onclick="handlePaymentSuccess()">Обробити успішну оплату</button>
+            </div>
+            <div id="step3-response" class="response" style="display: none;"></div>
+        </div>
+
+        <!-- Крок 4: Невдалий платіж -->
+        <div class="step" id="step4">
+            <h3>4️⃣ Невдалий платіж</h3>
+            <div class="api-info">
+                <strong>GET</strong> https://nextsteap.api-dev.bmax-edu.website/api/payments/{paymentId}/failed
+            </div>
+            <div class="form-group">
+                <label>Payment ID:</label>
+                <input type="number" id="failedPaymentId" placeholder="Введіть ID платежу">
+                <button onclick="handleFailedPayment()">Обробити невдалий платіж</button>
+            </div>
+            <div id="step4-response" class="response" style="display: none;"></div>
+        </div>
+
+        <!-- Крок 5: Перевірка доступу до курсу -->
+        <div class="step" id="step5">
+            <h3>5️⃣ Перевірка доступу до курсу</h3>
+            <div class="api-info">
+                <strong>GET</strong> https://nextsteap.api-dev.bmax-edu.website/api/enrollments/course/{courseId}
+            </div>
+            <div class="form-group">
+                <label>Course ID:</label>
+                <input type="number" id="accessCourseId" value="1" min="1">
+                <button onclick="checkCourseAccess()">Перевірити доступ</button>
+            </div>
+            <div id="step5-response" class="response" style="display: none;"></div>
+        </div>
+
+        <!-- Крок 6: Всі куплені курси -->
+        <div class="step" id="step6">
+            <h3>6️⃣ Всі куплені курси</h3>
+            <div class="api-info">
+                <strong>GET</strong> https://nextsteap.api-dev.bmax-edu.website/api/enrollments
+            </div>
+            <div class="form-group">
+                <button onclick="getUserEnrollments()">Отримати мої курси</button>
+            </div>
+            <div id="step6-response" class="response" style="display: none;"></div>
+        </div>
+
+        <!-- Крок 7: Доступ до безкоштовного курсу -->
+        <div class="step" id="step7">
+            <h3>7️⃣ Доступ до безкоштовного курсу</h3>
+            <div class="api-info">
+                <strong>GET</strong> https://nextsteap.api-dev.bmax-edu.website/api/enrollments/free/{courseId}
+            </div>
+            <div class="form-group">
+                <label>Course ID:</label>
+                <input type="number" id="freeCourseId" value="1" min="1">
+                <button onclick="enrollFreeCourse()">Записатися на безкоштовний курс</button>
+            </div>
+            <div id="step7-response" class="response" style="display: none;"></div>
+        </div>
+
+        <!-- Крок 8: Адмін - Всі платежі -->
+        <div class="step" id="step8">
+            <h3>8️⃣ Адмін - Всі платежі</h3>
+            <div class="api-info">
+                <strong>GET</strong> https://nextsteap.api-dev.bmax-edu.website/api/payments
+            </div>
+            <div class="form-group">
+                <label>Статус:</label>
+                <select id="paymentStatus">
+                    <option value="">Всі</option>
+                    <option value="pending">Очікує</option>
+                    <option value="completed">Завершено</option>
+                    <option value="failed">Невдалий</option>
+                    <option value="rejected">Відхилено</option>
+                </select>
+                <button onclick="getAllPayments()">Отримати всі платежі</button>
+            </div>
+            <div id="step8-response" class="response" style="display: none;"></div>
+        </div>
+
+        <!-- Крок 9: Адмін - Підтвердження платежу -->
+        <div class="step" id="step9">
+            <h3>9️⃣ Адмін - Підтвердження платежу</h3>
+            <div class="api-info">
+                <strong>POST</strong> https://nextsteap.api-dev.bmax-edu.website/api/payments/{paymentId}/confirm
+            </div>
+            <div class="form-group">
+                <label>Payment ID:</label>
+                <input type="number" id="confirmPaymentId" placeholder="Введіть ID платежу">
+                <button onclick="confirmPayment()">Підтвердити платіж</button>
+            </div>
+            <div id="step9-response" class="response" style="display: none;"></div>
+        </div>
+
+        <!-- Кнопки управління -->
+        <div style="margin-top: 30px; text-align: center;">
+            <button onclick="runFullTest()" style="background: #4CAF50;">🚀 Запустити повний тест</button>
+            <button onclick="clearAll()" style="background: #f44336;">🗑️ Очистити всі результати</button>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = 'https://nextsteap.api-dev.bmax-edu.website/api';
+        let currentPaymentId = null;
+        let autoCheckInterval = null;
+
+        // Функція для відображення відповіді
+        function showResponse(stepId, data, isError = false) {
+            const responseDiv = document.getElementById(stepId + '-response');
+            responseDiv.style.display = 'block';
+            responseDiv.className = 'response ' + (isError ? 'error' : 'success');
+            responseDiv.textContent = JSON.stringify(data, null, 2);
+            
+            // Позначаємо крок як завершений
+            const step = document.getElementById(stepId);
+            step.classList.remove('active');
+            step.classList.add('completed');
+        }
+
+        // Функція для позначення кроку як активного
+        function setStepActive(stepId) {
+            const step = document.getElementById(stepId);
+            step.classList.add('active');
+        }
+
+        // Функція для HTTP запитів
+        async function makeRequest(url, options = {}) {
+            try {
+                const token = localStorage.getItem('token');
+                const headers = {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json',
+                    ...options.headers
+                };
+                
+                if (token) {
+                    headers['Authorization'] = `Bearer ${token}`;
+                }
+
+                const response = await fetch(url, {
+                    ...options,
+                    headers
+                });
+
+                const data = await response.json();
+                
+                if (!response.ok) {
+                    throw new Error(data.message || `HTTP ${response.status}`);
+                }
+                
+                return data;
+            } catch (error) {
+                throw error;
+            }
+        }
+
+        // 1. Ініціалізація платежу
+        async function initiatePayment() {
+            setStepActive('step1');
+            const courseId = document.getElementById('courseId').value;
+            
+            try {
+                const data = await makeRequest(`${API_BASE}/payments/course/${courseId}`, {
+                    method: 'POST'
+                });
+                
+                currentPaymentId = data.payment?.id || data.payment_id;
+                document.getElementById('paymentId').value = currentPaymentId;
+                
+                showResponse('step1', data);
+            } catch (error) {
+                showResponse('step1', { error: error.message }, true);
+            }
+        }
+
+        // 2. Перевірка статусу платежу
+        async function checkPaymentStatus() {
+            setStepActive('step2');
+            const paymentId = document.getElementById('paymentId').value;
+            
+            if (!paymentId) {
+                showResponse('step2', { error: 'Введіть Payment ID' }, true);
+                return;
+            }
+            
+            try {
+                const data = await makeRequest(`${API_BASE}/payments/${paymentId}/status`);
+                showResponse('step2', data);
+            } catch (error) {
+                showResponse('step2', { error: error.message }, true);
+            }
+        }
+
+        // Автоматична перевірка статусу
+        function autoCheckStatus() {
+            if (autoCheckInterval) {
+                clearInterval(autoCheckInterval);
+                autoCheckInterval = null;
+                return;
+            }
+            
+            autoCheckStatus();
+            autoCheckInterval = setInterval(checkPaymentStatus, 30000); // 30 секунд
+        }
+
+        // 3. Успішна оплата
+        async function handlePaymentSuccess() {
+            setStepActive('step3');
+            const courseId = document.getElementById('successCourseId').value;
+            
+            try {
+                const data = await makeRequest(`${API_BASE}/payments/course/${courseId}/success`);
+                showResponse('step3', data);
+            } catch (error) {
+                showResponse('step3', { error: error.message }, true);
+            }
+        }
+
+        // 4. Невдалий платіж
+        async function handleFailedPayment() {
+            setStepActive('step4');
+            const paymentId = document.getElementById('failedPaymentId').value;
+            
+            if (!paymentId) {
+                showResponse('step4', { error: 'Введіть Payment ID' }, true);
+                return;
+            }
+            
+            try {
+                const data = await makeRequest(`${API_BASE}/payments/${paymentId}/failed`);
+                showResponse('step4', data);
+            } catch (error) {
+                showResponse('step4', { error: error.message }, true);
+            }
+        }
+
+        // 5. Перевірка доступу до курсу
+        async function checkCourseAccess() {
+            setStepActive('step5');
+            const courseId = document.getElementById('accessCourseId').value;
+            
+            try {
+                const data = await makeRequest(`${API_BASE}/enrollments/course/${courseId}`);
+                showResponse('step5', data);
+            } catch (error) {
+                showResponse('step5', { error: error.message }, true);
+            }
+        }
+
+        // 6. Всі куплені курси
+        async function getUserEnrollments() {
+            setStepActive('step6');
+            
+            try {
+                const data = await makeRequest(`${API_BASE}/enrollments`);
+                showResponse('step6', data);
+            } catch (error) {
+                showResponse('step6', { error: error.message }, true);
+            }
+        }
+
+        // 7. Доступ до безкоштовного курсу
+        async function enrollFreeCourse() {
+            setStepActive('step7');
+            const courseId = document.getElementById('freeCourseId').value;
+            
+            try {
+                const data = await makeRequest(`${API_BASE}/enrollments/free/${courseId}`);
+                showResponse('step7', data);
+            } catch (error) {
+                showResponse('step7', { error: error.message }, true);
+            }
+        }
+
+        // 8. Адмін - Всі платежі
+        async function getAllPayments() {
+            setStepActive('step8');
+            const status = document.getElementById('paymentStatus').value;
+            
+            try {
+                const params = new URLSearchParams();
+                if (status) params.append('status', status);
+                
+                const url = `${API_BASE}/payments${params.toString() ? '?' + params.toString() : ''}`;
+                const data = await makeRequest(url);
+                showResponse('step8', data);
+            } catch (error) {
+                showResponse('step8', { error: error.message }, true);
+            }
+        }
+
+        // 9. Адмін - Підтвердження платежу
+        async function confirmPayment() {
+            setStepActive('step9');
+            const paymentId = document.getElementById('confirmPaymentId').value;
+            
+            if (!paymentId) {
+                showResponse('step9', { error: 'Введіть Payment ID' }, true);
+                return;
+            }
+            
+            try {
+                const data = await makeRequest(`${API_BASE}/payments/${paymentId}/confirm`, {
+                    method: 'POST'
+                });
+                showResponse('step9', data);
+            } catch (error) {
+                showResponse('step9', { error: error.message }, true);
+            }
+        }
+
+        // Повний тест
+        async function runFullTest() {
+            clearAll();
+            
+            // Послідовно виконуємо всі кроки
+            await initiatePayment();
+            await new Promise(resolve => setTimeout(resolve, 1000));
+            
+            if (currentPaymentId) {
+                await checkPaymentStatus();
+                await new Promise(resolve => setTimeout(resolve, 1000));
+            }
+            
+            await checkCourseAccess();
+            await new Promise(resolve => setTimeout(resolve, 1000));
+            
+            await getUserEnrollments();
+            await new Promise(resolve => setTimeout(resolve, 1000));
+            
+            await getAllPayments();
+        }
+
+        // Очищення всіх результатів
+        function clearAll() {
+            const responses = document.querySelectorAll('.response');
+            responses.forEach(response => {
+                response.style.display = 'none';
+                response.textContent = '';
+            });
+            
+            const steps = document.querySelectorAll('.step');
+            steps.forEach(step => {
+                step.classList.remove('active', 'completed');
+            });
+            
+            if (autoCheckInterval) {
+                clearInterval(autoCheckInterval);
+                autoCheckInterval = null;
+            }
+        }
+
+        // Ініціалізація при завантаженні
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('🧪 Тест API Платежів готовий до використання');
+            console.log('📝 Використовуйте кнопки для тестування різних API endpoint\'ів');
+        });
+    </script>
+</body>
+</html> 

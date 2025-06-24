@@ -53,8 +53,8 @@ export default {
         getCourseById(courseId),
         checkCourseAccess(courseId)
       ]);
-      this.course = courseResp.course;
-      this.hasAccess = accessResp.has_access;
+      this.course = courseResp.course || courseResp;
+      this.hasAccess = accessResp.has_access || accessResp.access || false;
       // lessons та статистика проходження (імітація, якщо API не повертає)
       this.lessons = this.course.modules?.flatMap(m => m.lessons || []) || [];
       // Якщо є статистика проходження — підставити, інакше імітувати
@@ -72,7 +72,7 @@ export default {
       }
       this.loading = false;
     } catch (e) {
-      this.error = e?.message || 'Помилка завантаження курсу';
+      this.error = e?.response?.data?.message || e?.message || 'Помилка завантаження курсу';
       this.loading = false;
     }
   }

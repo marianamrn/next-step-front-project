@@ -31,10 +31,10 @@ export default {
     this.loading = true;
     try {
       const data = await getUserEnrollments();
-      this.courses = data.enrollments || [];
+      this.courses = data.enrollments || data.data || [];
       this.loading = false;
     } catch (e) {
-      this.error = e?.message || 'Помилка завантаження курсів';
+      this.error = e?.response?.data?.message || e?.message || 'Помилка завантаження курсів';
       this.loading = false;
     }
   },
