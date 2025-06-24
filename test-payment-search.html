@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Тест пошуку платежів</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .test-section {
+            margin: 20px 0;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        .test-button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        .test-button:hover {
+            background: #0056b3;
+        }
+        .result {
+            margin-top: 10px;
+            padding: 10px;
+            background: #f8f9fa;
+            border-radius: 5px;
+            white-space: pre-wrap;
+        }
+        input {
+            padding: 8px;
+            margin: 5px;
+            border: 1px solid #ddd;
+            border-radius: 3px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Тест пошуку платежів API</h1>
+    
+    <div class="test-section">
+        <h3>Введіть текст для пошуку:</h3>
+        <input type="text" id="searchText" placeholder="Email або ім'я користувача" value="student1@example.com">
+        
+        <h3>Тестування різних параметрів:</h3>
+        <button class="test-button" onclick="testSearch('query')">Тест з query</button>
+        <button class="test-button" onclick="testSearch('search')">Тест з search</button>
+        <button class="test-button" onclick="testSearch('q')">Тест з q</button>
+        <button class="test-button" onclick="testSearch('email')">Тест з email</button>
+        <button class="test-button" onclick="testSearch('user_email')">Тест з user_email</button>
+        <button class="test-button" onclick="testSearch('user_name')">Тест з user_name</button>
+        <button class="test-button" onclick="testSearch('user')">Тест з user</button>
+        <button class="test-button" onclick="testSearch('course_title')">Тест з course_title</button>
+        <button class="test-button" onclick="testSearch('course')">Тест з course</button>
+        
+        <div id="result" class="result"></div>
+    </div>
+
+    <script>
+        const API_BASE = 'http://nextsteap.api-dev.bmax-edu.website/api';
+        
+        async function testSearch(paramName) {
+            const searchText = document.getElementById('searchText').value;
+            const resultDiv = document.getElementById('result');
+            
+            if (!searchText) {
+                resultDiv.textContent = 'Введіть текст для пошуку';
+                return;
+            }
+            
+            const params = {};
+            params[paramName] = searchText;
+            
+            const url = new URL(`${API_BASE}/payments/all`);
+            Object.keys(params).forEach(key => {
+                url.searchParams.append(key, params[key]);
+            });
+            
+            resultDiv.textContent = `Тестування параметра: ${paramName}\nURL: ${url.toString()}\n\nЗавантаження...`;
+            
+            try {
+                const response = await fetch(url, {
+                    headers: {
+                        'Authorization': 'Bearer ' + localStorage.getItem('token'),
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    const count = data.data ? data.data.length : 0;
+                    resultDiv.textContent = `✅ Успішно! Знайдено ${count} платежів\n\nПараметр: ${paramName}\nURL: ${url.toString()}\n\nРезультат: ${JSON.stringify(data, null, 2)}`;
+                } else {
+                    resultDiv.textContent = `❌ Помилка: ${response.status} ${response.statusText}\n\nПараметр: ${paramName}\nURL: ${url.toString()}\n\nВідповідь: ${JSON.stringify(data, null, 2)}`;
+                }
+            } catch (error) {
+                resultDiv.textContent = `❌ Помилка мережі: ${error.message}\n\nПараметр: ${paramName}\nURL: ${url.toString()}`;
+            }
+        }
+        
+        // Автоматично тестуємо всі параметри
+        async function testAllParams() {
+            const searchText = document.getElementById('searchText').value;
+            if (!searchText) return;
+            
+            const params = ['query', 'search', 'q', 'email', 'user_email', 'user_name', 'user', 'course_title', 'course'];
+            const resultDiv = document.getElementById('result');
+            
+            resultDiv.textContent = 'Тестування всіх параметрів...\n\n';
+            
+            for (const param of params) {
+                try {
+                    const url = new URL(`${API_BASE}/payments/all`);
+                    url.searchParams.append(param, searchText);
+                    
+                    const response = await fetch(url, {
+                        headers: {
+                            'Authorization': 'Bearer ' + localStorage.getItem('token'),
+                            'Content-Type': 'application/json'
+                        }
+                    });
+                    
+                    const data = await response.json();
+                    const count = data.data ? data.data.length : 0;
+                    const status = response.ok ? '✅' : '❌';
+                    
+                    resultDiv.textContent += `${status} ${param}: ${count} результатів\n`;
+                } catch (error) {
+                    resultDiv.textContent += `❌ ${param}: помилка мережі\n`;
+                }
+            }
+        }
+        
+        // Додаємо кнопку для тестування всіх параметрів
+        document.addEventListener('DOMContentLoaded', function() {
+            const testSection = document.querySelector('.test-section');
+            const testAllButton = document.createElement('button');
+            testAllButton.className = 'test-button';
+            testAllButton.style.background = '#28a745';
+            testAllButton.textContent = 'Тестувати всі параметри';
+            testAllButton.onclick = testAllParams;
+            testSection.appendChild(testAllButton);
+        });
+    </script>
+</body>
+</html> 

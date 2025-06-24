@@ -875,8 +875,11 @@ export async function handleFailedPayment(paymentId) {
  * @returns {Promise<Object>}
  */
 export async function getAdminPayments(filters = {}, page = 1, perPage = 15) {
-  const { data } = await api.get('/payments', {
-    params: { ...filters, page, per_page: perPage },
+  const params = { ...filters, page, per_page: perPage }
+  console.log('API Request params:', params)
+  
+  const { data } = await api.get('/payments/all', {
+    params: params,
   })
   return data
 }

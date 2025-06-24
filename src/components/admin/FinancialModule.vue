@@ -1,5 +1,5 @@
 <template>
-  <div class="payments-management">
+  <div class="financial-module">
     <div class="page-header">
       <h1>Управління платежами</h1>
       <div class="header-actions">
@@ -25,20 +25,20 @@
         </div>
         <div class="filter-group">
           <label>Дата від:</label>
-          <input type="date" v-model="filters.date_from" @change="applyFilters">
+          <input type="date" v-model="filters.date_from" @change="applyFilters" />
         </div>
         <div class="filter-group">
           <label>Дата до:</label>
-          <input type="date" v-model="filters.date_to" @change="applyFilters">
+          <input type="date" v-model="filters.date_to" @change="applyFilters" />
         </div>
         <div class="filter-group">
           <label>Пошук:</label>
-          <input 
-            type="text" 
-            v-model="filters.search" 
-            placeholder="Email, ім'я користувача або назва курсу"
+          <input
+            type="text"
+            v-model="filters.search"
             @input="debounceSearch"
-          >
+            placeholder="ID, email, ім'я користувача, назва курсу..."
+          />
         </div>
       </div>
     </div>
@@ -69,17 +69,17 @@
         <v-icon class="loading-icon">mdi-loading</v-icon>
         Завантаження платежів...
       </div>
-      
+
       <div v-else-if="error" class="error">
         {{ error }}
         <button @click="loadPayments" class="retry-btn">Спробувати знову</button>
       </div>
-      
+
       <div v-else-if="payments.length === 0" class="empty-state">
         <v-icon>mdi-credit-card-off</v-icon>
         <p>Платежів не знайдено</p>
       </div>
-      
+
       <div v-else class="payments-table">
         <table>
           <thead>
@@ -88,6 +88,7 @@
               <th>Користувач</th>
               <th>Курс</th>
               <th>Сума</th>
+              <th>Спосіб оплати</th>
               <th>Статус</th>
               <th>Дата створення</th>
               <th>Дії</th>
@@ -98,17 +99,22 @@
               <td>{{ payment.id }}</td>
               <td>
                 <div class="user-info">
-                  <div class="user-name">{{ payment.user?.name || 'Невідомий користувач' }}</div>
+                  <div class="user-name">
+                    {{ payment.user_name || payment.user?.name || 'Невідомий користувач' }}
+                  </div>
                   <div class="user-email">{{ payment.user?.email }}</div>
                 </div>
               </td>
               <td>
                 <div class="course-info">
-                  <div class="course-title">{{ payment.course?.title || 'Невідомий курс' }}</div>
-                  <div class="course-price">{{ formatCurrency(payment.course?.price) }}</div>
+                  <div class="course-title">
+                    {{ payment.course_info?.title || 'Невідомий курс' }}
+                  </div>
+                  <div class="course-price">{{ formatCurrency(payment.course_info?.price) }}</div>
                 </div>
               </td>
               <td class="amount">{{ formatCurrency(payment.amount) }}</td>
+              <td class="payment-method">{{ getPaymentMethodText(payment.payment_method) }}</td>
               <td>
                 <span :class="['status-badge', `status-${payment.payment_status}`]">
                   {{ getStatusText(payment.payment_status) }}
@@ -117,24 +123,24 @@
               <td>{{ formatDate(payment.created_at) }}</td>
               <td>
                 <div class="actions">
-                  <button 
+                  <button
                     v-if="payment.payment_status === 'pending'"
-                    @click="confirmPayment(payment.id)" 
+                    @click="confirmPayment(payment.id)"
                     class="action-btn confirm-btn"
                     title="Підтвердити платіж"
                   >
                     <v-icon>mdi-check</v-icon>
                   </button>
-                  <button 
+                  <button
                     v-if="payment.payment_status === 'pending'"
-                    @click="rejectPayment(payment.id)" 
+                    @click="rejectPayment(payment.id)"
                     class="action-btn reject-btn"
                     title="Відхилити платіж"
                   >
                     <v-icon>mdi-close</v-icon>
                   </button>
-                  <button 
-                    @click="viewPaymentDetails(payment.id)" 
+                  <button
+                    @click="viewPaymentDetails(payment.id)"
                     class="action-btn view-btn"
                     title="Деталі платежу"
                   >
@@ -149,19 +155,19 @@
 
       <!-- Пагінація -->
       <div v-if="pagination && pagination.total_pages > 1" class="pagination">
-        <button 
+        <button
           @click="changePage(pagination.current_page - 1)"
           :disabled="pagination.current_page <= 1"
           class="page-btn"
         >
           <v-icon>mdi-chevron-left</v-icon>
         </button>
-        
+
         <span class="page-info">
           Сторінка {{ pagination.current_page }} з {{ pagination.total_pages }}
         </span>
-        
-        <button 
+
+        <button
           @click="changePage(pagination.current_page + 1)"
           :disabled="pagination.current_page >= pagination.total_pages"
           class="page-btn"
@@ -183,11 +189,15 @@
         <div class="modal-body" v-if="selectedPayment">
           <div class="detail-row">
             <label>Користувач:</label>
-            <span>{{ selectedPayment.user?.name }} ({{ selectedPayment.user?.email }})</span>
+            <span
+              >{{ selectedPayment.user_name || selectedPayment.user?.name }} ({{
+                selectedPayment.user?.email
+              }})</span
+            >
           </div>
           <div class="detail-row">
             <label>Курс:</label>
-            <span>{{ selectedPayment.course?.title }}</span>
+            <span>{{ selectedPayment.course_info?.title }}</span>
           </div>
           <div class="detail-row">
             <label>Сума:</label>
@@ -213,7 +223,20 @@
           </div>
           <div class="detail-row" v-if="selectedPayment.payment_method">
             <label>Спосіб оплати:</label>
-            <span>{{ selectedPayment.payment_method }}</span>
+            <span>{{ getPaymentMethodText(selectedPayment.payment_method) }}</span>
+          </div>
+          <div class="detail-row" v-if="selectedPayment.currency">
+            <label>Валюта:</label>
+            <span>{{ selectedPayment.currency }}</span>
+          </div>
+          <div
+            class="detail-row"
+            v-if="
+              selectedPayment.discount_amount && parseFloat(selectedPayment.discount_amount) > 0
+            "
+          >
+            <label>Знижка:</label>
+            <span>{{ formatCurrency(selectedPayment.discount_amount) }}</span>
           </div>
         </div>
       </div>
@@ -232,7 +255,10 @@
           <p>{{ confirmModalMessage }}</p>
           <div v-if="showRejectReason" class="form-group">
             <label>Причина відхилення:</label>
-            <textarea v-model="rejectReason" placeholder="Вкажіть причину відхилення платежу"></textarea>
+            <textarea
+              v-model="rejectReason"
+              placeholder="Вкажіть причину відхилення платежу"
+            ></textarea>
           </div>
         </div>
         <div class="modal-footer">
@@ -247,16 +273,16 @@
 </template>
 
 <script>
-import { 
-  getAdminPayments, 
-  confirmPayment, 
-  rejectPayment, 
-  getPaymentDetails, 
-  getPaymentStatistics 
+import {
+  getAdminPayments,
+  confirmPayment,
+  rejectPayment,
+  getPaymentDetails,
+  getPaymentStatistics,
 } from '../../services/api'
 
 export default {
-  name: 'PaymentsManagement',
+  name: 'FinancialModule',
   data() {
     return {
       loading: false,
@@ -268,7 +294,7 @@ export default {
         status: '',
         date_from: '',
         date_to: '',
-        search: ''
+        search: '',
       },
       showPaymentModal: false,
       showConfirmModal: false,
@@ -279,23 +305,29 @@ export default {
       confirmModalAction: null,
       showRejectReason: false,
       rejectReason: '',
-      searchTimeout: null
+      searchTimeout: null,
     }
   },
   async created() {
-    await this.loadPayments()
+    await this.loadPayments(this.filters)
     await this.loadStatistics()
   },
   methods: {
-    async loadPayments() {
+    async loadPayments(filters = {}) {
       this.loading = true
       this.error = null
       try {
-        const data = await getAdminPayments(this.filters, this.pagination?.current_page || 1)
-        this.payments = data.payments || data.data || []
-        this.pagination = data.pagination || data.meta || null
+        const data = await getAdminPayments(filters, this.pagination?.current_page || 1)
+        this.payments = data.data || []
+        this.pagination = {
+          current_page: data.current_page,
+          total_pages: data.last_page,
+          total_items: data.total,
+          per_page: data.per_page,
+        }
       } catch (error) {
-        this.error = error?.response?.data?.message || error?.message || 'Помилка завантаження платежів'
+        this.error =
+          error?.response?.data?.message || error?.message || 'Помилка завантаження платежів'
       } finally {
         this.loading = false
       }
@@ -311,13 +343,51 @@ export default {
     },
 
     async refreshPayments() {
-      await this.loadPayments()
+      await this.loadPayments(this.filters)
       await this.loadStatistics()
     },
 
     applyFilters() {
       this.pagination = null
-      this.loadPayments()
+
+      // Створюємо об'єкт фільтрів з правильними назвами параметрів
+      const apiFilters = {}
+
+      if (this.filters.status) {
+        apiFilters.status = this.filters.status
+      }
+
+      if (this.filters.date_from) {
+        apiFilters.date_from = this.filters.date_from
+      }
+
+      if (this.filters.date_to) {
+        apiFilters.date_to = this.filters.date_to
+      }
+
+      // Спробуємо різні варіанти параметра пошуку
+      if (this.filters.search) {
+        // Спочатку спробуємо 'query' (найбільш поширений)
+        apiFilters.query = this.filters.search
+        // Також спробуємо 'search'
+        apiFilters.search = this.filters.search
+        // І 'q' (загальний пошук)
+        apiFilters.q = this.filters.search
+        // І 'email' якщо це виглядає як email
+        if (this.filters.search.includes('@')) {
+          apiFilters.email = this.filters.search
+          apiFilters.user_email = this.filters.search
+        }
+        // Спробуємо також пошук по імені користувача
+        apiFilters.user_name = this.filters.search
+        apiFilters.user = this.filters.search
+        // І пошук по назві курсу
+        apiFilters.course_title = this.filters.search
+        apiFilters.course = this.filters.search
+      }
+
+      console.log('Applied filters:', apiFilters)
+      this.loadPayments(apiFilters)
     },
 
     debounceSearch() {
@@ -330,13 +400,14 @@ export default {
     async changePage(page) {
       if (page >= 1 && page <= this.pagination.total_pages) {
         this.pagination.current_page = page
-        await this.loadPayments()
+        await this.loadPayments(this.filters)
       }
     },
 
     async confirmPayment(paymentId) {
       this.confirmModalTitle = 'Підтвердження платежу'
-      this.confirmModalMessage = 'Ви впевнені, що хочете підтвердити цей платіж? Користувач отримає доступ до курсу.'
+      this.confirmModalMessage =
+        'Ви впевнені, що хочете підтвердити цей платіж? Користувач отримає доступ до курсу.'
       this.confirmModalActionText = 'Підтвердити'
       this.confirmModalAction = async () => {
         try {
@@ -344,7 +415,9 @@ export default {
           this.$toast.success('Платіж підтверджено успішно')
           await this.refreshPayments()
         } catch (error) {
-          this.$toast.error(error?.response?.data?.message || error?.message || 'Помилка підтвердження платежу')
+          this.$toast.error(
+            error?.response?.data?.message || error?.message || 'Помилка підтвердження платежу',
+          )
         }
         this.closeConfirmModal()
       }
@@ -362,7 +435,9 @@ export default {
           this.$toast.success('Платіж відхилено успішно')
           await this.refreshPayments()
         } catch (error) {
-          this.$toast.error(error?.response?.data?.message || error?.message || 'Помилка відхилення платежу')
+          this.$toast.error(
+            error?.response?.data?.message || error?.message || 'Помилка відхилення платежу',
+          )
         }
         this.closeConfirmModal()
       }
@@ -371,11 +446,23 @@ export default {
 
     async viewPaymentDetails(paymentId) {
       try {
-        const data = await getPaymentDetails(paymentId)
-        this.selectedPayment = data.payment || data
-        this.showPaymentModal = true
+        // Знаходимо платіж у поточному списку
+        const payment = this.payments.find((p) => p.id === paymentId)
+        if (payment) {
+          this.selectedPayment = payment
+          this.showPaymentModal = true
+        } else {
+          // Якщо платіж не знайдено в списку, робимо API запит
+          const data = await getPaymentDetails(paymentId)
+          this.selectedPayment = data.payment || data
+          this.showPaymentModal = true
+        }
       } catch (error) {
-        this.$toast.error(error?.response?.data?.message || error?.message || 'Помилка завантаження деталей платежу')
+        this.$toast.error(
+          error?.response?.data?.message ||
+            error?.message ||
+            'Помилка завантаження деталей платежу',
+        )
       }
     },
 
@@ -405,29 +492,90 @@ export default {
         pending: 'Очікує підтвердження',
         completed: 'Завершено',
         failed: 'Невдалий',
-        rejected: 'Відхилено'
+        rejected: 'Відхилено',
       }
       return statusMap[status] || status
+    },
+
+    getPaymentMethodText(method) {
+      const methodMap = {
+        liqpay: 'LiqPay',
+        card: 'Банківська карта',
+        paypal: 'PayPal',
+        bank_transfer: 'Банківський переказ',
+      }
+      return methodMap[method] || method
     },
 
     formatCurrency(amount) {
       if (!amount) return '0 ₴'
       return new Intl.NumberFormat('uk-UA', {
         style: 'currency',
-        currency: 'UAH'
+        currency: 'UAH',
       }).format(amount)
     },
 
     formatDate(dateString) {
       if (!dateString) return ''
       return new Date(dateString).toLocaleString('uk-UA')
-    }
-  }
+    },
+
+    testSearchParams() {
+      if (!this.filters.search) {
+        this.$toast.warning('Введіть текст для пошуку')
+        return
+      }
+
+      // Тестуємо різні параметри пошуку
+      const testParams = [
+        { query: this.filters.search },
+        { search: this.filters.search },
+        { q: this.filters.search },
+        { email: this.filters.search },
+        { user_email: this.filters.search },
+        { user_name: this.filters.search },
+        { user: this.filters.search },
+        { course_title: this.filters.search },
+        { course: this.filters.search },
+      ]
+
+      console.log('Testing search parameters:', testParams)
+
+      // Тестуємо перший параметр
+      this.testSearchWithParams(testParams[0])
+    },
+
+    async testSearchWithParams(params) {
+      try {
+        console.log('Testing with params:', params)
+        const data = await getAdminPayments(params, 1, 15)
+        console.log('Search result:', data)
+
+        if (data.data && data.data.length > 0) {
+          this.$toast.success(
+            `Знайдено ${data.data.length} платежів з параметрами: ${Object.keys(params).join(', ')}`,
+          )
+          this.payments = data.data
+          this.pagination = {
+            current_page: data.current_page,
+            total_pages: data.last_page,
+            total_items: data.total,
+            per_page: data.per_page,
+          }
+        } else {
+          this.$toast.info('Платежів не знайдено з цими параметрами')
+        }
+      } catch (error) {
+        console.error('Search test error:', error)
+        this.$toast.error('Помилка тестування пошуку')
+      }
+    },
+  },
 }
 </script>
 
 <style scoped>
-.payments-management {
+.financial-module {
   padding: 20px;
   background-color: #f9fafb;
   min-height: calc(100vh - 70px);
@@ -457,25 +605,25 @@ export default {
   align-items: center;
   gap: 8px;
   padding: 8px 16px;
-  background-color: #443bc9;
+  background-color: #3b82f6;
   color: white;
   border: none;
   border-radius: 6px;
   cursor: pointer;
-  font-weight: 500;
+  font-size: 14px;
   transition: background-color 0.2s;
 }
 
 .refresh-btn:hover {
-  background-color: #3a32a8;
+  background-color: #2563eb;
 }
 
 .filters-section {
-  background: white;
+  background-color: white;
   padding: 20px;
   border-radius: 8px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
   margin-bottom: 24px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 }
 
 .filter-row {
@@ -487,8 +635,8 @@ export default {
 .filter-group {
   display: flex;
   flex-direction: column;
-  gap: 4px;
-  min-width: 150px;
+  gap: 8px;
+  min-width: 200px;
 }
 
 .filter-group label {
@@ -508,23 +656,23 @@ export default {
 .statistics-section {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: 16px;
+  gap: 20px;
   margin-bottom: 24px;
 }
 
 .stat-card {
-  background: white;
+  background-color: white;
   padding: 20px;
   border-radius: 8px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
   text-align: center;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 }
 
 .stat-number {
-  font-size: 24px;
+  font-size: 28px;
   font-weight: 700;
-  color: #443bc9;
-  margin-bottom: 4px;
+  color: #3b82f6;
+  margin-bottom: 8px;
 }
 
 .stat-label {
@@ -533,7 +681,7 @@ export default {
 }
 
 .payments-list {
-  background: white;
+  background-color: white;
   border-radius: 8px;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
   overflow: hidden;
@@ -549,18 +697,22 @@ export default {
 
 .loading-icon {
   animation: spin 1s linear infinite;
-  margin-bottom: 8px;
+  margin-bottom: 12px;
 }
 
 @keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .retry-btn {
   margin-top: 12px;
   padding: 8px 16px;
-  background-color: #443bc9;
+  background-color: #3b82f6;
   color: white;
   border: none;
   border-radius: 6px;
@@ -590,17 +742,21 @@ export default {
   font-size: 14px;
 }
 
+.payments-table td {
+  font-size: 14px;
+  color: #111827;
+}
+
 .user-info,
 .course-info {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 4px;
 }
 
 .user-name,
 .course-title {
   font-weight: 500;
-  color: #111827;
 }
 
 .user-email,
@@ -614,9 +770,13 @@ export default {
   color: #059669;
 }
 
+.payment-method {
+  font-weight: 500;
+}
+
 .status-badge {
   padding: 4px 8px;
-  border-radius: 12px;
+  border-radius: 4px;
   font-size: 12px;
   font-weight: 500;
   text-transform: uppercase;
@@ -674,12 +834,12 @@ export default {
 }
 
 .view-btn {
-  background-color: #6b7280;
+  background-color: #3b82f6;
   color: white;
 }
 
 .view-btn:hover {
-  background-color: #4b5563;
+  background-color: #2563eb;
 }
 
 .pagination {
@@ -702,6 +862,7 @@ export default {
 
 .page-btn:hover:not(:disabled) {
   background-color: #f9fafb;
+  border-color: #9ca3af;
 }
 
 .page-btn:disabled {
@@ -728,12 +889,13 @@ export default {
 }
 
 .modal-content {
-  background: white;
+  background-color: white;
   border-radius: 8px;
-  max-width: 600px;
   width: 90%;
+  max-width: 600px;
   max-height: 90vh;
   overflow-y: auto;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
 }
 
 .modal-header {
@@ -753,9 +915,14 @@ export default {
 .close-btn {
   background: none;
   border: none;
-  font-size: 20px;
   cursor: pointer;
+  padding: 4px;
+  border-radius: 4px;
   color: #6b7280;
+}
+
+.close-btn:hover {
+  background-color: #f3f4f6;
 }
 
 .modal-body {
@@ -782,6 +949,35 @@ export default {
 
 .detail-row span {
   color: #111827;
+  text-align: right;
+}
+
+.confirm-modal .modal-body {
+  padding: 20px;
+}
+
+.confirm-modal .modal-body p {
+  margin-bottom: 16px;
+  color: #374151;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.form-group label {
+  font-weight: 500;
+  color: #374151;
+}
+
+.form-group textarea {
+  padding: 8px 12px;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  resize: vertical;
+  min-height: 80px;
 }
 
 .modal-footer {
@@ -798,7 +994,8 @@ export default {
   border: none;
   border-radius: 6px;
   cursor: pointer;
-  font-weight: 500;
+  font-size: 14px;
+  transition: background-color 0.2s;
 }
 
 .cancel-btn {
@@ -806,55 +1003,54 @@ export default {
   color: #374151;
 }
 
+.cancel-btn:hover {
+  background-color: #e5e7eb;
+}
+
 .confirm-btn {
-  background-color: #ef4444;
+  background-color: #3b82f6;
   color: white;
 }
 
 .confirm-btn:hover {
-  background-color: #dc2626;
+  background-color: #2563eb;
 }
 
-.form-group {
-  margin-top: 16px;
+.test-search-btn {
+  padding: 8px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+  background-color: #10b981;
+  color: white;
+  margin-left: 8px;
 }
 
-.form-group label {
-  display: block;
-  margin-bottom: 8px;
-  font-weight: 500;
-  color: #374151;
-}
-
-.form-group textarea {
-  width: 100%;
-  padding: 8px 12px;
-  border: 1px solid #d1d5db;
-  border-radius: 6px;
-  resize: vertical;
-  min-height: 80px;
+.test-search-btn:hover {
+  background-color: #059669;
 }
 
 @media (max-width: 768px) {
   .filter-row {
     flex-direction: column;
   }
-  
+
   .filter-group {
     min-width: auto;
   }
-  
+
   .statistics-section {
     grid-template-columns: repeat(2, 1fr);
   }
-  
+
   .payments-table {
-    font-size: 14px;
+    font-size: 12px;
   }
-  
+
   .payments-table th,
   .payments-table td {
-    padding: 8px 12px;
+    padding: 8px;
   }
 }
-</style> 
+</style>

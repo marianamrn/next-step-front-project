@@ -238,17 +238,9 @@ const routes = [
         beforeEnter: checkRoleAccess(['super_admin', 'admin', 'teacher'])
       },
       {
-        path: 'payments',
-        name: 'AdminPayments',
-        component: () => import('@/components/admin/PaymentsManagement.vue'),
-        meta: { roles: ['super_admin', 'admin'] },
-        beforeEnter: checkRoleAccess(['super_admin', 'admin'])
-      },
-      {
         path: 'financial',
         name: 'AdminFinancial',
-        component: () => import('@/components/admin/ComingSoon.vue'),
-        props: { feature: 'Фінансовий модуль' },
+        component: () => import('@/components/admin/FinancialModule.vue'),
         meta: { roles: ['super_admin', 'admin'] },
         beforeEnter: checkRoleAccess(['super_admin', 'admin'])
       },
