@@ -86,16 +86,6 @@
         </li>
         <li v-if="isSuperAdmin || isAdmin"
           class="nav-item"
-          @click="navigateTo('payments')"
-          :class="{ active: activeRoute === 'payments' }"
-        >
-          <span class="icon">
-            <v-icon>mdi-credit-card</v-icon>
-          </span>
-          <span class="nav-text">Платежі</span>
-        </li>
-        <li v-if="isSuperAdmin || isAdmin"
-          class="nav-item"
           @click="navigateTo('financial')"
           :class="{ active: activeRoute === 'financial' }"
         >

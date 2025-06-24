@@ -48,8 +48,6 @@
             return 'Коментарі та відгуки';
           case 'courses':
             return 'Курси';
-          case 'payments':
-            return 'Управління платежами';
           case 'statistics':
             return 'Статистика';
           case 'financial':
