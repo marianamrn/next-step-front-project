@@ -77,7 +77,7 @@
 
       <!-- Ціна та кнопка -->
       <div class="course-footer">
-        <div class="course-price">
+        <div class="course-price" v-if="showPrice">
           <span
             v-if="course.is_on_discount && course.price !== course.current_price"
             class="original-price"
@@ -100,7 +100,7 @@
 
         <div class="course-actions">
           <button 
-            v-if="course.price > 0" 
+            v-if="showBuyButton && course.price > 0" 
             @click="buyCourse" 
             class="buy-btn"
             :disabled="loading"
@@ -109,7 +109,7 @@
             <span v-else>Купити курс</span>
           </button>
           <button 
-            v-else 
+            v-if="showEnrollButton && course.price == 0" 
             @click="enrollFreeCourse" 
             class="enroll-btn"
             :disabled="loading"
@@ -137,6 +137,18 @@ export default {
       type: Object,
       required: true,
     },
+    showPrice: {
+      type: Boolean,
+      default: true
+    },
+    showBuyButton: {
+      type: Boolean,
+      default: true
+    },
+    showEnrollButton: {
+      type: Boolean,
+      default: true
+    }
   },
   data() {
     return {

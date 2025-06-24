@@ -5,29 +5,31 @@
     <div v-else-if="error" class="error">{{ error }}</div>
     <div v-else-if="courses.length === 0" class="empty">У вас ще немає курсів.</div>
     <div v-else class="courses-list">
-      <div v-for="enrollment in courses" :key="enrollment.id" class="course-card" @click="goToCourse(enrollment.course.id)">
-        <img :src="enrollment.course.cover_url || coursePlaceholder" alt="cover" class="course-cover" />
-        <div class="course-info">
-          <h3>{{ enrollment.course.title }}</h3>
-          <p>{{ enrollment.course.short_description }}</p>
-        </div>
-      </div>
+      <CourseCard
+        v-for="enrollment in courses"
+        :key="enrollment.id"
+        :course="enrollment.course"
+        :showPrice="false"
+        :showBuyButton="false"
+        :showEnrollButton="false"
+        @click.native="goToCourse(enrollment.course.id)"
+      />
     </div>
   </div>
 </template>
 
 <script>
 import { getUserEnrollments } from '../../services/api';
-import coursePlaceholder from '../../assets/img/course-placeholder.jpg';
+import CourseCard from '../courses/CourseCard.vue';
 
 export default {
   name: 'MyCourses',
+  components: { CourseCard },
   data() {
     return {
       loading: true,
       error: null,
-      courses: [],
-      coursePlaceholder
+      courses: []
     };
   },
   async created() {
@@ -65,50 +67,5 @@ export default {
   flex-wrap: wrap;
   gap: 24px;
   justify-content: flex-start;
-}
-.course-card {
-  background: #fff;
-  border-radius: 10px;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.07);
-  width: 270px;
-  cursor: pointer;
-  transition: box-shadow 0.2s;
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-}
-.course-card:hover {
-  box-shadow: 0 4px 16px rgba(29,182,184,0.15);
-}
-.course-cover {
-  width: 100%;
-  height: 150px;
-  object-fit: cover;
-}
-.course-info {
-  padding: 16px;
-}
-@media (max-width: 900px) {
-  .courses-list {
-    gap: 16px;
-  }
-  .course-card {
-    width: 45vw;
-    min-width: 180px;
-    max-width: 100%;
-  }
-}
-@media (max-width: 600px) {
-  .courses-list {
-    flex-direction: column;
-    gap: 12px;
-  }
-  .course-card {
-    width: 100%;
-    min-width: unset;
-  }
-  .course-cover {
-    height: 120px;
-  }
 }
 </style> 
