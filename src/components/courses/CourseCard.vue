@@ -211,16 +211,8 @@ export default {
     async buyCourse() {
       this.loading = true
       try {
-        const response = await initiateCoursePayment(this.course.id)
-        
-        // Якщо є LiqPay форма, показуємо її
-        if (response.liqpay_data || response.data) {
-          this.$router.push(`/payment/${this.course.id}`)
-        } else {
-          // Якщо платіж створено, перенаправляємо на статус
-          this.$router.push(`/payment-status/${response.payment?.id || response.payment_id}/${this.course.id}`)
-        }
-        
+        await initiateCoursePayment(this.course.id)
+        this.$router.push(`/payment/${this.course.id}`)
         this.$toast.success('Платіж ініційовано успішно')
       } catch (error) {
         this.$toast.error(error?.response?.data?.message || error?.message || 'Помилка ініціалізації платежу')

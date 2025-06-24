@@ -19,10 +19,7 @@
       <div class="payment-form">
         <div v-if="liqpayForm" v-html="liqpayForm"></div>
         <div v-else class="manual-form">
-          <p>Форма оплати завантажується...</p>
-          <button @click="submitManualPayment" class="manual-pay-btn">
-            Перейти до оплати
-          </button>
+          <p>Не вдалося отримати форму LiqPay для оплати.</p>
         </div>
       </div>
       
@@ -68,107 +65,49 @@ export default {
       this.error = null;
       try {
         const resp = await initiateCoursePayment(this.courseId);
-        
-        // Зберігаємо дані про платіж
         this.paymentId = resp.payment?.id || resp.payment_id;
         this.courseTitle = resp.course?.title || resp.payment?.course?.title || 'Невідомий курс';
         this.amount = resp.amount || resp.payment?.amount || resp.course?.price || 0;
-        this.liqpayData = resp.liqpay_data || resp.data;
-        
-        // Показуємо успішне повідомлення
-        this.$toast.success('Платіж ініційовано успішно');
-        
-        // Формуємо HTML для LiqPay форми
-        if (this.liqpayData) {
-          if (this.liqpayData.data) {
-            // Якщо API повертає готовий HTML
-            this.liqpayForm = this.liqpayData.data;
-          } else if (this.liqpayData.url && this.liqpayData.params) {
-            // Якщо API повертає URL та параметри
-            this.liqpayForm = this.createLiqPayForm(this.liqpayData);
-          } else {
-            throw new Error('Неправильний формат даних LiqPay');
-          }
-        } else {
-          // Якщо немає LiqPay даних, показуємо повідомлення про очікування
-          this.liqpayForm = this.createPendingPaymentForm();
+        // Підтримка liqpay, liqpay_data, data
+        this.liqpayData = resp.liqpay || resp.liqpay_data || resp.data;
+
+        // Якщо є form_html — рендеримо його
+        if (this.liqpayData && this.liqpayData.form_html) {
+          this.liqpayForm = this.liqpayData.form_html;
+          this.loading = false;
+          // Автоматично сабмітити форму не потрібно — користувач сам натисне
+          return;
         }
-        
+        // Якщо є url + data + signature — будуємо форму вручну
+        if (this.liqpayData && (this.liqpayData.url && (this.liqpayData.data || (this.liqpayData.params && this.liqpayData.params.data)))) {
+          this.liqpayForm = this.createLiqPayForm(this.liqpayData);
+          this.loading = false;
+          return;
+        }
+        // Якщо нічого немає — показуємо помилку
+        this.error = 'Не вдалося отримати форму LiqPay для оплати. Спробуйте пізніше або зверніться до адміністратора.';
         this.loading = false;
       } catch (e) {
         this.error = e?.response?.data?.message || e?.message || 'Помилка ініціалізації оплати';
-        this.$toast.error(this.error);
+        this.$toast?.error?.(this.error);
         this.loading = false;
       }
     },
-
     createLiqPayForm(liqpayData) {
-      const { url, params } = liqpayData;
-      
+      const url = liqpayData.url;
+      const data = liqpayData.data || (liqpayData.params && liqpayData.params.data);
+      const signature = liqpayData.signature || (liqpayData.params && liqpayData.params.signature);
       return `
-        <form method="POST" action="${url}" id="liqpay-form">
-          <input type="hidden" name="data" value="${params.data}" />
-          <input type="hidden" name="signature" value="${params.signature}" />
-          <div class="payment-button-container">
-            <button type="submit" class="liqpay-submit-btn">
-              <v-icon>mdi-credit-card</v-icon>
-              Оплатити ${this.formatCurrency(this.amount)}
-            </button>
-          </div>
+        <form method="POST" action="${url}" accept-charset="utf-8">
+          <input type="hidden" name="data" value="${data}" />
+          <input type="hidden" name="signature" value="${signature}" />
+          <button type="submit" class="liqpay-submit-btn">Оплатити ${this.formatCurrency(this.amount)}</button>
         </form>
       `;
     },
-
-    createPendingPaymentForm() {
-      return `
-        <div class="pending-payment-info">
-          <div class="pending-icon">
-            <v-icon>mdi-clock-outline</v-icon>
-          </div>
-          <h3>Платіж створено</h3>
-          <p>Ваш платіж був успішно створений і очікує підтвердження адміністратором.</p>
-          <div class="payment-id-info">
-            <strong>ID платежу:</strong> ${this.paymentId}
-          </div>
-          <button onclick="window.location.href='/payment-status/${this.paymentId}/${this.courseId}'" class="check-status-btn">
-            <v-icon>mdi-refresh</v-icon>
-            Перевірити статус
-          </button>
-        </div>
-      `;
+    retryInitiation() {
+      this.initiatePayment();
     },
-
-    submitManualPayment() {
-      if (this.liqpayData && this.liqpayData.url && this.liqpayData.params) {
-        // Створюємо форму програмно та відправляємо
-        const form = document.createElement('form');
-        form.method = 'POST';
-        form.action = this.liqpayData.url;
-        form.target = '_blank';
-        
-        const dataInput = document.createElement('input');
-        dataInput.type = 'hidden';
-        dataInput.name = 'data';
-        dataInput.value = this.liqpayData.params.data;
-        
-        const signatureInput = document.createElement('input');
-        signatureInput.type = 'hidden';
-        signatureInput.name = 'signature';
-        signatureInput.value = this.liqpayData.params.signature;
-        
-        form.appendChild(dataInput);
-        form.appendChild(signatureInput);
-        
-        document.body.appendChild(form);
-        form.submit();
-        document.body.removeChild(form);
-      }
-    },
-
-    async retryInitiation() {
-      await this.initiatePayment();
-    },
-
     formatCurrency(amount) {
       if (!amount) return '0 ₴';
       return new Intl.NumberFormat('uk-UA', {
