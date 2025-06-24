@@ -19,7 +19,7 @@
           </v-chip>
         </div>
       </div>
-      <div class="course-favorite-btn">
+      <div class="course-favorite-btn" v-if="showFavorite">
         <v-btn
           icon
           variant="flat"
@@ -146,6 +146,10 @@ export default {
       default: true
     },
     showEnrollButton: {
+      type: Boolean,
+      default: true
+    },
+    showFavorite: {
       type: Boolean,
       default: true
     }

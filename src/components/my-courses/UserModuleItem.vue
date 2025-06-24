@@ -1,5 +1,5 @@
 <template>
-  <div class="module-item">
+  <div class="user-module-card">
     <div class="module-header" @click="toggleExpanded">
       <div class="module-index">{{ index + 1 }}</div>
       <div class="module-info">
@@ -15,31 +15,32 @@
         </button>
       </div>
     </div>
-
-    <div v-if="expanded" class="module-content">
-      <div class="lessons-header">
-        <h3>Уроки</h3>
-      </div>
-      <div v-if="!module.lessons || module.lessons.length === 0" class="no-lessons">
-        У цьому модулі ще немає уроків.
-      </div>
-      <div v-else class="lessons-list">
-        <div v-for="(lesson, lessonIndex) in module.lessons" :key="lesson.id" class="lesson-item">
-          <div class="lesson-info">
-            <div class="lesson-index">{{ lessonIndex + 1 }}</div>
-            <div class="lesson-details">
-              <div class="lesson-title">{{ lesson.title }}</div>
-              <div class="lesson-type">{{ getLessonType(lesson.type) }}</div>
+    <transition name="fade">
+      <div v-if="expanded" class="module-content">
+        <div class="lessons-header">
+          <h3>Уроки</h3>
+        </div>
+        <div v-if="!module.lessons || module.lessons.length === 0" class="no-lessons">
+          У цьому модулі ще немає уроків.
+        </div>
+        <div v-else class="lessons-list">
+          <div v-for="(lesson, lessonIndex) in module.lessons" :key="lesson.id" class="lesson-item">
+            <div class="lesson-info">
+              <div class="lesson-index">{{ lessonIndex + 1 }}</div>
+              <div class="lesson-details">
+                <div class="lesson-title">{{ lesson.title }}</div>
+                <div class="lesson-type">{{ getLessonType(lesson.type) }}</div>
+              </div>
             </div>
-          </div>
-          <div class="lesson-actions">
-            <button class="action-button" @click="$emit('view-lesson', lesson)">
-              <v-icon small>mdi-eye</v-icon>
-            </button>
+            <div class="lesson-actions">
+              <button class="action-button" @click="$emit('view-lesson', lesson)">
+                <v-icon small>mdi-eye</v-icon>
+              </button>
+            </div>
           </div>
         </div>
       </div>
-    </div>
+    </transition>
   </div>
 </template>
 
@@ -93,17 +94,23 @@ export default {
 </script>
 
 <style scoped>
-.module-item {
-  background-color: white;
-  border-radius: 8px;
-  margin-bottom: 16px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+.user-module-card {
+  background: #fff;
+  border-radius: 16px;
+  box-shadow: 0 4px 24px rgba(124,58,237,0.08);
+  margin-bottom: 28px;
+  transition: box-shadow 0.2s, transform 0.2s;
+  width: 100%;
   overflow: hidden;
+}
+.user-module-card:hover {
+  box-shadow: 0 8px 32px rgba(124,58,237,0.13);
+  transform: translateY(-2px) scale(1.01);
 }
 .module-header {
   display: flex;
   align-items: center;
-  padding: 16px;
+  padding: 20px 28px 20px 24px;
   cursor: pointer;
   transition: background-color 0.2s;
 }
@@ -114,29 +121,30 @@ export default {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 32px;
-  height: 32px;
+  width: 44px;
+  height: 44px;
   background-color: #443bc9;
   color: white;
   border-radius: 50%;
   font-weight: bold;
-  margin-right: 16px;
+  font-size: 1.3rem;
+  margin-right: 20px;
 }
 .module-info {
   flex: 1;
 }
 .module-title {
-  font-weight: 500;
+  font-weight: 600;
   margin-bottom: 4px;
-  font-size: 16px;
+  font-size: 1.18rem;
 }
 .module-description {
   color: #666;
-  font-size: 14px;
+  font-size: 15px;
   margin-bottom: 4px;
 }
 .module-lessons-count {
-  font-size: 13px;
+  font-size: 14px;
   color: #888;
 }
 .module-actions {
@@ -145,7 +153,7 @@ export default {
   gap: 8px;
 }
 .module-content {
-  padding: 0 16px 12px 16px;
+  padding: 0 28px 18px 28px;
 }
 .no-lessons {
   color: #888;
@@ -162,6 +170,9 @@ export default {
   border-bottom: 1px solid #ececf2;
   cursor: pointer;
   transition: background 0.15s;
+}
+.lesson-item:last-child {
+  border-bottom: none;
 }
 .lesson-item:hover {
   background: #f8f8fa;
@@ -199,8 +210,26 @@ export default {
   align-items: center;
   gap: 8px;
 }
-.view-icon {
-  color: #443bc9;
+.action-button {
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  background: none;
+  color: #666;
   cursor: pointer;
+  border-radius: 4px;
+  transition: background 0.15s;
+}
+.action-button:hover {
+  background-color: rgba(68,59,201,0.08);
+}
+.fade-enter-active, .fade-leave-active {
+  transition: opacity 0.2s;
+}
+.fade-enter, .fade-leave-to {
+  opacity: 0;
 }
 </style> 

@@ -1,6 +1,9 @@
 <template>
   <div class="my-courses">
-    <h2>Мої курси</h2>
+    <div class="my-courses-banner">
+      <h1 class="my-courses-title">Мої курси</h1>
+      <p class="my-courses-subtitle">Всі курси, на які ви записані. Продовжуйте навчання та відкривайте нові знання!</p>
+    </div>
     <div v-if="loading" class="loading">Завантаження...</div>
     <div v-else-if="error" class="error">{{ error }}</div>
     <div v-else-if="courses.length === 0" class="empty">У вас ще немає курсів.</div>
@@ -12,6 +15,7 @@
         :showPrice="false"
         :showBuyButton="false"
         :showEnrollButton="false"
+        :showFavorite="false"
         @click.native="goToCourse(enrollment.course.id)"
       />
     </div>
@@ -53,9 +57,29 @@ export default {
 
 <style scoped>
 .my-courses {
-  max-width: 1100px;
+  max-width: 1200px;
   margin: 0 auto;
-  padding: 24px 12px;
+  padding: 32px 12px 24px 12px;
+}
+.my-courses-banner {
+  background: linear-gradient(90deg, #7c3aed 0%, #1db6b8 100%);
+  border-radius: 18px;
+  padding: 36px 32px 28px 32px;
+  margin-bottom: 32px;
+  color: white;
+  box-shadow: 0 6px 32px rgba(124,58,237,0.10);
+  text-align: left;
+}
+.my-courses-title {
+  font-size: 2.4rem;
+  font-weight: 700;
+  margin-bottom: 8px;
+  letter-spacing: -1px;
+}
+.my-courses-subtitle {
+  font-size: 1.15rem;
+  font-weight: 400;
+  opacity: 0.95;
 }
 .loading, .error, .empty {
   text-align: center;
@@ -63,9 +87,9 @@ export default {
   font-size: 18px;
 }
 .courses-list {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 24px;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 32px;
   justify-content: flex-start;
 }
 </style> 

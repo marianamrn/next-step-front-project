@@ -3,53 +3,60 @@
     <v-container fluid>
       <v-row>
         <v-col cols="12" md="8">
-          <v-card class="mb-5" elevation="2">
-            <v-card-title>{{ course.title }}</v-card-title>
-            <v-card-text>
-              <div class="course-header">
-                <img :src="getCourseImage()" alt="cover" class="course-cover" />
-                <div class="course-info">
-                  <p class="course-description">{{ course.description }}</p>
-                  <div class="course-details">
-                    <div><strong>Інструктор:</strong> {{ course.instructor?.full_name || course.instructor?.name || '—' }}</div>
-                    <div><strong>Категорія:</strong> {{ course.category?.name || '—' }}</div>
-                    <div><strong>Рівень:</strong> {{ course.level?.name || '—' }}</div>
-                    <div><strong>Мова:</strong> {{ course.language || '—' }}</div>
-                    <div><strong>Уроків:</strong> {{ totalLessons }}</div>
-                    <div><strong>Студентів:</strong> {{ course.students_count ?? course.enrollments_count ?? '—' }}</div>
-                  </div>
+          <v-card class="course-banner-card mb-5" elevation="3">
+            <div class="course-banner">
+              <img :src="getCourseImage()" alt="cover" class="course-banner-img" />
+              <div class="course-banner-overlay">
+                <div class="course-banner-title">{{ course.title }}</div>
+                <div class="course-banner-meta">
+                  <span class="course-banner-rating">
+                    <v-icon size="18" color="#FFD700">mdi-star</v-icon>
+                    {{ (course.average_rating || course.rating || 0).toFixed(1) }}
+                  </span>
+                  <span class="course-banner-students">
+                    <v-icon size="18" color="#fff">mdi-account-group</v-icon>
+                    {{ course.students_count ?? course.enrollments_count ?? 0 }} студентів
+                  </span>
                 </div>
               </div>
-              <div class="course-extra-info">
-                <div v-if="Array.isArray(course.what_you_learn) && course.what_you_learn.length">
-                  <h4>Чого ви навчитесь</h4>
-                  <ul>
-                    <li v-for="(item, idx) in course.what_you_learn" :key="'learn-' + idx">{{ item }}</li>
-                  </ul>
+            </div>
+          </v-card>
+
+          <v-card class="mb-5" elevation="2">
+            <v-card-text>
+              <div class="course-extra-info-modern">
+                <div v-if="Array.isArray(course.what_you_learn) && course.what_you_learn.length" class="learn-block">
+                  <h3>Чого ви навчитесь?</h3>
+                  <div class="learn-list-modern">
+                    <div v-for="(item, idx) in course.what_you_learn" :key="'learn-' + idx" class="learn-item">
+                      <v-icon color="#4CAF50" size="20">mdi-check-circle</v-icon>
+                      <span>{{ item }}</span>
+                    </div>
+                  </div>
                 </div>
-                <div v-if="Array.isArray(course.requirements) && course.requirements.length">
+                <div v-if="Array.isArray(course.requirements) && course.requirements.length" class="req-block">
                   <h4>Вимоги до курсу</h4>
                   <ul>
                     <li v-for="(item, idx) in course.requirements" :key="'req-' + idx">{{ item }}</li>
                   </ul>
                 </div>
               </div>
+              <div class="course-description-modern">{{ course.description }}</div>
             </v-card-text>
           </v-card>
 
-          <v-card class="mb-5" elevation="2">
-            <v-card-title>Модулі та уроки</v-card-title>
-            <v-card-text>
-              <div v-if="!Array.isArray(modules) || !modules.length" class="empty">У цього курсу ще немає модулів.</div>
+          <section class="modules-section">
+            <h2 class="modules-title">Модулі та уроки</h2>
+            <div class="modules-list">
               <UserModuleItem
-                v-for="(module, idx) in modules"
+                v-for="(module, idx) in course.modules"
                 :key="module.id"
                 :module="module"
                 :index="idx"
-                @view-lesson="onViewLesson"
+                @view-lesson="openLessonModal"
               />
-            </v-card-text>
-          </v-card>
+            </div>
+          </section>
         </v-col>
         <v-col cols="12" md="4">
           <v-card elevation="2">
@@ -188,7 +195,7 @@ export default {
 
 <style scoped>
 .my-course-detail {
-  max-width: 900px;
+  max-width: 1000px;
   margin: 0 auto;
   padding: 24px 12px;
 }
@@ -197,76 +204,97 @@ export default {
   margin: 40px 0;
   font-size: 18px;
 }
-.course-header {
-  display: flex;
-  gap: 24px;
-  align-items: flex-start;
+.course-banner-card {
+  border-radius: 18px;
+  overflow: hidden;
   margin-bottom: 32px;
-  flex-wrap: wrap;
+  box-shadow: 0 8px 32px rgba(124,58,237,0.10);
 }
-.course-cover {
-  width: 220px;
-  height: 140px;
+.course-banner {
+  position: relative;
+  height: 220px;
+  background: linear-gradient(90deg, #7c3aed 0%, #1db6b8 100%);
+  border-radius: 18px;
+  overflow: hidden;
+  display: flex;
+  align-items: stretch;
+}
+.course-banner-img {
+  width: 320px;
+  height: 100%;
   object-fit: cover;
-  border-radius: 8px;
-  background: #f5f5f5;
+  border-radius: 0 18px 18px 0;
+  box-shadow: 0 4px 24px rgba(0,0,0,0.10);
 }
-.course-info {
+.course-banner-overlay {
   flex: 1;
-  min-width: 220px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 32px 36px;
+  color: white;
 }
-.course-details {
-  margin-top: 16px;
-  font-size: 15px;
-  color: #444;
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 6px 24px;
+.course-banner-title {
+  font-size: 2.1rem;
+  font-weight: 700;
+  margin-bottom: 16px;
+  letter-spacing: -1px;
 }
-.course-description {
-  margin: 8px 0 0 0;
+.course-banner-meta {
+  display: flex;
+  gap: 32px;
+  font-size: 1.1rem;
+  align-items: center;
+}
+.course-banner-rating {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.course-banner-students {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.course-extra-info-modern {
+  display: flex;
+  gap: 48px;
+  flex-wrap: wrap;
+  margin-bottom: 18px;
+}
+.learn-block {
+  flex: 2;
+}
+.learn-list-modern {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 8px;
+}
+.learn-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 1.05rem;
   color: #333;
 }
-.course-extra-info {
-  margin-bottom: 32px;
+.req-block {
+  flex: 1;
 }
-.course-extra-info h4 {
-  margin: 12px 0 4px 0;
-  font-size: 17px;
-}
-.course-extra-info ul {
-  margin: 0 0 8px 0;
-  padding-left: 18px;
-}
-.modules-list {
-  margin-top: 24px;
-}
-.module-block {
-  margin-bottom: 18px;
-  background: #f8f8fa;
-  border-radius: 8px;
-  padding: 12px 16px;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.04);
-}
-.module-title {
-  font-weight: 600;
-  font-size: 17px;
+.course-description-modern {
+  font-size: 1.1rem;
+  color: #444;
+  margin-top: 18px;
   margin-bottom: 8px;
-  color: #443bc9;
 }
-.lessons-list {
-  list-style: none;
-  padding: 0;
-  margin: 0;
-}
-.lessons-list li {
-  padding: 7px 0;
-  border-bottom: 1px solid #ececf2;
-  font-size: 15px;
-  color: #222;
-}
-.lessons-list li:last-child {
-  border-bottom: none;
+.modules-aligned-card {
+  border-radius: 16px;
+  margin-bottom: 32px;
+  box-shadow: 0 4px 24px rgba(124,58,237,0.08);
+  max-width: 1000px;
+  margin-left: auto;
+  margin-right: auto;
+  padding: 0 24px;
 }
 @media (max-width: 700px) {
   .course-header {
@@ -281,5 +309,21 @@ export default {
   .course-details {
     grid-template-columns: 1fr;
   }
+}
+.modules-section {
+  width: 100%;
+  max-width: 1000px;
+  margin: 0 auto 40px auto;
+  padding: 0 16px;
+}
+.modules-title {
+  font-size: 2rem;
+  font-weight: 700;
+  margin-bottom: 28px;
+  color: #2d2254;
+  letter-spacing: -1px;
+}
+.modules-list {
+  width: 100%;
 }
 </style> 
